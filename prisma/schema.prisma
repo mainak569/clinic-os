@@ -32,7 +32,11 @@ model User {
   deletedAt    DateTime? @map("deleted_at")
 
   // Relations
-  provider Provider?
+  provider                  Provider?
+  visitNotesAuthored        VisitNote[]          @relation("VisitNoteAuthor")
+  visitNotesEdited          VisitNote[]          @relation("VisitNoteEditor")
+  visitNoteHistoryEdits     VisitNoteHistory[]   @relation("VisitNoteHistoryEditor")
+  appointmentHistoryActions AppointmentHistory[] @relation("AppointmentHistoryPerformer")
 
   @@index([email])
   @@index([role])
@@ -234,6 +238,7 @@ model Appointment {
 model VisitNote {
   id            String   @id @default(cuid())
   appointmentId String   @unique @map("appointment_id")
+  authorId      String   @map("author_id") // Provider who created the note
   
   // Clinical Documentation
   chiefComplaint    String? @map("chief_complaint")
@@ -261,15 +266,61 @@ model VisitNote {
   followUpInstructions String? @map("follow_up_instructions")
   nextVisitDate        DateTime? @map("next_visit_date")
   
-  // Audit fields
+  // Audit fields - tracks last modification
   createdAt         DateTime @default(now()) @map("created_at")
   updatedAt         DateTime @updatedAt @map("updated_at")
+  lastEditedBy      String?  @map("last_edited_by") // User ID of last editor
+  lastEditedAt      DateTime? @map("last_edited_at")
 
   // Relations
-  appointment Appointment @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
+  appointment     Appointment          @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
+  author          User                 @relation("VisitNoteAuthor", fields: [authorId], references: [id])
+  lastEditor      User?                @relation("VisitNoteEditor", fields: [lastEditedBy], references: [id])
+  history         VisitNoteHistory[]
 
   @@index([appointmentId])
+  @@index([authorId])
+  @@index([createdAt])
   @@map("visit_notes")
+}
+
+// Immutable history for visit notes
+model VisitNoteHistory {
+  id           String   @id @default(cuid())
+  visitNoteId  String   @map("visit_note_id")
+  
+  // Snapshot of all fields at time of change
+  chiefComplaint       String? @map("chief_complaint")
+  historyOfPresent     String? @map("history_of_present")
+  physicalExam         String? @map("physical_exam")
+  assessment           String?
+  plan                 String?
+  bloodPressure        String? @map("blood_pressure")
+  heartRate            Int?    @map("heart_rate")
+  temperature          Decimal? @db.Decimal(4, 1)
+  respiratoryRate      Int?    @map("respiratory_rate")
+  oxygenSaturation     Int?    @map("oxygen_saturation")
+  weight               Decimal? @db.Decimal(5, 2)
+  height               Decimal? @db.Decimal(5, 2)
+  prescriptions        String?
+  labOrders            String? @map("lab_orders")
+  imagingOrders        String? @map("imaging_orders")
+  referrals            String?
+  followUpInstructions String? @map("follow_up_instructions")
+  nextVisitDate        DateTime? @map("next_visit_date")
+  
+  // Audit metadata - IMMUTABLE
+  editedBy      String   @map("edited_by") // User ID
+  editedAt      DateTime @map("edited_at") @default(now())
+  changeReason  String?  @map("change_reason") // Optional reason for edit
+  
+  // Relations
+  visitNote VisitNote @relation(fields: [visitNoteId], references: [id], onDelete: Cascade)
+  editor    User      @relation("VisitNoteHistoryEditor", fields: [editedBy], references: [id])
+
+  @@index([visitNoteId])
+  @@index([editedAt])
+  @@map("visit_note_history")
 }
 
 // ============================================================================
@@ -285,24 +336,39 @@ enum HistoryAction {
   COMPLETED
   NO_SHOW
   RESCHEDULED
+  PROVIDER_CHANGED
+  SUPPORTING_PROVIDER_ADDED
+  SUPPORTING_PROVIDER_REMOVED
+  NOTE_ADDED
+  NOTE_UPDATED
 }
 
 model AppointmentHistory {
   id            String        @id @default(cuid())
   appointmentId String        @map("appointment_id")
   action        HistoryAction
+  
+  // Field-specific tracking
+  field         String?       // Which field changed (status, providerId, notes, etc.)
   previousValue String?       @map("previous_value")
   newValue      String?       @map("new_value")
-  notes         String?
-  performedBy   String?       @map("performed_by") // User ID or system
-  createdAt     DateTime      @default(now()) @map("created_at")
+  
+  // Additional context
+  notes         String?       // System notes, cancellation reasons, etc.
+  metadata      String?       // JSON string for complex changes
+  
+  // Audit metadata - IMMUTABLE
+  performedBy   String        @map("performed_by") // User ID (required)
+  performedAt   DateTime      @default(now()) @map("performed_at")
 
   // Relations
   appointment Appointment @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
+  performer   User        @relation("AppointmentHistoryPerformer", fields: [performedBy], references: [id])
 
   @@index([appointmentId])
   @@index([action])
-  @@index([createdAt])
+  @@index([performedAt])
+  @@index([performedBy])
   @@map("appointment_history")
 }
 
