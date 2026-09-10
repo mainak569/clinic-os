@@ -1,0 +1,2 @@
+# This file ensures the prisma directory is tracked by git
+# Database schema and migrations will be added here when setting up the database

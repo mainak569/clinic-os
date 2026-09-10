@@ -1,6 +1,5 @@
 # Decisions
 
-
 ## Decision 1
 
 - Chose:
@@ -8,7 +7,6 @@
 - Rejected:
 
 - Why:
-
 
 ## Decision 2
 
@@ -18,7 +16,6 @@
 
 - Why:
 
-
 ## Decision 3
 
 - Chose:
@@ -27,7 +24,6 @@
 
 - Why:
 
-
 ## Decision 4
 
 - Chose:
@@ -35,7 +31,6 @@
 - Rejected:
 
 - Why:
-
 
 ## Decision 5
 

@@ -1,6 +1,5 @@
 # ClinicOS Project Specification
 
-
 ## Project Overview
 
 Build a production-grade clinic appointment scheduling system.
@@ -17,7 +16,6 @@ The application manages:
 - alerts
 - analytics
 
-
 ## Problem Statement
 
 Small clinics often manage appointments manually using paper schedules and shared calendars.
@@ -31,9 +29,7 @@ This creates problems:
 
 ClinicOS solves this by providing a centralized scheduling and management platform.
 
-
 # Technology Stack
-
 
 ## Frontend
 
@@ -50,7 +46,6 @@ Use:
 - Recharts
 - FullCalendar
 
-
 ## Backend
 
 Use:
@@ -58,7 +53,6 @@ Use:
 - Next.js server architecture
 - Server Actions
 - API routes where appropriate
-
 
 ## Authentication
 
@@ -69,7 +63,6 @@ Use:
 - bcrypt password hashing
 - JWT sessions
 
-
 ## Database
 
 Use:
@@ -78,13 +71,11 @@ Use:
 - Supabase
 - Prisma ORM
 
-
 ## Deployment
 
 Use:
 
 - Vercel
-
 
 # Engineering Rules
 
@@ -110,9 +101,7 @@ Follow these rules:
 
 10. Explain important architectural decisions.
 
-
 # User Roles
-
 
 ## Front Desk
 
@@ -128,7 +117,6 @@ Permissions:
 - view alerts
 - export schedules
 
-
 ## Provider
 
 Permissions:
@@ -136,7 +124,6 @@ Permissions:
 - view own schedule
 - manage own visit notes
 - update allowed appointment information
-
 
 Restrictions:
 
@@ -146,12 +133,9 @@ Provider cannot:
 - view another provider schedule
 - reassign appointments away from themselves
 
-
 Authorization must be enforced on backend.
 
-
 # Appointment Workflow
-
 
 Appointment lifecycle:
 
@@ -169,13 +153,11 @@ CHECKED_IN
 
 COMPLETED
 
-
 NO_SHOW:
 
 Allowed only from CONFIRMED.
 
 Allowed only after scheduled time has passed.
-
 
 Cancellation:
 
@@ -183,9 +165,7 @@ Allowed only before CHECKED_IN.
 
 Cancellation requires a reason.
 
-
 # Required Features
-
 
 ## Authentication
 
@@ -196,7 +176,6 @@ Minimum roles:
 - FRONT_DESK
 - PROVIDER
 
-
 ## Availability
 
 Users can:
@@ -205,7 +184,6 @@ Users can:
 - edit unbooked slots
 - archive slots
 - restore slots
-
 
 ## Appointments
 
@@ -218,7 +196,6 @@ Support:
 - cancellation
 - no-show
 
-
 ## Visit Notes
 
 Providers can:
@@ -226,14 +203,12 @@ Providers can:
 - create notes
 - edit their own notes
 
-
 ## Care Team
 
 Appointments support:
 
 - one main provider
 - multiple supporting providers
-
 
 ## Search
 
@@ -248,7 +223,6 @@ Appointments must support:
 
 Filtering must happen server-side.
 
-
 ## Bulk Availability
 
 Support:
@@ -256,7 +230,6 @@ Support:
 - recurring slot generation
 - collision detection
 - CSV export
-
 
 ## Dashboard
 
@@ -270,7 +243,6 @@ Include:
 - status breakdown
 - no-show analytics
 
-
 ## History
 
 Maintain immutable timeline:
@@ -279,7 +251,6 @@ Maintain immutable timeline:
 - cancellations
 - supporting provider changes
 - visit notes
-
 
 ## Alerts
 
@@ -291,7 +262,6 @@ If still unconfirmed 1 hour before:
 
 alert must reappear even after dismissal.
 
-
 # Development Process
 
 For every feature:
@@ -302,9 +272,7 @@ For every feature:
 4. Review.
 5. Commit.
 
-
 Create meaningful git commits after every major milestone.
-
 
 # Code Quality
 
