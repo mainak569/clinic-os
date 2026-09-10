@@ -2,6 +2,9 @@ import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import { Navbar } from "@/components/layout/navbar";
+import { QueryProvider } from "@/components/providers/query-provider";
+import { SessionProvider } from "@/components/providers/session-provider";
+import { Toaster } from "@/components/ui/sonner";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -65,18 +68,23 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body className={inter.className}>
-        <div className="relative flex min-h-screen flex-col">
-          <Navbar />
-          <main className="flex-1">{children}</main>
-          <footer className="border-t py-8">
-            <div className="container mx-auto px-4 text-center text-muted-foreground">
-              <p>
-                © 2026 ClinicOS. All rights reserved. Built with modern
-                healthcare in mind.
-              </p>
+        <SessionProvider>
+          <QueryProvider>
+            <div className="relative flex min-h-screen flex-col">
+              <Navbar />
+              <main className="flex-1">{children}</main>
+              <footer className="border-t py-8">
+                <div className="container mx-auto px-4 text-center text-muted-foreground">
+                  <p>
+                    © 2026 ClinicOS. All rights reserved. Built with modern
+                    healthcare in mind.
+                  </p>
+                </div>
+              </footer>
             </div>
-          </footer>
-        </div>
+            <Toaster />
+          </QueryProvider>
+        </SessionProvider>
       </body>
     </html>
   );
