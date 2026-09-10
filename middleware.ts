@@ -17,7 +17,10 @@ export default auth((req) => {
   const isLoggedIn = !!req.auth;
 
   // ✅ ADDED: Rate limiting
-  const identifier = req.ip || req.auth?.user?.id || "anonymous";
+  // Use geo.city, headers, or user ID for identification
+  const forwarded = req.headers.get("x-forwarded-for");
+  const ip = forwarded ? forwarded.split(",")[0] : "unknown";
+  const identifier = ip || req.auth?.user?.id || "anonymous";
   const { success, limit, remaining, reset } = globalRateLimit(identifier);
 
   if (!success) {
@@ -33,11 +36,6 @@ export default auth((req) => {
   }
 
   // Define route types
-  const isPublicRoute =
-    nextUrl.pathname === "/" ||
-    nextUrl.pathname.startsWith("/login") ||
-    nextUrl.pathname.startsWith("/api/auth");
-
   const isProtectedRoute =
     nextUrl.pathname.startsWith("/dashboard") ||
     nextUrl.pathname.startsWith("/appointments") ||

@@ -1,7 +1,5 @@
 import { prisma } from "@/lib/prisma";
 import type { DayOfWeek, AvailabilitySlot } from "@prisma/client";
-import { availabilityService } from "./availability.service";
-import { OverlappingSlotError } from "@/lib/errors/appointment-errors";
 
 /**
  * Bulk Availability Service Layer

@@ -36,7 +36,7 @@ if (SENTRY_DSN) {
     ],
     
     // Before send hook - sanitize sensitive data
-    beforeSend(event, hint) {
+    beforeSend(event) {
       // Remove sensitive data from breadcrumbs
       if (event.breadcrumbs) {
         event.breadcrumbs = event.breadcrumbs.filter((breadcrumb) => {

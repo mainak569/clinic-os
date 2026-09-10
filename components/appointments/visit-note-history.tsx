@@ -1,6 +1,6 @@
 "use client";
 
-import { FileText, Clock, AlertCircle, ChevronRight } from "lucide-react";
+import { FileText, AlertCircle, ChevronRight } from "lucide-react";
 import { format } from "date-fns";
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -271,7 +271,7 @@ function Section({ title, children }: { title: string; children: React.ReactNode
   );
 }
 
-function Field({ label, value }: { label: string; value?: string | null }) {
+function Field({ label, value }: { label: string; value?: string | null | undefined }) {
   if (!value) return null;
 
   return (
@@ -288,7 +288,7 @@ function VitalField({
   unit,
 }: {
   label: string;
-  value?: number | string | null;
+  value?: number | string | null | undefined;
   unit?: string;
 }) {
   if (value === null || value === undefined) return null;

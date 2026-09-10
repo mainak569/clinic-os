@@ -82,8 +82,8 @@ export async function createAppointment(
         providerId: validatedInput.providerId,
         scheduledAt: validatedInput.scheduledAt.toISOString(),
       },
-      ipAddress: headersList.get("x-forwarded-for") || undefined,
-      userAgent: headersList.get("user-agent") || undefined,
+      ipAddress: headersList.get("x-forwarded-for") ?? null,
+      userAgent: headersList.get("user-agent") ?? null,
     });
 
     // Revalidate relevant paths
@@ -151,8 +151,8 @@ export async function confirmAppointment(
       resource: "APPOINTMENT",
       resourceId: validatedInput.appointmentId,
       details: { action: "CONFIRM", newStatus: "CONFIRMED" },
-      ipAddress: headersList.get("x-forwarded-for") || undefined,
-      userAgent: headersList.get("user-agent") || undefined,
+      ipAddress: headersList.get("x-forwarded-for") ?? null,
+      userAgent: headersList.get("user-agent") ?? null,
     });
 
     // Revalidate relevant paths
@@ -212,8 +212,8 @@ export async function checkInAppointment(
       resource: "APPOINTMENT",
       resourceId: validatedInput.appointmentId,
       details: { action: "CHECK_IN", newStatus: "CHECKED_IN" },
-      ipAddress: headersList.get("x-forwarded-for") || undefined,
-      userAgent: headersList.get("user-agent") || undefined,
+      ipAddress: headersList.get("x-forwarded-for") ?? null,
+      userAgent: headersList.get("user-agent") ?? null,
     });
 
     // Revalidate relevant paths
@@ -273,8 +273,8 @@ export async function completeAppointment(
       resource: "APPOINTMENT",
       resourceId: validatedInput.appointmentId,
       details: { action: "COMPLETE", newStatus: "COMPLETED" },
-      ipAddress: headersList.get("x-forwarded-for") || undefined,
-      userAgent: headersList.get("user-agent") || undefined,
+      ipAddress: headersList.get("x-forwarded-for") ?? null,
+      userAgent: headersList.get("user-agent") ?? null,
     });
 
     // Revalidate relevant paths

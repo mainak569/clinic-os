@@ -16,7 +16,7 @@ import {
   LineChart,
   Line,
 } from "recharts";
-import { TrendingUp, TrendingDown, Activity } from "lucide-react";
+import { TrendingUp, TrendingDown } from "lucide-react";
 
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { getDashboardAnalytics } from "@/app/actions/analytics.actions";
@@ -185,7 +185,7 @@ export function AnalyticsCharts() {
                   cx="50%"
                   cy="50%"
                   outerRadius={100}
-                  label={(entry) => `${entry.status}: ${entry.count}`}
+                  label={(entry: any) => `${entry.status}: ${entry.count}`}
                 >
                   {analytics.appointmentsByStatus.map(
                     (entry: any, index: number) => (
@@ -261,7 +261,7 @@ export function AnalyticsCharts() {
                 }}
               />
               <Tooltip
-                formatter={(value: number) => `${value.toFixed(1)}%`}
+                formatter={(value: any) => `${Number(value).toFixed(1)}%`}
               />
               <Legend />
               <Line

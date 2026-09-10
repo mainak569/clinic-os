@@ -140,7 +140,7 @@ export function AppointmentTimeline({
           {/* Timeline line */}
           <div className="absolute left-[9px] top-2 bottom-2 w-px bg-border" />
 
-          {events.map((event, index) => {
+          {events.map((event) => {
             const actionConfig = ACTION_LABELS[event.action] || {
               label: event.action,
               icon: Clock,

@@ -16,8 +16,8 @@ export interface AuditLogInput {
   resource: ResourceType;
   resourceId: string;
   details?: Record<string, any>;
-  ipAddress?: string;
-  userAgent?: string;
+  ipAddress?: string | null;
+  userAgent?: string | null;
 }
 
 export class AuditService {
@@ -36,8 +36,8 @@ export class AuditService {
           resource: input.resource,
           resourceId: input.resourceId,
           details: input.details ? JSON.stringify(input.details) : null,
-          ipAddress: input.ipAddress,
-          userAgent: input.userAgent,
+          ipAddress: input.ipAddress ?? null,
+          userAgent: input.userAgent ?? null,
         },
       });
     } catch (error) {

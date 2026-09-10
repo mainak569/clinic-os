@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Calendar, Clock, AlertCircle, CheckCircle2, XCircle } from "lucide-react";
+import { Calendar, Clock, AlertCircle, CheckCircle2 } from "lucide-react";
 import { format } from "date-fns";
 import { toast } from "sonner";
 
@@ -29,8 +29,8 @@ const formSchema = z.object({
   endTime: z.string().regex(/^\d{2}:\d{2}$/),
   startDate: z.string(),
   endDate: z.string(),
-  skipCollisions: z.boolean().default(false),
-  overwriteExisting: z.boolean().default(false),
+  skipCollisions: z.boolean(),
+  overwriteExisting: z.boolean(),
 });
 
 type FormValues = z.infer<typeof formSchema>;

@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/prisma";
-import type { VisitNote, VisitNoteHistory, Prisma } from "@prisma/client";
+import type { VisitNote, VisitNoteHistory } from "@prisma/client";
 
 /**
  * Visit Note Service Layer

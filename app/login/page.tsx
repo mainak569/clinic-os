@@ -1,6 +1,7 @@
 import { LoginForm } from "@/components/auth/login-form";
 import { Heart } from "lucide-react";
 import Link from "next/link";
+import { Suspense } from "react";
 
 export const metadata = {
   title: "Login - ClinicOS",
@@ -31,7 +32,9 @@ export default function LoginPage() {
             </p>
           </div>
 
-          <LoginForm />
+          <Suspense fallback={<div>Loading...</div>}>
+            <LoginForm />
+          </Suspense>
         </div>
 
         {/* Footer */}

@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import type { Alert, AlertType, AlertPriority } from "@prisma/client";
-import { addHours, subHours, isBefore, isAfter } from "date-fns";
+import { addHours, subHours } from "date-fns";
 
 /**
  * Alert Service Layer

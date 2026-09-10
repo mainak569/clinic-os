@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/prisma";
-import { subWeeks, startOfWeek, endOfWeek, format } from "date-fns";
+import { subWeeks, startOfWeek, format } from "date-fns";
 
 /**
  * Analytics Service Layer

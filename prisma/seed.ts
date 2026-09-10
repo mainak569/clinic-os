@@ -13,7 +13,7 @@ async function main() {
   console.log('👤 Creating users...');
   
   // Front desk user
-  const frontDeskUser = await prisma.user.create({
+  await prisma.user.create({
     data: {
       email: 'frontdesk@clinicos.com',
       passwordHash: await bcrypt.hash('FrontDesk123!', 12),
@@ -362,27 +362,36 @@ async function main() {
   });
 
   if (completedAppointments.length > 0) {
-    await prisma.visitNote.create({
-      data: {
-        appointmentId: completedAppointments[0].id,
-        chiefComplaint: 'Annual physical examination',
-        historyOfPresent: 'Patient reports feeling well overall. No acute concerns.',
-        physicalExam: 'Well-appearing adult. HEENT normal, CV regular rate and rhythm, lungs clear, abdomen soft.',
-        assessment: 'Healthy adult female, age 31',
-        plan: 'Continue current lifestyle. Return in 1 year for annual physical.',
-        bloodPressure: '120/80',
-        heartRate: 72,
-        temperature: 98.6,
-        respiratoryRate: 16,
-        oxygenSaturation: 99,
-        weight: 135.5,
-        height: 65.0,
-        followUpInstructions: 'Continue healthy diet and exercise. Schedule mammogram.',
-        nextVisitDate: new Date(new Date().setFullYear(new Date().getFullYear() + 1)),
-      },
+    // Get provider from the completed appointment
+    const appointment = await prisma.appointment.findUnique({
+      where: { id: completedAppointments[0].id },
+      include: { provider: true },
     });
+    
+    if (appointment) {
+      await prisma.visitNote.create({
+        data: {
+          appointmentId: completedAppointments[0].id,
+          authorId: appointment.provider.userId,
+          chiefComplaint: 'Annual physical examination',
+          historyOfPresent: 'Patient reports feeling well overall. No acute concerns.',
+          physicalExam: 'Well-appearing adult. HEENT normal, CV regular rate and rhythm, lungs clear, abdomen soft.',
+          assessment: 'Healthy adult female, age 31',
+          plan: 'Continue current lifestyle. Return in 1 year for annual physical.',
+          bloodPressure: '120/80',
+          heartRate: 72,
+          temperature: 98.6,
+          respiratoryRate: 16,
+          oxygenSaturation: 99,
+          weight: 135.5,
+          height: 65.0,
+          followUpInstructions: 'Continue healthy diet and exercise. Schedule mammogram.',
+          nextVisitDate: new Date(new Date().setFullYear(new Date().getFullYear() + 1)),
+        },
+      });
 
-    console.log('✅ Created 1 visit note');
+      console.log('✅ Created 1 visit note');
+    }
   }
 
   // ============================================================================

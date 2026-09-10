@@ -34,7 +34,7 @@ if (SENTRY_DSN) {
     ],
     
     // Before send hook - sanitize sensitive data
-    beforeSend(event, hint) {
+    beforeSend(event) {
       // Remove sensitive data from extra context
       if (event.extra) {
         // Remove potential PHI
@@ -64,11 +64,6 @@ if (SENTRY_DSN) {
       
       return event;
     },
-    
-    // Integrate with Node.js
-    integrations: [
-      new Sentry.Integrations.Http({ tracing: true }),
-    ],
   });
 } else {
   console.warn("[Sentry] SENTRY_DSN not configured. Error tracking disabled.");
