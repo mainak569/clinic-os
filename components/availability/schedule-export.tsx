@@ -139,7 +139,7 @@ export function ScheduleExport({ providerId, providerName }: ScheduleExportProps
         <CardHeader>
           <CardTitle>Export Schedule</CardTitle>
           <CardDescription>
-            Export {providerName}'s availability schedule
+            Export {providerName}&apos;s availability schedule
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">

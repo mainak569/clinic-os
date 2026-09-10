@@ -3,6 +3,8 @@ import { Button } from "@/components/ui/button";
 import { signOut } from "@/auth";
 import { Heart, LogOut, User } from "lucide-react";
 import Link from "next/link";
+import { AlertPanel } from "@/components/dashboard/alert-panel";
+import { AnalyticsCharts } from "@/components/dashboard/analytics-charts";
 
 export const metadata = {
   title: "Dashboard - ClinicOS",
@@ -51,77 +53,26 @@ export default async function DashboardPage() {
       </header>
 
       {/* Main Content */}
-      <main className="container mx-auto px-4 py-8">
-        <div className="mb-8">
+      <main className="container mx-auto px-4 py-8 space-y-8">
+        <div>
           <h1 className="mb-2 text-3xl font-bold">Welcome Back!</h1>
           <p className="text-muted-foreground">
             {session.user.providerName
-              ? `Dr. ${session.user.providerName}`
+              ? `${session.user.providerName}`
               : session.user.email}
           </p>
         </div>
 
-        {/* User Info Card */}
-        <div className="rounded-lg border bg-card p-6">
-          <h2 className="mb-4 text-xl font-semibold">Your Account</h2>
+        {/* Alerts - Only for Providers */}
+        {session.user.role === "PROVIDER" && session.user.providerId && (
+          <AlertPanel />
+        )}
 
-          <div className="space-y-3">
-            <div>
-              <span className="text-sm text-muted-foreground">Email:</span>
-              <p className="font-medium">{session.user.email}</p>
-            </div>
-
-            <div>
-              <span className="text-sm text-muted-foreground">Role:</span>
-              <p className="font-medium">
-                {session.user.role === "FRONT_DESK"
-                  ? "Front Desk Staff"
-                  : "Provider"}
-              </p>
-            </div>
-
-            {session.user.providerId && (
-              <div>
-                <span className="text-sm text-muted-foreground">
-                  Provider ID:
-                </span>
-                <p className="font-mono text-sm">{session.user.providerId}</p>
-              </div>
-            )}
-
-            <div className="mt-4 rounded-md bg-muted/50 p-3">
-              <div className="text-sm text-muted-foreground">
-                {session.user.role === "PROVIDER" ? (
-                  <>
-                    <p>
-                      As a <strong>Provider</strong>, you can access:
-                    </p>
-                    <ul className="ml-4 mt-2 list-disc">
-                      <li>Your own appointments</li>
-                      <li>Your patients&apos; records</li>
-                      <li>Your schedule and availability</li>
-                    </ul>
-                  </>
-                ) : (
-                  <>
-                    <p>
-                      As <strong>Front Desk</strong>, you can access:
-                    </p>
-                    <ul className="ml-4 mt-2 list-disc">
-                      <li>All appointments</li>
-                      <li>All patient records</li>
-                      <li>All provider schedules</li>
-                      <li>System administration</li>
-                    </ul>
-                  </>
-                )}
-              </div>
-            </div>
-          </div>
-        </div>
+        {/* Analytics Dashboard */}
+        <AnalyticsCharts />
 
         {/* Quick Actions */}
-        <div className="mt-6 grid gap-4 md:grid-cols-3">
+        <div className="grid gap-4 md:grid-cols-3">
           <div className="rounded-lg border bg-card p-4">
             <h3 className="mb-2 font-semibold">Appointments</h3>
             <p className="text-sm text-muted-foreground">

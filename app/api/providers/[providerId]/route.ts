@@ -12,12 +12,12 @@ import { NextResponse } from "next/server";
  * - PROVIDER: Can only access their own data
  */
 export async function GET(
-  request: Request,
-  { params }: { params: { providerId: string } }
+  _request: Request,
+  { params }: { params: Promise<{ providerId: string }> }
 ) {
   try {
-    const session = await requireAuth();
-    const { providerId } = params;
+    await requireAuth();
+    const { providerId } = await params;
 
     // Authorization check
     const canAccess = await canAccessProviderData(providerId);
@@ -80,11 +80,11 @@ export async function GET(
  */
 export async function PATCH(
   request: Request,
-  { params }: { params: { providerId: string } }
+  { params }: { params: Promise<{ providerId: string }> }
 ) {
   try {
-    const session = await requireAuth();
-    const { providerId } = params;
+    await requireAuth();
+    const { providerId } = await params;
 
     // Authorization check
     const canAccess = await canAccessProviderData(providerId);

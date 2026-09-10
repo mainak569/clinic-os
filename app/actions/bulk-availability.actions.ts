@@ -47,7 +47,7 @@ export async function bulkCreateAvailability(
   }>
 > {
   try {
-    const session = await requireAuth();
+    await requireAuth();
 
     // Validate input
     const validatedInput = bulkCreateAvailabilitySchema.parse(input);
@@ -106,7 +106,7 @@ export async function exportScheduleToCSV(
   input: ExportScheduleInput
 ): Promise<ActionResult<{ csv: string; filename: string }>> {
   try {
-    const session = await requireAuth();
+    await requireAuth();
 
     // Validate input
     const validatedInput = exportScheduleSchema.parse(input);
@@ -165,7 +165,7 @@ export async function exportScheduleToJSON(
   input: ExportScheduleInput
 ): Promise<ActionResult<{ json: string; filename: string }>> {
   try {
-    const session = await requireAuth();
+    await requireAuth();
 
     // Validate input
     const validatedInput = exportScheduleSchema.parse(input);
@@ -226,7 +226,7 @@ export async function getDailySchedule(input: {
   endDate: Date;
 }): Promise<ActionResult<any[]>> {
   try {
-    const session = await requireAuth();
+    await requireAuth();
 
     // Authorization: check if user can access this provider's schedule
     const canAccess = await canAccessProviderData(input.providerId);
@@ -268,7 +268,7 @@ export async function deleteBulkAvailability(
   input: DeleteBulkAvailabilityInput
 ): Promise<ActionResult<{ archived: number }>> {
   try {
-    const session = await requireAuth();
+    await requireAuth();
 
     // Validate input
     const validatedInput = deleteBulkAvailabilitySchema.parse(input);

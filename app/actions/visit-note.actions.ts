@@ -83,24 +83,24 @@ export async function createVisitNote(
     const visitNote = await visitNoteService.createVisitNote({
       appointmentId: validatedInput.appointmentId,
       authorId: session.user.id,
-      chiefComplaint: validatedInput.chiefComplaint,
-      historyOfPresent: validatedInput.historyOfPresent,
-      physicalExam: validatedInput.physicalExam,
-      assessment: validatedInput.assessment,
-      plan: validatedInput.plan,
-      bloodPressure: validatedInput.bloodPressure,
-      heartRate: validatedInput.heartRate,
-      temperature: validatedInput.temperature,
-      respiratoryRate: validatedInput.respiratoryRate,
-      oxygenSaturation: validatedInput.oxygenSaturation,
-      weight: validatedInput.weight,
-      height: validatedInput.height,
-      prescriptions: validatedInput.prescriptions,
-      labOrders: validatedInput.labOrders,
-      imagingOrders: validatedInput.imagingOrders,
-      referrals: validatedInput.referrals,
-      followUpInstructions: validatedInput.followUpInstructions,
-      nextVisitDate: validatedInput.nextVisitDate,
+      ...(validatedInput.chiefComplaint !== undefined && { chiefComplaint: validatedInput.chiefComplaint }),
+      ...(validatedInput.historyOfPresent !== undefined && { historyOfPresent: validatedInput.historyOfPresent }),
+      ...(validatedInput.physicalExam !== undefined && { physicalExam: validatedInput.physicalExam }),
+      ...(validatedInput.assessment !== undefined && { assessment: validatedInput.assessment }),
+      ...(validatedInput.plan !== undefined && { plan: validatedInput.plan }),
+      ...(validatedInput.bloodPressure !== undefined && { bloodPressure: validatedInput.bloodPressure }),
+      ...(validatedInput.heartRate !== undefined && { heartRate: validatedInput.heartRate }),
+      ...(validatedInput.temperature !== undefined && { temperature: validatedInput.temperature }),
+      ...(validatedInput.respiratoryRate !== undefined && { respiratoryRate: validatedInput.respiratoryRate }),
+      ...(validatedInput.oxygenSaturation !== undefined && { oxygenSaturation: validatedInput.oxygenSaturation }),
+      ...(validatedInput.weight !== undefined && { weight: validatedInput.weight }),
+      ...(validatedInput.height !== undefined && { height: validatedInput.height }),
+      ...(validatedInput.prescriptions !== undefined && { prescriptions: validatedInput.prescriptions }),
+      ...(validatedInput.labOrders !== undefined && { labOrders: validatedInput.labOrders }),
+      ...(validatedInput.imagingOrders !== undefined && { imagingOrders: validatedInput.imagingOrders }),
+      ...(validatedInput.referrals !== undefined && { referrals: validatedInput.referrals }),
+      ...(validatedInput.followUpInstructions !== undefined && { followUpInstructions: validatedInput.followUpInstructions }),
+      ...(validatedInput.nextVisitDate !== undefined && { nextVisitDate: validatedInput.nextVisitDate }),
     });
 
     // Revalidate relevant paths
@@ -161,25 +161,25 @@ export async function updateVisitNote(
       validatedInput.visitNoteId,
       session.user.id,
       {
-        changeReason: validatedInput.changeReason,
-        chiefComplaint: validatedInput.chiefComplaint,
-        historyOfPresent: validatedInput.historyOfPresent,
-        physicalExam: validatedInput.physicalExam,
-        assessment: validatedInput.assessment,
-        plan: validatedInput.plan,
-        bloodPressure: validatedInput.bloodPressure,
-        heartRate: validatedInput.heartRate,
-        temperature: validatedInput.temperature,
-        respiratoryRate: validatedInput.respiratoryRate,
-        oxygenSaturation: validatedInput.oxygenSaturation,
-        weight: validatedInput.weight,
-        height: validatedInput.height,
-        prescriptions: validatedInput.prescriptions,
-        labOrders: validatedInput.labOrders,
-        imagingOrders: validatedInput.imagingOrders,
-        referrals: validatedInput.referrals,
-        followUpInstructions: validatedInput.followUpInstructions,
-        nextVisitDate: validatedInput.nextVisitDate,
+        ...(validatedInput.changeReason !== undefined && { changeReason: validatedInput.changeReason }),
+        ...(validatedInput.chiefComplaint !== undefined && { chiefComplaint: validatedInput.chiefComplaint }),
+        ...(validatedInput.historyOfPresent !== undefined && { historyOfPresent: validatedInput.historyOfPresent }),
+        ...(validatedInput.physicalExam !== undefined && { physicalExam: validatedInput.physicalExam }),
+        ...(validatedInput.assessment !== undefined && { assessment: validatedInput.assessment }),
+        ...(validatedInput.plan !== undefined && { plan: validatedInput.plan }),
+        ...(validatedInput.bloodPressure !== undefined && { bloodPressure: validatedInput.bloodPressure }),
+        ...(validatedInput.heartRate !== undefined && { heartRate: validatedInput.heartRate }),
+        ...(validatedInput.temperature !== undefined && { temperature: validatedInput.temperature }),
+        ...(validatedInput.respiratoryRate !== undefined && { respiratoryRate: validatedInput.respiratoryRate }),
+        ...(validatedInput.oxygenSaturation !== undefined && { oxygenSaturation: validatedInput.oxygenSaturation }),
+        ...(validatedInput.weight !== undefined && { weight: validatedInput.weight }),
+        ...(validatedInput.height !== undefined && { height: validatedInput.height }),
+        ...(validatedInput.prescriptions !== undefined && { prescriptions: validatedInput.prescriptions }),
+        ...(validatedInput.labOrders !== undefined && { labOrders: validatedInput.labOrders }),
+        ...(validatedInput.imagingOrders !== undefined && { imagingOrders: validatedInput.imagingOrders }),
+        ...(validatedInput.referrals !== undefined && { referrals: validatedInput.referrals }),
+        ...(validatedInput.followUpInstructions !== undefined && { followUpInstructions: validatedInput.followUpInstructions }),
+        ...(validatedInput.nextVisitDate !== undefined && { nextVisitDate: validatedInput.nextVisitDate }),
       }
     );
 
@@ -207,7 +207,7 @@ export async function getVisitNote(
   input: GetVisitNoteInput
 ): Promise<ActionResult<any>> {
   try {
-    const session = await requireAuth();
+    await requireAuth();
 
     // Validate input
     const validatedInput = getVisitNoteSchema.parse(input);
@@ -221,10 +221,13 @@ export async function getVisitNote(
       return { success: false, error: "Visit note not found" };
     }
 
-    // Check authorization
-    const canAccess = await canAccessProviderData(
-      visitNote.appointment.provider.id
-    );
+    // Check authorization - TypeScript doesn't know about the included appointment
+    const appointment = (visitNote as any).appointment;
+    if (!appointment || !appointment.provider) {
+      return { success: false, error: "Invalid visit note data" };
+    }
+
+    const canAccess = await canAccessProviderData(appointment.provider.id);
 
     if (!canAccess) {
       return {
@@ -252,7 +255,7 @@ export async function getVisitNoteByAppointment(
   input: GetVisitNoteByAppointmentInput
 ): Promise<ActionResult<any>> {
   try {
-    const session = await requireAuth();
+    await requireAuth();
 
     // Validate input
     const validatedInput = getVisitNoteByAppointmentSchema.parse(input);
@@ -302,7 +305,7 @@ export async function getVisitNoteHistory(
   input: GetVisitNoteHistoryInput
 ): Promise<ActionResult<any[]>> {
   try {
-    const session = await requireAuth();
+    await requireAuth();
 
     // Validate input
     const validatedInput = getVisitNoteHistorySchema.parse(input);
@@ -316,10 +319,13 @@ export async function getVisitNoteHistory(
       return { success: false, error: "Visit note not found" };
     }
 
-    // Check authorization
-    const canAccess = await canAccessProviderData(
-      visitNote.appointment.provider.id
-    );
+    // Check authorization - TypeScript doesn't know about the included appointment
+    const appointment = (visitNote as any).appointment;
+    if (!appointment || !appointment.provider) {
+      return { success: false, error: "Invalid visit note data" };
+    }
+
+    const canAccess = await canAccessProviderData(appointment.provider.id);
 
     if (!canAccess) {
       return {
