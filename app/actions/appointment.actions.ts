@@ -1,8 +1,10 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { headers } from "next/headers";
 import { requireAuth, canAccessProviderData } from "@/lib/auth-helpers";
 import { appointmentService } from "@/lib/services/appointment.service";
+import { auditService } from "@/lib/services/audit.service";
 import {
   createAppointmentSchema,
   confirmAppointmentSchema,
@@ -68,6 +70,22 @@ export async function createAppointment(
       session.user.id
     );
 
+    // ✅ HIPAA Audit Log
+    const headersList = await headers();
+    await auditService.log({
+      userId: session.user.id,
+      action: "CREATE",
+      resource: "APPOINTMENT",
+      resourceId: appointment.id,
+      details: {
+        patientId: validatedInput.patientId,
+        providerId: validatedInput.providerId,
+        scheduledAt: validatedInput.scheduledAt.toISOString(),
+      },
+      ipAddress: headersList.get("x-forwarded-for") || undefined,
+      userAgent: headersList.get("user-agent") || undefined,
+    });
+
     // Revalidate relevant paths
     revalidatePath("/dashboard");
     revalidatePath("/appointments");
@@ -75,6 +93,15 @@ export async function createAppointment(
     return { success: true, data: { id: appointment.id } };
   } catch (error) {
     console.error("createAppointment error:", error);
+
+    // ✅ ADDED: Send to Sentry
+    if (typeof window === 'undefined') {
+      const Sentry = await import('@sentry/nextjs');
+      Sentry.captureException(error, {
+        tags: { action: "createAppointment" },
+        extra: { providerId: input.providerId },
+      });
+    }
 
     if (error instanceof Error) {
       return { success: false, error: error.message };
@@ -115,6 +142,18 @@ export async function confirmAppointment(
       validatedInput.appointmentId,
       session.user.id
     );
+
+    // ✅ HIPAA Audit Log
+    const headersList = await headers();
+    await auditService.log({
+      userId: session.user.id,
+      action: "UPDATE",
+      resource: "APPOINTMENT",
+      resourceId: validatedInput.appointmentId,
+      details: { action: "CONFIRM", newStatus: "CONFIRMED" },
+      ipAddress: headersList.get("x-forwarded-for") || undefined,
+      userAgent: headersList.get("user-agent") || undefined,
+    });
 
     // Revalidate relevant paths
     revalidatePath("/dashboard");
@@ -165,6 +204,18 @@ export async function checkInAppointment(
       session.user.id
     );
 
+    // ✅ HIPAA Audit Log
+    const headersList = await headers();
+    await auditService.log({
+      userId: session.user.id,
+      action: "UPDATE",
+      resource: "APPOINTMENT",
+      resourceId: validatedInput.appointmentId,
+      details: { action: "CHECK_IN", newStatus: "CHECKED_IN" },
+      ipAddress: headersList.get("x-forwarded-for") || undefined,
+      userAgent: headersList.get("user-agent") || undefined,
+    });
+
     // Revalidate relevant paths
     revalidatePath("/dashboard");
     revalidatePath("/appointments");
@@ -213,6 +264,18 @@ export async function completeAppointment(
       validatedInput.appointmentId,
       session.user.id
     );
+
+    // ✅ HIPAA Audit Log
+    const headersList = await headers();
+    await auditService.log({
+      userId: session.user.id,
+      action: "UPDATE",
+      resource: "APPOINTMENT",
+      resourceId: validatedInput.appointmentId,
+      details: { action: "COMPLETE", newStatus: "COMPLETED" },
+      ipAddress: headersList.get("x-forwarded-for") || undefined,
+      userAgent: headersList.get("user-agent") || undefined,
+    });
 
     // Revalidate relevant paths
     revalidatePath("/dashboard");

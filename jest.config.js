@@ -8,13 +8,17 @@ const config = {
   moduleNameMapper: {
     "^@/(.*)$": "<rootDir>/$1",
   },
+  // Transform ESM modules from node_modules
+  transformIgnorePatterns: [
+    "node_modules/(?!(next-auth|@auth)/)",
+  ],
   collectCoverageFrom: [
     "lib/**/*.ts",
     "app/actions/**/*.ts",
     "!**/*.d.ts",
     "!**/node_modules/**",
   ],
-  coverageThresholds: {
+  coverageThreshold: {
     global: {
       branches: 70,
       functions: 70,

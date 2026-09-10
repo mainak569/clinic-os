@@ -1,8 +1,9 @@
 import { auth } from "@/auth";
 import { NextResponse } from "next/server";
+import { globalRateLimit } from "@/lib/rate-limit";
 
 /**
- * Middleware for route protection
+ * Middleware for route protection and rate limiting
  * 
  * Runs on every request to protected routes
  * Enforces authentication at the edge (before reaching the application)
@@ -14,6 +15,22 @@ import { NextResponse } from "next/server";
 export default auth((req) => {
   const { nextUrl } = req;
   const isLoggedIn = !!req.auth;
+
+  // ✅ ADDED: Rate limiting
+  const identifier = req.ip || req.auth?.user?.id || "anonymous";
+  const { success, limit, remaining, reset } = globalRateLimit(identifier);
+
+  if (!success) {
+    return new NextResponse("Too Many Requests", {
+      status: 429,
+      headers: {
+        "X-RateLimit-Limit": limit.toString(),
+        "X-RateLimit-Remaining": remaining.toString(),
+        "X-RateLimit-Reset": new Date(reset).toISOString(),
+        "Retry-After": Math.ceil((reset - Date.now()) / 1000).toString(),
+      },
+    });
+  }
 
   // Define route types
   const isPublicRoute =
@@ -40,7 +57,13 @@ export default auth((req) => {
     return NextResponse.redirect(new URL("/dashboard", nextUrl.origin));
   }
 
-  return NextResponse.next();
+  // ✅ ADDED: Add rate limit headers to response
+  const response = NextResponse.next();
+  response.headers.set("X-RateLimit-Limit", limit.toString());
+  response.headers.set("X-RateLimit-Remaining", remaining.toString());
+  response.headers.set("X-RateLimit-Reset", new Date(reset).toISOString());
+
+  return response;
 });
 
 /**

@@ -37,6 +37,7 @@ model User {
   visitNotesEdited          VisitNote[]          @relation("VisitNoteEditor")
   visitNoteHistoryEdits     VisitNoteHistory[]   @relation("VisitNoteHistoryEditor")
   appointmentHistoryActions AppointmentHistory[] @relation("AppointmentHistoryPerformer")
+  auditLogs                 AuditLog[]           @relation("AuditLogPerformer")
 
   @@index([email])
   @@index([role])
@@ -414,4 +415,52 @@ model Alert {
   @@index([isRead])
   @@index([createdAt])
   @@map("alerts")
+}
+
+
+// ============================================================================
+// HIPAA AUDIT LOGGING
+// ============================================================================
+
+enum AuditAction {
+  CREATE
+  READ
+  UPDATE
+  DELETE
+  EXPORT
+  PRINT
+  LOGIN
+  LOGOUT
+  ACCESS_DENIED
+}
+
+enum ResourceType {
+  APPOINTMENT
+  PATIENT
+  VISIT_NOTE
+  PROVIDER
+  USER
+  AVAILABILITY
+  ALERT
+}
+
+model AuditLog {
+  id          String       @id @default(cuid())
+  userId      String       @map("user_id")
+  action      AuditAction
+  resource    ResourceType
+  resourceId  String       @map("resource_id")
+  details     String?      // JSON string with additional context
+  ipAddress   String?      @map("ip_address")
+  userAgent   String?      @map("user_agent")
+  timestamp   DateTime     @default(now())
+
+  // Relations
+  user User @relation("AuditLogPerformer", fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([resource, resourceId])
+  @@index([timestamp])
+  @@index([action])
+  @@map("audit_logs")
 }

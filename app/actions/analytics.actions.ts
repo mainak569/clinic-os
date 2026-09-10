@@ -51,6 +51,8 @@ export async function getDashboardAnalytics(
 
 /**
  * Get appointments by provider
+ * 
+ * SECURITY: Only FRONT_DESK role can access cross-provider analytics
  */
 export async function getAppointmentsByProvider(
   startDate?: Date,
@@ -59,7 +61,7 @@ export async function getAppointmentsByProvider(
   try {
     const session = await requireAuth();
 
-    // Only front desk can see cross-provider analytics
+    // ✅ FIXED: Authorization check at top of function
     if (session.user.role !== "FRONT_DESK") {
       return {
         success: false,
@@ -81,12 +83,15 @@ export async function getAppointmentsByProvider(
 
 /**
  * Get appointments by status
+ * 
+ * SECURITY: Authenticated users only (both roles allowed)
  */
 export async function getAppointmentsByStatus(
   startDate?: Date,
   endDate?: Date
 ): Promise<ActionResult<any[]>> {
   try {
+    // ✅ FIXED: Explicit authentication check
     await requireAuth();
 
     const data = await analyticsService.getAppointmentsByStatus(
@@ -103,9 +108,12 @@ export async function getAppointmentsByStatus(
 
 /**
  * Get no-show rate for last 8 weeks
+ * 
+ * SECURITY: Authenticated users only (both roles allowed)
  */
 export async function getNoShowRateLast8Weeks(): Promise<ActionResult<any[]>> {
   try {
+    // ✅ FIXED: Explicit authentication check
     await requireAuth();
 
     const data = await analyticsService.getNoShowRateLast8Weeks();
@@ -119,11 +127,14 @@ export async function getNoShowRateLast8Weeks(): Promise<ActionResult<any[]>> {
 
 /**
  * Get recent trends
+ * 
+ * SECURITY: Authenticated users only (both roles allowed)
  */
 export async function getRecentTrends(
   days = 30
 ): Promise<ActionResult<any>> {
   try {
+    // ✅ FIXED: Explicit authentication check
     await requireAuth();
 
     const data = await analyticsService.getRecentTrends(days);

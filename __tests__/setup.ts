@@ -7,8 +7,8 @@
 // Mock environment variables
 process.env.AUTH_SECRET = "test-secret-key-for-testing-only";
 process.env.AUTH_URL = "http://localhost:3000";
-process.env.DATABASE_URL = "postgresql://test:test@localhost:5432/test_db";
-process.env.DIRECT_URL = "postgresql://test:test@localhost:5432/test_db";
+process.env.DATABASE_URL = "postgresql://test_user:test_password@localhost:5432/clinicos_test";
+process.env.DIRECT_URL = "postgresql://test_user:test_password@localhost:5432/clinicos_test";
 
 // Mock Next.js modules
 jest.mock("next/navigation", () => ({
