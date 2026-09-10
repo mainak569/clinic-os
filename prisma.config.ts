@@ -5,29 +5,9 @@ import { PrismaClient } from "@prisma/client";
  * 
  * This file provides centralized Prisma client configuration for the application.
  * It ensures proper connection pooling and prevents multiple instances in development.
+ * 
+ * Note: Edge-compatible - no process.on or query logging
  */
-
-// Prisma Client Options
-const prismaOptions = {
-  log: [
-    {
-      emit: "event",
-      level: "query",
-    },
-    {
-      emit: "event",
-      level: "error",
-    },
-    {
-      emit: "event",
-      level: "info",
-    },
-    {
-      emit: "event",
-      level: "warn",
-    },
-  ] as const,
-};
 
 // Global type for Prisma client
 declare global {
@@ -40,20 +20,10 @@ declare global {
  * In development, reuses the client to avoid connection exhaustion
  * In production, creates a new client for each invocation
  */
-export const prisma = global.prisma || new PrismaClient(prismaOptions);
+export const prisma = global.prisma || new PrismaClient();
 
 if (process.env.NODE_ENV !== "production") {
   global.prisma = prisma;
-}
-
-// Optional: Add query logging in development
-if (process.env.NODE_ENV === "development") {
-  prisma.$on("query" as never, (e: unknown) => {
-    const event = e as { query: string; params: string; duration: number };
-    console.log("Query: " + event.query);
-    console.log("Params: " + event.params);
-    console.log("Duration: " + event.duration + "ms");
-  });
 }
 
 /**
@@ -62,13 +32,6 @@ if (process.env.NODE_ENV === "development") {
  */
 export async function disconnectPrisma() {
   await prisma.$disconnect();
-}
-
-// Handle process termination
-if (typeof process !== "undefined") {
-  process.on("beforeExit", async () => {
-    await disconnectPrisma();
-  });
 }
 
 /**
