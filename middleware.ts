@@ -16,7 +16,7 @@ export default auth((req) => {
   const { nextUrl } = req;
   const isLoggedIn = !!req.auth;
 
-  // ✅ ADDED: Rate limiting
+  // Rate limiting
   // Use geo.city, headers, or user ID for identification
   const forwarded = req.headers.get("x-forwarded-for");
   const ip = forwarded ? forwarded.split(",")[0] : "unknown";
@@ -55,7 +55,7 @@ export default auth((req) => {
     return NextResponse.redirect(new URL("/dashboard", nextUrl.origin));
   }
 
-  // ✅ ADDED: Add rate limit headers to response
+  // Add rate limit headers to response
   const response = NextResponse.next();
   response.headers.set("X-RateLimit-Limit", limit.toString());
   response.headers.set("X-RateLimit-Remaining", remaining.toString());

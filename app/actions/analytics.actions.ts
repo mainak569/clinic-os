@@ -61,7 +61,7 @@ export async function getAppointmentsByProvider(
   try {
     const session = await requireAuth();
 
-    // ✅ FIXED: Authorization check at top of function
+    // Authorization check at top of function
     if (session.user.role !== "FRONT_DESK") {
       return {
         success: false,
@@ -91,7 +91,7 @@ export async function getAppointmentsByStatus(
   endDate?: Date
 ): Promise<ActionResult<any[]>> {
   try {
-    // ✅ FIXED: Explicit authentication check
+    // Explicit authentication check
     await requireAuth();
 
     const data = await analyticsService.getAppointmentsByStatus(
@@ -113,7 +113,7 @@ export async function getAppointmentsByStatus(
  */
 export async function getNoShowRateLast8Weeks(): Promise<ActionResult<any[]>> {
   try {
-    // ✅ FIXED: Explicit authentication check
+    // Explicit authentication check
     await requireAuth();
 
     const data = await analyticsService.getNoShowRateLast8Weeks();
@@ -134,7 +134,7 @@ export async function getRecentTrends(
   days = 30
 ): Promise<ActionResult<any>> {
   try {
-    // ✅ FIXED: Explicit authentication check
+    // Explicit authentication check
     await requireAuth();
 
     const data = await analyticsService.getRecentTrends(days);

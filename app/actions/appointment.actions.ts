@@ -70,7 +70,7 @@ export async function createAppointment(
       session.user.id
     );
 
-    // ✅ HIPAA Audit Log
+    // HIPAA Audit Log
     const headersList = await headers();
     await auditService.log({
       userId: session.user.id,
@@ -94,7 +94,7 @@ export async function createAppointment(
   } catch (error) {
     console.error("createAppointment error:", error);
 
-    // ✅ ADDED: Send to Sentry
+    // Send to Sentry
     if (typeof window === 'undefined') {
       const Sentry = await import('@sentry/nextjs');
       Sentry.captureException(error, {
@@ -143,7 +143,7 @@ export async function confirmAppointment(
       session.user.id
     );
 
-    // ✅ HIPAA Audit Log
+    // HIPAA Audit Log
     const headersList = await headers();
     await auditService.log({
       userId: session.user.id,
@@ -204,7 +204,7 @@ export async function checkInAppointment(
       session.user.id
     );
 
-    // ✅ HIPAA Audit Log
+    // HIPAA Audit Log
     const headersList = await headers();
     await auditService.log({
       userId: session.user.id,
@@ -265,7 +265,7 @@ export async function completeAppointment(
       session.user.id
     );
 
-    // ✅ HIPAA Audit Log
+    // HIPAA Audit Log
     const headersList = await headers();
     await auditService.log({
       userId: session.user.id,

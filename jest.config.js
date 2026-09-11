@@ -10,7 +10,7 @@ const config = {
   },
   // Transform ESM modules from node_modules
   transformIgnorePatterns: [
-    "node_modules/(?!(next-auth|@auth)/)",
+    "node_modules/(?!(@auth|next-auth|@panva)/)",
   ],
   collectCoverageFrom: [
     "lib/**/*.ts",

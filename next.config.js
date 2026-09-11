@@ -6,7 +6,7 @@ const nextConfig = {
   eslint: {
     dirs: ["app", "components", "lib", "hooks", "utils"],
   },
-  // ✅ ADDED: Security headers for production
+  // Security headers for production
   async headers() {
     return [
       {

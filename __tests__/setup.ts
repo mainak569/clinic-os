@@ -32,4 +32,36 @@ jest.mock("next/cache", () => ({
 // Mock server-only modules for client-side tests
 jest.mock("server-only", () => ({}));
 
+// Mock next-auth completely to avoid ESM issues
+jest.mock("@/auth", () => ({
+  auth: jest.fn(),
+  signIn: jest.fn(),
+  signOut: jest.fn(),
+  handlers: {},
+}));
+
+jest.mock("next-auth", () => ({
+  default: jest.fn(),
+}));
+
+/**
+ * Test Helper: Get next occurrence of a specific day of week
+ * @param dayOfWeek 0=Sunday, 1=Monday, etc.
+ * @param daysAhead Minimum days ahead (default 7)
+ */
+export function getNextDayOfWeek(dayOfWeek: number, daysAhead: number = 7): Date {
+  const date = new Date();
+  date.setDate(date.getDate() + daysAhead);
+  const dayOffset = (dayOfWeek + 7 - date.getDay()) % 7 || 7;
+  date.setDate(date.getDate() + dayOffset);
+  return date;
+}
+
+/**
+ * Test Helper: Get next Monday
+ */
+export function getNextMonday(daysAhead: number = 7): Date {
+  return getNextDayOfWeek(1, daysAhead);
+}
+
 export {};

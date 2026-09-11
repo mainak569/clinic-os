@@ -43,10 +43,10 @@ cp .env.local .env
 
 ## Important Notes
 
-- ⚠️ **Never commit** `.env` or `.env.local` to version control
-- 🔒 Both files are ignored by git (check `.gitignore`)
-- 🔄 Keep both files in sync when updating credentials
-- 🔐 Generate `AUTH_SECRET` with: `openssl rand -base64 32`
+- **Never commit** `.env` or `.env.local` to version control
+- Both files are ignored by git (check `.gitignore`)
+- Keep both files in sync when updating credentials
+- Generate `AUTH_SECRET` with: `openssl rand -base64 32`
 
 ## Environment Variables Reference
 

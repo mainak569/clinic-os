@@ -56,10 +56,10 @@ export function CTA() {
 
               {/* Trust Indicators */}
               <div className="mt-12 flex flex-wrap items-center justify-center gap-6 text-sm text-white/80">
-                <div>✓ No setup fees</div>
-                <div>✓ 30-day free trial</div>
-                <div>✓ Cancel anytime</div>
-                <div>✓ HIPAA compliant</div>
+                <div>- No setup fees</div>
+                <div>- 30-day free trial</div>
+                <div>- Cancel anytime</div>
+                <div>- HIPAA compliant</div>
               </div>
             </div>
           </div>

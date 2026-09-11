@@ -4,13 +4,13 @@ import bcrypt from 'bcryptjs';
 const prisma = new PrismaClient();
 
 async function main() {
-  console.log('🌱 Starting database seed...');
+  console.log('Starting database seed...');
 
   // ============================================================================
   // USERS & AUTHENTICATION
   // ============================================================================
   
-  console.log('👤 Creating users...');
+  console.log('Creating users...');
   
   // Front desk user
   await prisma.user.create({
@@ -41,13 +41,13 @@ async function main() {
     },
   });
 
-  console.log(`✅ Created ${3} users`);
+  console.log(`Created ${3} users`);
 
   // ============================================================================
   // PROVIDERS & PROFILES
   // ============================================================================
   
-  console.log('👩‍⚕️ Creating providers...');
+  console.log('Creating providers...');
 
   // Dr. Sarah Smith - Family Medicine
   const drSmith = await prisma.provider.create({
@@ -97,13 +97,13 @@ async function main() {
     },
   });
 
-  console.log(`✅ Created ${2} providers`);
+  console.log(`Created ${2} providers`);
 
   // ============================================================================
   // AVAILABILITY SLOTS
   // ============================================================================
   
-  console.log('📅 Creating availability slots...');
+  console.log('Creating availability slots...');
 
   // Dr. Smith's availability - Monday to Friday, 9 AM to 5 PM
   const drSmithSlots = [];
@@ -157,13 +157,13 @@ async function main() {
     data: drJohnsonSlots,
   });
 
-  console.log(`✅ Created ${drSmithSlots.length + drJohnsonSlots.length} availability slots`);
+  console.log(`Created ${drSmithSlots.length + drJohnsonSlots.length} availability slots`);
 
   // ============================================================================
   // SAMPLE PATIENTS
   // ============================================================================
   
-  console.log('🏥 Creating sample patients...');
+  console.log('Creating sample patients...');
 
   const patients = await prisma.patient.createMany({
     data: [
@@ -260,7 +260,7 @@ async function main() {
     ],
   });
 
-  console.log(`✅ Created ${patients.count} patients`);
+  console.log(`Created ${patients.count} patients`);
 
   // Get created patients for appointments
   const createdPatients = await prisma.patient.findMany({
@@ -271,7 +271,7 @@ async function main() {
   // SAMPLE APPOINTMENTS
   // ============================================================================
   
-  console.log('📋 Creating sample appointments...');
+  console.log('Creating sample appointments...');
 
   const now = new Date();
   const tomorrow = new Date(now);
@@ -346,13 +346,13 @@ async function main() {
     ],
   });
 
-  console.log(`✅ Created ${appointments.count} appointments`);
+  console.log(`Created ${appointments.count} appointments`);
 
   // ============================================================================
   // SAMPLE VISIT NOTES
   // ============================================================================
   
-  console.log('📝 Creating sample visit notes...');
+  console.log('Creating sample visit notes...');
 
   const completedAppointments = await prisma.appointment.findMany({
     where: {
@@ -390,7 +390,7 @@ async function main() {
         },
       });
 
-      console.log('✅ Created 1 visit note');
+      console.log('Created 1 visit note');
     }
   }
 
@@ -398,7 +398,7 @@ async function main() {
   // SAMPLE ALERTS
   // ============================================================================
   
-  console.log('🔔 Creating sample alerts...');
+  console.log('Creating sample alerts...');
 
   await prisma.alert.createMany({
     data: [
@@ -426,9 +426,9 @@ async function main() {
     ],
   });
 
-  console.log('✅ Created 3 alerts');
+  console.log('Created 3 alerts');
 
-  console.log('🎉 Database seeding completed successfully!');
+  console.log('Database seeding completed successfully!');
   
   // Print summary
   const counts = await Promise.all([
@@ -441,7 +441,7 @@ async function main() {
     prisma.availabilitySlot.count(),
   ]);
 
-  console.log('\n📊 Seeding Summary:');
+  console.log('\nSeeding Summary:');
   console.log(`   Users: ${counts[0]}`);
   console.log(`   Providers: ${counts[1]}`);
   console.log(`   Patients: ${counts[2]}`);
@@ -453,7 +453,7 @@ async function main() {
 
 main()
   .catch((e) => {
-    console.error('❌ Error during seeding:');
+    console.error('Error during seeding:');
     console.error(e);
     process.exit(1);
   })

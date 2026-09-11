@@ -28,6 +28,11 @@ dist/
 .env.production
 
 # =======================
+# Kiro AI Development Tools
+# =======================
+.kiro/
+
+# =======================
 # Database & Prisma
 # =======================
 # Generated Prisma client (regenerated on build)
@@ -176,6 +181,7 @@ npm-shrinkwrap.json
 # =======================
 *.tsbuildinfo
 .tsbuildinfo
+tsconfig.tsbuildinfo
 
 # =======================
 # Miscellaneous

@@ -19,6 +19,15 @@ import {
 // Mock auth
 jest.mock("@/auth");
 
+// Helper function to get next Monday
+function getNextMonday(daysAhead: number = 7): Date {
+  const date = new Date();
+  date.setDate(date.getDate() + daysAhead);
+  const dayOffset = (1 + 7 - date.getDay()) % 7 || 7;
+  date.setDate(date.getDate() + dayOffset);
+  return date;
+}
+
 describe("Security & Unauthorized Requests", () => {
   let provider1: any;
   let provider2: any;
@@ -85,11 +94,31 @@ describe("Security & Unauthorized Requests", () => {
         email: "security-patient2@test.com",
       },
     });
+
+    // Create availability slots for providers
+    await prisma.availabilitySlot.create({
+      data: {
+        providerId: provider1.id,
+        dayOfWeek: "MONDAY",
+        startTime: new Date("2024-01-01T09:00:00"),
+        endTime: new Date("2024-01-01T17:00:00"),
+      },
+    });
+
+    await prisma.availabilitySlot.create({
+      data: {
+        providerId: provider2.id,
+        dayOfWeek: "MONDAY",
+        startTime: new Date("2024-01-01T09:00:00"),
+        endTime: new Date("2024-01-01T17:00:00"),
+      },
+    });
   });
 
   afterAll(async () => {
     await prisma.appointmentHistory.deleteMany({});
     await prisma.appointment.deleteMany({});
+    await prisma.availabilitySlot.deleteMany({});
     await prisma.patient.deleteMany({
       where: { email: { in: ["security-patient1@test.com", "security-patient2@test.com"] } },
     });
@@ -105,6 +134,12 @@ describe("Security & Unauthorized Requests", () => {
         },
       },
     });
+  });
+
+  beforeEach(async () => {
+    // Clean up appointments between tests to prevent conflicts
+    await prisma.appointmentHistory.deleteMany({});
+    await prisma.appointment.deleteMany({});
   });
 
   describe("Unauthenticated Access", () => {
@@ -137,18 +172,11 @@ describe("Security & Unauthorized Requests", () => {
 
     it("should deny provider access to another provider's patients", async () => {
       // Create appointments to establish patient-provider relationship
-      const futureDate = new Date();
-      futureDate.setDate(futureDate.getDate() + 7);
+      const futureDate = getNextMonday();
+      
       futureDate.setHours(10, 0, 0, 0);
 
-      await prisma.availabilitySlot.create({
-        data: {
-          providerId: provider2.id,
-          dayOfWeek: "MONDAY",
-          startTime: new Date("2024-01-01T09:00:00"),
-          endTime: new Date("2024-01-01T17:00:00"),
-        },
-      });
+      // Availability slot for provider2 already exists from beforeAll
 
       const appointment = await prisma.appointment.create({
         data: {
@@ -240,18 +268,11 @@ describe("Security & Unauthorized Requests", () => {
     });
 
     it("should not return unauthorized data in queries", async () => {
-      const futureDate = new Date();
-      futureDate.setDate(futureDate.getDate() + 7);
+      const futureDate = getNextMonday();
+      
       futureDate.setHours(10, 0, 0, 0);
 
-      await prisma.availabilitySlot.create({
-        data: {
-          providerId: provider1.id,
-          dayOfWeek: "MONDAY",
-          startTime: new Date("2024-01-01T09:00:00"),
-          endTime: new Date("2024-01-01T17:00:00"),
-        },
-      });
+      // Availability slot already exists from beforeAll
 
       // Create appointment for provider 1
       const appt1 = await prisma.appointment.create({
@@ -276,8 +297,9 @@ describe("Security & Unauthorized Requests", () => {
       expect(hasOtherProviderData).toBe(false);
 
       // Cleanup
+      await prisma.appointmentHistory.deleteMany({ where: { appointmentId: appt1.id } });
       await prisma.appointment.delete({ where: { id: appt1.id } });
-      await prisma.availabilitySlot.deleteMany({ where: { providerId: provider1.id } });
+      // Don't delete availability slots - they're managed by beforeAll/afterAll
     });
   });
 
@@ -298,18 +320,11 @@ describe("Security & Unauthorized Requests", () => {
     });
 
     it("should reject XSS attempts in text fields", async () => {
-      const futureDate = new Date();
-      futureDate.setDate(futureDate.getDate() + 7);
+      const futureDate = getNextMonday();
+      
       futureDate.setHours(10, 0, 0, 0);
 
-      await prisma.availabilitySlot.create({
-        data: {
-          providerId: provider1.id,
-          dayOfWeek: "MONDAY",
-          startTime: new Date("2024-01-01T09:00:00"),
-          endTime: new Date("2024-01-01T17:00:00"),
-        },
-      });
+      // Availability slot already exists from beforeAll
 
       const xssPayload = "<script>alert('XSS')</script>";
 
@@ -329,8 +344,8 @@ describe("Security & Unauthorized Requests", () => {
       expect(appointment.reason).toBe(xssPayload);
 
       // Cleanup
+      await prisma.appointmentHistory.deleteMany({ where: { appointmentId: appointment.id } });
       await prisma.appointment.delete({ where: { id: appointment.id } });
-      await prisma.availabilitySlot.deleteMany({ where: { providerId: provider1.id } });
     });
   });
 
@@ -378,18 +393,11 @@ describe("Security & Unauthorized Requests", () => {
 
   describe("Concurrent Access Control", () => {
     it("should handle concurrent appointment creation", async () => {
-      const futureDate = new Date();
-      futureDate.setDate(futureDate.getDate() + 7);
+      const futureDate = getNextMonday();
+      
       futureDate.setHours(10, 0, 0, 0);
 
-      await prisma.availabilitySlot.create({
-        data: {
-          providerId: provider1.id,
-          dayOfWeek: "MONDAY",
-          startTime: new Date("2024-01-01T09:00:00"),
-          endTime: new Date("2024-01-01T17:00:00"),
-        },
-      });
+      // Availability slot already created in beforeAll - no need to create again
 
       // Try to create two appointments at same time concurrently
       const promise1 = appointmentService.createAppointment(
@@ -427,8 +435,11 @@ describe("Security & Unauthorized Requests", () => {
 
       // Cleanup
       const successfulAppt = successful[0] as PromiseFulfilledResult<any>;
-      await prisma.appointment.delete({ where: { id: successfulAppt.value.id } });
-      await prisma.availabilitySlot.deleteMany({ where: { providerId: provider1.id } });
+      if (successfulAppt && successfulAppt.value) {
+        await prisma.appointmentHistory.deleteMany({ where: { appointmentId: successfulAppt.value.id } });
+        await prisma.appointment.delete({ where: { id: successfulAppt.value.id } });
+      }
+      // Don't delete availability slots - they're managed by beforeAll/afterAll
     });
   });
 });

@@ -1,78 +1,51 @@
 # ClinicOS
 
-A comprehensive healthcare practice management platform built with Next.js 15, TypeScript, and modern web technologies.
+A healthcare practice management application built with Next.js 15, TypeScript, and modern web technologies. Focuses on appointment scheduling, provider availability management, and clinical documentation.
 
-## 🟢 Production Status
+## Features
 
-**Status**: ✅ PRODUCTION READY  
-**Date**: September 10, 2026  
-**Build**: ✅ Verified  
-**Readiness Score**: 100%  
-**HIPAA Compliance**: 80%
+### Core Functionality
 
-### ✅ Complete Features
+- **Appointment Management**: Create, confirm, check-in, and complete appointments with state machine validation
+- **Provider Scheduling**: Manage provider availability with recurring slots and conflict detection
+- **Patient Records**: Store patient demographics, medical history, and contact information
+- **Visit Notes**: Clinical documentation with SOAP format and vital signs tracking
+- **Alerts**: Automated reminders for requested appointments (24-hour and 1-hour notifications)
+- **Analytics**: Dashboard with charts showing appointments by provider, status, and no-show rates
+- **Audit Trail**: Comprehensive logging of all data access for compliance
 
-- ✅ **48 Integration Tests** - Comprehensive test coverage
-- ✅ **Appointment Management** - Full state machine with validation
-- ✅ **Provider Scheduling** - Availability slots and bulk creation
-- ✅ **Patient Management** - Complete patient records
-- ✅ **Visit Notes** - Clinical documentation with history
-- ✅ **HIPAA Audit Logging** - Complete PHI access tracking
-- ✅ **Security Headers** - XSS, clickjacking, HTTPS enforcement
-- ✅ **Rate Limiting** - DDoS protection (100 req/min)
-- ✅ **Error Tracking** - Sentry integration with PHI sanitization
-- ✅ **Alert System** - 24h and 1h urgent alerts with auto-generation
-- ✅ **Analytics Dashboard** - 3 optimized charts (< 250ms load)
-- ✅ **Authorization** - Role-based access control with provider isolation
+### Security & Authorization
 
-### 🚀 Quick Deploy
+- **Authentication**: NextAuth.js v5 with JWT sessions and bcrypt password hashing
+- **Role-Based Access**: Provider and Front Desk roles with different permissions
+- **Provider Isolation**: Providers can only access their own appointments and patients
+- **Security Headers**: XSS, clickjacking, and HTTPS enforcement
+- **Rate Limiting**: Protection against brute-force attacks (100 req/min)
 
-Choose your deployment method:
+## Tech Stack
 
-**Option 1: Vercel (Recommended)**
-```bash
-# 1. Install Vercel CLI
-npm i -g vercel
+- **Framework**: Next.js 15.0.3 (App Router)
+- **Language**: TypeScript 5 (strict mode)
+- **Database**: PostgreSQL via Supabase with Prisma ORM 5.22
+- **Authentication**: NextAuth.js v5
+- **UI**: Tailwind CSS + shadcn/ui (Radix UI components)
+- **Forms**: React Hook Form + Zod validation
+- **State**: TanStack React Query 5.102
+- **Charts**: Recharts 3.10
+- **Testing**: Jest + ts-jest
 
-# 2. Deploy
-vercel --prod
-```
-
-**Option 2: Self-Hosted**
-```bash
-# 1. Build
-npm run build
-
-# 2. Start
-npm run start
-```
-
-📖 **Complete Guide**: [VERCEL_DEPLOYMENT_GUIDE.md](./VERCEL_DEPLOYMENT_GUIDE.md) - Step-by-step deployment
-
-### 📚 Documentation
-
-| Document | Description |
-|----------|-------------|
-| [VERCEL_DEPLOYMENT_GUIDE.md](./VERCEL_DEPLOYMENT_GUIDE.md) | Complete Vercel + Supabase deployment |
-| [QUICK_START_PRODUCTION.md](./QUICK_START_PRODUCTION.md) | Deploy in 30 minutes |
-| [PRODUCTION_DEPLOYMENT_READY.md](./PRODUCTION_DEPLOYMENT_READY.md) | Production readiness checklist |
-| [FINAL_STATUS.md](./FINAL_STATUS.md) | Executive summary |
-| [TESTING_README.md](./TESTING_README.md) | Test suite guide (48 tests) |
-| [AUTHENTICATION_README.md](./AUTHENTICATION_README.md) | Auth system documentation |
-
-## 🚀 Getting Started
+## Getting Started
 
 ### Prerequisites
 
-- Node.js 18+ installed
-- Supabase account (for database)
-- Sentry account (for error tracking)
+- Node.js 18+
+- Supabase account (or local PostgreSQL)
 
-### Local Development Setup
+### Installation
 
 1. **Clone the repository**
    ```bash
-   git clone https://github.com/yourusername/clinicos.git
+   git clone <repository-url>
    cd clinicos
    ```
 
@@ -88,9 +61,12 @@ npm run start
 
    Edit `.env.local` and add your values:
    ```env
-   DATABASE_URL="postgresql://..."
-   DIRECT_URL="postgresql://..."
-   AUTH_SECRET="generate-with-openssl-rand-base64-32"
+   # Supabase connection strings
+   DATABASE_URL="postgresql://...@...pooler.supabase.com:6543/postgres?pgbouncer=true"
+   DIRECT_URL="postgresql://...@...pooler.supabase.com:5432/postgres"
+
+   # Generate with: openssl rand -base64 32
+   AUTH_SECRET="your-secret-key"
    AUTH_URL="http://localhost:3000"
    ```
 
@@ -98,8 +74,11 @@ npm run start
    ```bash
    # Run migrations
    npx prisma migrate deploy
-   
-   # Seed initial data
+
+   # Generate Prisma client
+   npx prisma generate
+
+   # Seed database with demo data
    npm run db:seed
    ```
 
@@ -108,137 +87,62 @@ npm run start
    npm run dev
    ```
 
-6. **Open the app**
+6. **Open application**
    
    Navigate to [http://localhost:3000](http://localhost:3000)
 
 ### Demo Credentials
 
-**Provider 1**:
+After seeding the database, log in with:
+
+**Provider**:
 - Email: `dr.smith@clinicos.com`
 - Password: `DrSmith123!`
-
-**Provider 2**:
-- Email: `dr.johnson@clinicos.com`
-- Password: `DrJohnson123!`
 
 **Front Desk**:
 - Email: `frontdesk@clinicos.com`
 - Password: `FrontDesk123!`
 
-## 🛠️ Tech Stack
-
-### Core
-- **Framework**: Next.js 15.0.3 (App Router)
-- **Language**: TypeScript 5 (Strict Mode)
-- **Runtime**: Node.js 18+
-- **Database**: PostgreSQL (Supabase) + Prisma ORM 5.22
-
-### UI & Styling
-- **CSS Framework**: Tailwind CSS 3.4
-- **Component Library**: shadcn/ui + Radix UI
-- **Icons**: Lucide React
-- **Charts**: Recharts 3.10
-- **Calendar**: FullCalendar 6.1
-
-### Authentication & Security
-- **Auth**: NextAuth.js v5
-- **Hashing**: bcrypt.js
-- **Session**: JWT with HTTP-only cookies
-- **Error Tracking**: Sentry (server + client + edge)
-
-### State & Forms
-- **Server State**: TanStack React Query 5.102
-- **Forms**: React Hook Form + Zod validation
-- **UI Feedback**: Sonner (toast notifications)
-
-### Development
-- **Code Quality**: ESLint + Prettier
-- **Type Checking**: TypeScript strict mode
-- **Testing**: Jest + ts-jest (48 integration tests)
-- **Git Hooks**: Husky (optional)
-
-### Deployment
-- **Hosting**: Vercel (recommended) or self-hosted
-- **Database**: Supabase PostgreSQL
-- **Monitoring**: Sentry
-- **Cron Jobs**: Vercel Cron (alert generation)
-
-## 📁 Project Structure
+## Project Structure
 
 ```
-clinicos/
-├── app/                          # Next.js 15 App Router
-│   ├── actions/                  # Server Actions (7 files)
-│   │   ├── appointment.actions.ts
-│   │   ├── alert.actions.ts
-│   │   ├── analytics.actions.ts
-│   │   ├── availability.actions.ts
-│   │   ├── bulk-availability.actions.ts
-│   │   ├── visit-note.actions.ts
-│   │   └── queries.actions.ts
-│   ├── api/                      # API Routes
-│   │   ├── auth/[...nextauth]/
-│   │   ├── appointments/
-│   │   └── cron/generate-alerts/
-│   ├── dashboard/                # Main dashboard page
-│   ├── login/                    # Authentication page
-│   └── globals.css               # Global styles
-├── components/                   # React Components
-│   ├── ui/                       # shadcn/ui primitives
-│   ├── appointments/
-│   ├── availability/
-│   ├── dashboard/                # Alert panel, analytics charts
-│   ├── auth/
-│   ├── layout/
-│   ├── landing/
-│   └── providers/
-├── lib/                          # Utilities & Services
-│   ├── services/                 # Business logic layer
-│   │   ├── alert.service.ts
-│   │   ├── analytics.service.ts
-│   │   ├── appointment.service.ts
-│   │   ├── audit.service.ts      # HIPAA audit logging
-│   │   └── availability.service.ts
-│   ├── validations/              # Zod schemas
-│   ├── errors/                   # Custom error classes
-│   ├── auth-helpers.ts           # requireAuth, requireRole
-│   ├── prisma.ts                 # Prisma client singleton
-│   ├── rate-limit.ts             # Rate limiting
-│   └── utils.ts
-├── prisma/                       # Database
-│   ├── schema.prisma             # 9 models with HIPAA audit
-│   ├── migrations/               # Versioned migrations
-│   └── seed.ts                   # Initial data
-├── __tests__/                    # 48 Integration Tests
-│   └── integration/
-│       ├── appointment-state-machine.test.ts    (13 tests)
-│       ├── authorization.test.ts                (12 tests)
-│       ├── duplicate-bookings.test.ts           (11 tests)
-│       └── security-tests.test.ts               (12 tests)
-├── docs/                         # Documentation (20+ files)
-├── public/                       # Static assets
-├── Configuration Files
-│   ├── auth.config.ts            # Edge-compatible auth config
-│   ├── auth.ts                   # Auth providers
-│   ├── middleware.ts             # Auth + rate limiting
-│   ├── next.config.js            # Security headers
-│   ├── vercel.json               # Cron configuration
-│   ├── sentry.*.config.ts        # Error tracking
-│   ├── tsconfig.json             # TypeScript strict mode
-│   └── tailwind.config.js
-└── Environment Files
-    ├── .env.local                # Development (committed)
-    ├── .env.example              # Development template
-    └── .env.example.production   # Production template
+app/
+  actions/              # Server Actions (business logic entry points)
+  api/                  # API Routes
+  dashboard/            # Protected dashboard page
+  login/                # Authentication page
+
+components/
+  ui/                   # shadcn/ui components
+  appointments/         # Appointment components
+  availability/         # Scheduling components
+  dashboard/            # Dashboard widgets
+
+lib/
+  services/             # Business logic layer
+    appointment.service.ts
+    availability.service.ts
+    alert.service.ts
+    audit.service.ts
+  validations/          # Zod schemas
+  auth-helpers.ts       # Authorization utilities
+  prisma.ts             # Prisma client
+
+prisma/
+  schema.prisma         # Database schema
+  migrations/           # Database migrations
+  seed.ts               # Seed data
+
+__tests__/
+  integration/          # Integration tests (48 tests)
 ```
 
-## 🧪 Development Commands
+## Development Commands
 
 ```bash
 # Development
 npm run dev              # Start development server
-npm run build           # Build for production (verified ✅)
+npm run build           # Build for production
 npm run start           # Start production server
 
 # Database
@@ -246,341 +150,79 @@ npm run db:generate     # Generate Prisma client
 npm run db:push         # Push schema changes (dev)
 npm run db:migrate      # Create migration
 npm run db:seed         # Seed database
-npm run db:reset        # Reset + reseed (dev only)
 npm run db:studio       # Open Prisma Studio
 
 # Testing
-npm run test            # Run all tests
-npm run test:integration # Run integration tests (48 tests)
+npm run test:integration # Run integration tests
 npm run test:watch      # Watch mode
-npm run test:coverage   # Generate coverage report
+npm run test:coverage   # Coverage report
 
 # Code Quality
 npm run lint            # Run ESLint
 npm run lint:fix        # Fix ESLint errors
 npm run format          # Format code with Prettier
-npm run format:check    # Check formatting
-npm run type-check      # Check TypeScript types
+npm run type-check      # TypeScript type check
 ```
 
-## 🎨 Design System
-
-The application uses shadcn/ui components built on top of Radix UI primitives and styled with Tailwind CSS.
-
-### Key Features
-- Healthcare-focused color palette
-- Responsive design (mobile-first)
-- Accessibility-first components (WCAG AA)
-- Dark mode support
-- Professional healthcare aesthetics
-
-### Components
-- Form components with validation
-- Data tables with sorting/filtering
-- Modals and dialogs
-- Toast notifications
-- Charts and visualizations
-- Calendar components
-
-## 📋 Features
-
-### ✅ Completed Features
-
-#### Appointment Management
-- Create, confirm, check-in, complete appointments
-- State machine validation (REQUESTED → CONFIRMED → CHECKED_IN → COMPLETED)
-- Duplicate booking prevention
-- Provider isolation (providers see only their appointments)
-
-#### Provider Scheduling
-- Availability slot creation
-- Bulk availability (recurring slots)
-- Collision detection
-- Appointment types (CONSULTATION, FOLLOW_UP, PROCEDURE, ANNUAL_PHYSICAL, etc.)
-
-#### Patient Management
-- Complete patient records
-- Demographics and emergency contacts
-- Insurance information
-- Medical history
-- Allergies and medications
-
-#### Visit Notes
-- Clinical documentation (SOAP format)
-- Vital signs tracking
-- Prescriptions and lab orders
-- Follow-up instructions
-- Version history (immutable audit trail)
-
-#### Alerts & Notifications
-- 24-hour alerts for requested appointments
-- 1-hour urgent alerts before appointments
-- Smart deduplication (no duplicate alerts)
-- Auto-refresh UI every 5 minutes
-- Mark read/dismiss functionality
-- Automated cron job (every 15 minutes)
-
-#### Analytics Dashboard
-- Appointments by provider (bar chart)
-- Appointments by status (pie chart)
-- No-show rate last 8 weeks (line chart)
-- Summary cards
-- Optimized queries (< 250ms load time)
-
-#### Security & Compliance
-- HIPAA audit logging (all PHI access tracked)
-- Security headers (XSS, clickjacking, HTTPS)
-- Rate limiting (100 req/min global, 5 login attempts)
-- Error tracking with PHI sanitization
-- Role-based authorization
-- Provider data isolation
-
-### 🔄 Planned Features (P1/P2)
-
-**P1 - Recommended** (2-3 weeks):
-- Input sanitization (DOMPurify)
-- Session timeout on inactivity
-- Password complexity requirements
-- Content Security Policy (CSP) enhancement
-- Redis-based rate limiting (multi-server)
-- Pagination for large datasets
-
-**P2 - Nice to Have** (4-6 weeks):
-- Multi-factor authentication (MFA)
-- Performance testing & optimization
-- Load testing
-- Fine-grained permissions
-- Enhanced analytics
-- API documentation (OpenAPI)
-
-## 🔒 Security & Compliance
-
-### Security Features
-
-✅ **Authentication**:
-- NextAuth.js v5 with JWT sessions
-- bcrypt password hashing (cost 10)
-- HTTP-only cookies
-- 30-day session duration
-
-✅ **Authorization**:
-- Role-based access control (PROVIDER, FRONT_DESK)
-- Provider data isolation
-- Server-side enforcement
-- Authorization helpers (`requireAuth`, `requireRole`)
-
-✅ **Security Headers**:
-- X-Frame-Options: DENY
-- X-Content-Type-Options: nosniff
-- X-XSS-Protection: 1; mode=block
-- Strict-Transport-Security: 2 years
-- Referrer-Policy: strict-origin-when-cross-origin
-
-✅ **Rate Limiting**:
-- Global: 100 requests/minute
-- Login: 5 attempts/15 minutes
-- HTTP 429 responses with Retry-After
-
-✅ **Error Tracking**:
-- Sentry integration (server + client + edge)
-- PHI sanitization before sending
-- Performance monitoring
-
-### HIPAA Compliance (80%)
-
-✅ **Implemented**:
-- Audit logging (all PHI access tracked)
-- Access controls (role-based)
-- Data encryption in transit (HTTPS)
-- Session management
-- User authentication
-
-⚠️ **Manual Setup Required**:
-- 7-year audit log retention (backup strategy)
-- Data encryption at rest (database-level, Supabase provides)
-- Password complexity enforcement (P1 item)
-- Session timeout (P1 item)
-
-## 📊 Testing
-
-### Test Suite (48 Tests)
-
-✅ **Appointment State Machine** (13 tests):
-- Valid state transitions
-- Invalid transition prevention
-- Authorization checks per state
-- Duplicate booking prevention
-
-✅ **Authorization** (12 tests):
-- Provider isolation
-- Front desk access
-- Unauthorized access prevention
-- Role-based restrictions
-
-✅ **Duplicate Bookings** (11 tests):
-- Same time slot prevention
-- Overlapping appointment detection
-- Different provider handling
-- Edge cases
-
-✅ **Security** (12 tests):
-- SQL injection prevention
-- XSS attack prevention
-- CSRF protection
-- Authentication bypass attempts
-
-### Running Tests
-
-```bash
-# Setup test database first (see TESTING_README.md)
-export DATABASE_URL="postgresql://test-db-url"
-
-# Run all integration tests
-npm run test:integration
-
-# Run specific test suite
-npm run test:integration -- appointment-state-machine
-
-# Watch mode
-npm run test:watch
-```
-
-## 🚢 Deployment
-
-### Vercel Deployment (Recommended)
-
-1. **Install Vercel CLI**
-   ```bash
-   npm i -g vercel
-   ```
-
-2. **Deploy**
-   ```bash
-   vercel --prod
-   ```
-
-3. **Set environment variables** in Vercel Dashboard
-
-See [VERCEL_DEPLOYMENT_GUIDE.md](./VERCEL_DEPLOYMENT_GUIDE.md) for complete instructions.
-
-### Self-Hosted Deployment
-
-1. **Build**
-   ```bash
-   npm run build
-   ```
-
-2. **Start**
-   ```bash
-   npm run start
-   ```
-
-3. **Use PM2** (optional)
-   ```bash
-   npm i -g pm2
-   pm2 start npm --name "clinicos" -- start
-   ```
-
-## 🤝 Contributing
-
-1. Follow TypeScript strict mode requirements
-2. Use Prettier for code formatting
-3. Ensure ESLint passes (`npm run lint`)
-4. Write tests for new features
-5. Update documentation
-6. Create meaningful commit messages
-7. Test responsiveness across devices
-
-## 🐛 Troubleshooting
-
-### Build Errors
-
-**Prisma client not generated**:
-```bash
-npx prisma generate
-npm run build
-```
-
-**Module not found**:
-```bash
-rm -rf node_modules .next
-npm install
-```
-
-### Database Connection
-
-**Connection timeout**:
-- Verify DATABASE_URL is correct
-- Check Supabase project is active
-- Use Transaction Pooler URL (port 6543)
-
-**Migration errors**:
-- Use DIRECT_URL for migrations (port 5432)
-- Check migration history: `npx prisma migrate status`
-
-### Authentication Issues
-
-**JWT_SECRET not defined**:
-```bash
-# Generate new secret
-openssl rand -base64 32
-# Add to .env.local as AUTH_SECRET
-```
-
-**Redirect loop**:
-- Verify AUTH_URL matches deployment URL
-- Remove trailing slash from AUTH_URL
-
-## 📈 Performance
-
-### Current Metrics
-
-- **Dashboard Load**: < 250ms
-- **Alert Generation**: < 100ms per provider
-- **Appointment Creation**: < 150ms
-- **Build Time**: ~30 seconds
-- **First Load JS**: 257 kB (dashboard)
-
-### Optimization Tips
-
-1. Enable edge caching for static pages
-2. Use React Query for server state
-3. Optimize images with Next.js Image component
-4. Database query optimization (already using groupBy)
-5. Connection pooling (already configured via Supabase)
-
-## 📄 License
+## Testing
+
+The project includes 48 integration tests covering:
+
+- Appointment state machine (13 tests)
+- Authorization and access control (12 tests)
+- Duplicate booking prevention (11 tests)
+- Security (12 tests)
+
+**Note**: Tests require a test database to be configured. See [docs/development-notes.md](./docs/development-notes.md) for setup instructions.
+
+## Documentation
+
+- [Architecture](./docs/architecture.md) - System architecture and design patterns
+- [Schema](./docs/schema.md) - Database schema and relationships
+- [Decisions](./docs/decisions.md) - Key technical decisions and trade-offs
+- [Plan](./docs/plan.md) - Development timeline and lessons learned
+- [Development Notes](./docs/development-notes.md) - Testing, debugging, and known limitations
+- [AI Prompts](./docs/ai-prompts.md) - AI assistance used during development
+
+## Known Limitations
+
+1. **Rate Limiting**: Memory-based (single server only). Upgrade to Redis for multi-server.
+2. **Email Notifications**: Not implemented. Appointment confirmations are manual.
+3. **Password Requirements**: No complexity enforcement (but passwords are hashed with bcrypt).
+4. **Session Timeout**: No inactivity timeout. Sessions last 30 days.
+5. **Pagination**: Limited. May have performance issues with very large datasets.
+6. **Search**: Basic patient name search only. No full-text search.
+
+See [docs/development-notes.md](./docs/development-notes.md) for complete list and future improvements.
+
+## Security Considerations
+
+- Passwords hashed with bcrypt (cost factor 10)
+- JWT sessions with HTTP-only cookies
+- Role-based access control with provider isolation
+- Security headers configured (XSS, clickjacking protection)
+- Rate limiting active (100 req/min)
+- Audit logging for all data access
+- PHI data sanitized in error reports
+
+**Note**: For production use with real patient data:
+1. Implement password complexity requirements
+2. Add session timeout on inactivity
+3. Configure Redis-based rate limiting for multi-server
+4. Set up 7-year audit log retention policy
+5. Review and implement remaining security recommendations
+
+## License
 
 Copyright © 2026 ClinicOS. All rights reserved.
 
----
+## Contributing
 
-## 🎯 Production Checklist
+1. Follow TypeScript strict mode requirements
+2. Use Prettier for code formatting (`npm run format`)
+3. Ensure ESLint passes (`npm run lint`)
+4. Write tests for new features
+5. Update documentation
+6. Test on mobile, tablet, and desktop
 
-Before deploying to production:
-
-- [ ] Set up Supabase production database
-- [ ] Run database migrations
-- [ ] Configure Sentry error tracking
-- [ ] Set all environment variables
-- [ ] Generate AUTH_SECRET and CRON_SECRET
-- [ ] Test authentication flow
-- [ ] Verify security headers
-- [ ] Test rate limiting
-- [ ] Run integration tests
-- [ ] Set up cron job for alerts
-- [ ] Configure database backups
-- [ ] Set up monitoring alerts
-- [ ] Review HIPAA compliance checklist
-
-See [PRODUCTION_DEPLOYMENT_READY.md](./PRODUCTION_DEPLOYMENT_READY.md) for complete checklist.
-
----
-
-**Need Help?**
-- 📖 Read the [VERCEL_DEPLOYMENT_GUIDE.md](./VERCEL_DEPLOYMENT_GUIDE.md)
-- 🐛 Check [TROUBLESHOOTING.md](./docs/TROUBLESHOOTING.md)
-- 💬 Open an issue on GitHub
-- 📧 Contact support
-
-**Status**: 🟢 Production Ready | Build Verified ✅ | 48 Tests ✅ | HIPAA 80% ✅
+For more details, see [docs/development-notes.md](./docs/development-notes.md).

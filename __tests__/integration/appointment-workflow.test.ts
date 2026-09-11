@@ -134,7 +134,9 @@ describe("Appointment Workflow Integration Tests", () => {
       // Create appointment in the past
       const pastDate = new Date();
       pastDate.setDate(pastDate.getDate() - 7);
-      pastDate.setDay(1); // Monday
+      // Set to Monday using getDay() and setDate
+      const dayOffset = (pastDate.getDay() === 0 ? -6 : 1 - pastDate.getDay());
+      pastDate.setDate(pastDate.getDate() + dayOffset);
       pastDate.setHours(10, 0, 0, 0);
 
       const created = await appointmentService.createAppointment(
@@ -172,7 +174,9 @@ describe("Appointment Workflow Integration Tests", () => {
     it("should allow cancellation before check-in", async () => {
       const futureDate = new Date();
       futureDate.setDate(futureDate.getDate() + 7);
-      futureDate.setDay(1); // Monday
+      // Set to next Monday
+      const dayOffset = (1 + 7 - futureDate.getDay()) % 7 || 7;
+      futureDate.setDate(futureDate.getDate() + dayOffset);
       futureDate.setHours(10, 0, 0, 0);
 
       const created = await appointmentService.createAppointment(
@@ -201,7 +205,9 @@ describe("Appointment Workflow Integration Tests", () => {
     it("should prevent cancellation after check-in", async () => {
       const futureDate = new Date();
       futureDate.setDate(futureDate.getDate() + 7);
-      futureDate.setDay(1); // Monday
+      // Set to next Monday
+      const dayOffset = (1 + 7 - futureDate.getDay()) % 7 || 7;
+      futureDate.setDate(futureDate.getDate() + dayOffset);
       futureDate.setHours(10, 0, 0, 0);
 
       const created = await appointmentService.createAppointment(
@@ -233,7 +239,9 @@ describe("Appointment Workflow Integration Tests", () => {
     it("should prevent double-booking same time slot", async () => {
       const futureDate = new Date();
       futureDate.setDate(futureDate.getDate() + 7);
-      futureDate.setDay(1); // Monday
+      // Set to next Monday
+      const dayOffset = (1 + 7 - futureDate.getDay()) % 7 || 7;
+      futureDate.setDate(futureDate.getDate() + dayOffset);
       futureDate.setHours(10, 0, 0, 0);
 
       // First booking
@@ -268,7 +276,9 @@ describe("Appointment Workflow Integration Tests", () => {
     it("should allow booking after first is cancelled", async () => {
       const futureDate = new Date();
       futureDate.setDate(futureDate.getDate() + 7);
-      futureDate.setDay(1); // Monday
+      // Set to next Monday
+      const dayOffset = (1 + 7 - futureDate.getDay()) % 7 || 7;
+      futureDate.setDate(futureDate.getDate() + dayOffset);
       futureDate.setHours(11, 0, 0, 0);
 
       // First booking

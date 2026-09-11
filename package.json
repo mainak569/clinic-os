@@ -24,7 +24,7 @@
     "db:reset": "prisma migrate reset --force && npm run db:seed",
     "db:studio": "prisma studio",
     "auth:test": "echo 'Run: npm run dev, then visit http://localhost:3000/login'",
-    "auth:docs": "echo 'See: docs/authentication-system.md and AUTHENTICATION_README.md'"
+    "auth:docs": "echo 'See: docs/authentication-system.md'"
   },
   "dependencies": {
     "@fullcalendar/daygrid": "^6.1.21",

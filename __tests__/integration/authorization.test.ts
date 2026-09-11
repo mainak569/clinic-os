@@ -78,9 +78,6 @@ describe("Authorization & Access Control", () => {
     });
 
     // Create availability slots
-    const futureDate = new Date();
-    futureDate.setDate(futureDate.getDate() + 7);
-
     await prisma.availabilitySlot.create({
       data: {
         providerId: provider1.id,
@@ -99,7 +96,9 @@ describe("Authorization & Access Control", () => {
       },
     });
 
-    // Create appointments
+    // Create appointments on next Monday
+    const futureDate = new Date();
+    futureDate.setDate(futureDate.getDate() + ((1 + 7 - futureDate.getDay()) % 7 || 7));
     futureDate.setHours(10, 0, 0, 0);
 
     appointment1 = await appointmentService.createAppointment(

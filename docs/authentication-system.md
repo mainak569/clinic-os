@@ -65,14 +65,14 @@ enum Role {
 
 | Resource | PROVIDER | FRONT_DESK |
 |----------|----------|------------|
-| Own appointments | ✅ Read/Write | ✅ Read/Write |
-| Other provider appointments | ❌ No access | ✅ Read/Write |
-| Own patients | ✅ Read/Write | ✅ Read/Write |
-| All patients | ❌ No access | ✅ Read/Write |
-| Own schedule | ✅ Read/Write | ✅ Read/Write |
-| All schedules | ❌ Read only | ✅ Read/Write |
-| Provider profiles | ❌ Own only | ✅ All |
-| User management | ❌ No access | ✅ Full access |
+| Own appointments | Read/Write | Read/Write |
+| Other provider appointments | No access | Read/Write |
+| Own patients | Read/Write | Read/Write |
+| All patients | No access | Read/Write |
+| Own schedule | Read/Write | Read/Write |
+| All schedules | Read only | Read/Write |
+| Provider profiles | Own only | All |
+| User management | No access | Full access |
 
 ## Implementation
 

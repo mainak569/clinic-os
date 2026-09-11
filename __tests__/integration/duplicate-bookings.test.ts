@@ -9,6 +9,15 @@ import { describe, it, expect, beforeAll, afterAll } from "@jest/globals";
 import { prisma } from "@/lib/prisma";
 import { appointmentService } from "@/lib/services/appointment.service";
 
+// Helper function to get next Monday
+function getNextMonday(daysAhead: number = 7): Date {
+  const date = new Date();
+  date.setDate(date.getDate() + daysAhead);
+  const dayOffset = (1 + 7 - date.getDay()) % 7 || 7;
+  date.setDate(date.getDate() + dayOffset);
+  return date;
+}
+
 describe("Duplicate Booking Prevention", () => {
   let testPatient: any;
   let testProvider: any;
@@ -59,10 +68,16 @@ describe("Duplicate Booking Prevention", () => {
     await prisma.user.deleteMany({ where: { email: "test-duplicate@test.com" } });
   });
 
+  beforeEach(async () => {
+    // Clean up appointments between tests to prevent conflicts
+    await prisma.appointmentHistory.deleteMany({});
+    await prisma.appointment.deleteMany({});
+  });
+
   describe("Exact Time Conflict", () => {
     it("should prevent booking same time slot twice", async () => {
-      const futureDate = new Date();
-      futureDate.setDate(futureDate.getDate() + 7);
+      const futureDate = getNextMonday();
+      
       futureDate.setHours(10, 0, 0, 0);
 
       // First booking
@@ -102,8 +117,8 @@ describe("Duplicate Booking Prevention", () => {
 
   describe("Overlapping Time Conflicts", () => {
     it("should prevent booking that starts during existing appointment", async () => {
-      const futureDate = new Date();
-      futureDate.setDate(futureDate.getDate() + 7);
+      const futureDate = getNextMonday();
+      
       futureDate.setHours(10, 0, 0, 0);
 
       // First appointment: 10:00 - 10:30
@@ -142,8 +157,8 @@ describe("Duplicate Booking Prevention", () => {
     });
 
     it("should prevent booking that ends during existing appointment", async () => {
-      const futureDate = new Date();
-      futureDate.setDate(futureDate.getDate() + 7);
+      const futureDate = getNextMonday();
+      
       futureDate.setHours(10, 0, 0, 0);
 
       // First appointment: 10:00 - 10:30
@@ -182,8 +197,8 @@ describe("Duplicate Booking Prevention", () => {
     });
 
     it("should prevent booking that completely contains existing appointment", async () => {
-      const futureDate = new Date();
-      futureDate.setDate(futureDate.getDate() + 7);
+      const futureDate = getNextMonday();
+      
       futureDate.setHours(10, 0, 0, 0);
 
       // First appointment: 10:00 - 10:30
@@ -224,8 +239,8 @@ describe("Duplicate Booking Prevention", () => {
 
   describe("Back-to-Back Appointments", () => {
     it("should allow back-to-back appointments (no overlap)", async () => {
-      const futureDate = new Date();
-      futureDate.setDate(futureDate.getDate() + 7);
+      const futureDate = getNextMonday();
+      
       futureDate.setHours(10, 0, 0, 0);
 
       // First appointment: 10:00 - 10:30
@@ -268,8 +283,8 @@ describe("Duplicate Booking Prevention", () => {
 
   describe("Cancelled/Completed Appointments", () => {
     it("should allow booking over CANCELLED appointment slot", async () => {
-      const futureDate = new Date();
-      futureDate.setDate(futureDate.getDate() + 7);
+      const futureDate = getNextMonday();
+      
       futureDate.setHours(10, 0, 0, 0);
 
       // First appointment
@@ -353,8 +368,7 @@ describe("Duplicate Booking Prevention", () => {
 
   describe("Rescheduling Conflicts", () => {
     it("should prevent rescheduling to conflicting time", async () => {
-      const futureDate1 = new Date();
-      futureDate1.setDate(futureDate1.getDate() + 7);
+      const futureDate1 = getNextMonday();
       futureDate1.setHours(10, 0, 0, 0);
 
       const futureDate2 = new Date(futureDate1);
@@ -396,14 +410,16 @@ describe("Duplicate Booking Prevention", () => {
       ).rejects.toThrow("conflicts with an existing appointment");
 
       // Cleanup
+      await prisma.appointmentHistory.deleteMany({
+        where: { appointmentId: { in: [appointment1.id, appointment2.id] } },
+      });
       await prisma.appointment.deleteMany({
         where: { id: { in: [appointment1.id, appointment2.id] } },
       });
     });
 
     it("should allow rescheduling to non-conflicting time", async () => {
-      const futureDate1 = new Date();
-      futureDate1.setDate(futureDate1.getDate() + 7);
+      const futureDate1 = getNextMonday();
       futureDate1.setHours(10, 0, 0, 0);
 
       const futureDate2 = new Date(futureDate1);
@@ -442,9 +458,11 @@ describe("Duplicate Booking Prevention", () => {
 
   describe("Different Provider Isolation", () => {
     it("should allow same time slot for different providers", async () => {
+      // Use timestamp to ensure unique email
+      const timestamp = Date.now();
       const provider2User = await prisma.user.create({
         data: {
-          email: "provider2-dup@test.com",
+          email: `provider2-dup-${timestamp}@test.com`,
           passwordHash: "hash",
           role: "PROVIDER",
         },
@@ -467,8 +485,8 @@ describe("Duplicate Booking Prevention", () => {
         },
       });
 
-      const futureDate = new Date();
-      futureDate.setDate(futureDate.getDate() + 7);
+      const futureDate = getNextMonday();
+      
       futureDate.setHours(10, 0, 0, 0);
 
       // Book with provider 1
@@ -503,6 +521,9 @@ describe("Duplicate Booking Prevention", () => {
       expect(appointment1.scheduledAt).toEqual(appointment2.scheduledAt);
 
       // Cleanup
+      await prisma.appointmentHistory.deleteMany({
+        where: { appointmentId: { in: [appointment1.id, appointment2.id] } },
+      });
       await prisma.appointment.deleteMany({
         where: { id: { in: [appointment1.id, appointment2.id] } },
       });

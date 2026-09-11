@@ -11,6 +11,15 @@ import { appointmentService } from "@/lib/services/appointment.service";
 import { InvalidTransitionError } from "@/lib/errors/appointment-errors";
 import { AppointmentStatus } from "@prisma/client";
 
+// Helper function to get next Monday
+function getNextMonday(daysAhead: number = 7): Date {
+  const date = new Date();
+  date.setDate(date.getDate() + daysAhead);
+  const dayOffset = (1 + 7 - date.getDay()) % 7 || 7;
+  date.setDate(date.getDate() + dayOffset);
+  return date;
+}
+
 describe("Appointment State Machine", () => {
   let testPatient: any;
   let testProvider: any;
@@ -63,10 +72,15 @@ describe("Appointment State Machine", () => {
     await prisma.user.deleteMany({ where: { email: "test-state-machine@test.com" } });
   });
 
+  beforeEach(async () => {
+    // Clean up appointments between tests to prevent conflicts
+    await prisma.appointmentHistory.deleteMany({});
+    await prisma.appointment.deleteMany({});
+  });
+
   describe("Valid Transitions", () => {
     it("should allow: REQUESTED → CONFIRMED", async () => {
-      const futureDate = new Date();
-      futureDate.setDate(futureDate.getDate() + 7);
+      const futureDate = getNextMonday();
       futureDate.setHours(10, 0, 0, 0);
 
       const appointment = await appointmentService.createAppointment(
@@ -95,8 +109,7 @@ describe("Appointment State Machine", () => {
     });
 
     it("should allow: CONFIRMED → CHECKED_IN", async () => {
-      const futureDate = new Date();
-      futureDate.setDate(futureDate.getDate() + 7);
+      const futureDate = getNextMonday();
       futureDate.setHours(10, 0, 0, 0);
 
       const appointment = await appointmentService.createAppointment(
@@ -122,12 +135,12 @@ describe("Appointment State Machine", () => {
       expect(checkedIn.checkedInAt).toBeDefined();
 
       // Cleanup
+      await prisma.appointmentHistory.deleteMany({ where: { appointmentId: appointment.id } });
       await prisma.appointment.delete({ where: { id: appointment.id } });
     });
 
     it("should allow: CHECKED_IN → COMPLETED", async () => {
-      const futureDate = new Date();
-      futureDate.setDate(futureDate.getDate() + 7);
+      const futureDate = getNextMonday();
       futureDate.setHours(10, 0, 0, 0);
 
       const appointment = await appointmentService.createAppointment(
@@ -188,8 +201,7 @@ describe("Appointment State Machine", () => {
     });
 
     it("should allow: REQUESTED → CANCELLED", async () => {
-      const futureDate = new Date();
-      futureDate.setDate(futureDate.getDate() + 7);
+      const futureDate = getNextMonday();
       futureDate.setHours(10, 0, 0, 0);
 
       const appointment = await appointmentService.createAppointment(
@@ -217,8 +229,7 @@ describe("Appointment State Machine", () => {
     });
 
     it("should allow: CONFIRMED → CANCELLED", async () => {
-      const futureDate = new Date();
-      futureDate.setDate(futureDate.getDate() + 7);
+      const futureDate = getNextMonday();
       futureDate.setHours(10, 0, 0, 0);
 
       const appointment = await appointmentService.createAppointment(
@@ -250,8 +261,7 @@ describe("Appointment State Machine", () => {
 
   describe("Invalid Transitions", () => {
     it("should reject: REQUESTED → CHECKED_IN", async () => {
-      const futureDate = new Date();
-      futureDate.setDate(futureDate.getDate() + 7);
+      const futureDate = getNextMonday();
       futureDate.setHours(10, 0, 0, 0);
 
       const appointment = await appointmentService.createAppointment(
@@ -275,8 +285,7 @@ describe("Appointment State Machine", () => {
     });
 
     it("should reject: REQUESTED → COMPLETED", async () => {
-      const futureDate = new Date();
-      futureDate.setDate(futureDate.getDate() + 7);
+      const futureDate = getNextMonday();
       futureDate.setHours(10, 0, 0, 0);
 
       const appointment = await appointmentService.createAppointment(
@@ -326,8 +335,7 @@ describe("Appointment State Machine", () => {
     });
 
     it("should reject: CANCELLED → CONFIRMED", async () => {
-      const futureDate = new Date();
-      futureDate.setDate(futureDate.getDate() + 7);
+      const futureDate = getNextMonday();
       futureDate.setHours(10, 0, 0, 0);
 
       const appointment = await prisma.appointment.create({
@@ -351,8 +359,7 @@ describe("Appointment State Machine", () => {
     });
 
     it("should reject: CHECKED_IN → CANCELLED", async () => {
-      const futureDate = new Date();
-      futureDate.setDate(futureDate.getDate() + 7);
+      const futureDate = getNextMonday();
       futureDate.setHours(10, 0, 0, 0);
 
       const appointment = await appointmentService.createAppointment(
@@ -383,8 +390,7 @@ describe("Appointment State Machine", () => {
     });
 
     it("should reject: NO_SHOW before scheduled time", async () => {
-      const futureDate = new Date();
-      futureDate.setDate(futureDate.getDate() + 7);
+      const futureDate = getNextMonday();
       futureDate.setHours(10, 0, 0, 0);
 
       const appointment = await appointmentService.createAppointment(
