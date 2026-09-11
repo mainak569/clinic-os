@@ -7,7 +7,7 @@ export function CTA() {
     <section className="py-20 md:py-32">
       <div className="container mx-auto px-4">
         <div className="mx-auto max-w-4xl">
-          <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-primary to-blue-600 px-8 py-16 text-center md:px-16 md:py-24">
+          <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-purple-400 to-purple-500 px-8 py-16 text-center md:px-16 md:py-24">
             {/* Background Pattern */}
             <div className="absolute inset-0 opacity-20">
               <div className="h-full w-full bg-[radial-gradient(circle_at_1px_1px,rgba(255,255,255,0.15)_1px,transparent_0)] bg-[length:20px_20px]" />
@@ -37,10 +37,10 @@ export function CTA() {
                   size="lg"
                   variant="secondary"
                   asChild
-                  className="w-full bg-white text-primary hover:bg-white/90 md:w-auto"
+                  className="w-full bg-white text-purple-400 hover:bg-white/90 md:w-auto"
                 >
-                  <Link href="/signup" className="flex items-center">
-                    Start Free Trial
+                  <Link href="/login" className="flex items-center">
+                    Get Started
                     <ArrowRight className="ml-2 h-4 w-4" />
                   </Link>
                 </Button>
@@ -48,7 +48,7 @@ export function CTA() {
                   size="lg"
                   variant="outline"
                   asChild
-                  className="w-full border-white/30 bg-transparent text-white hover:bg-white/10 md:w-auto"
+                  className="w-full bg-white/20 backdrop-blur-sm text-white hover:bg-white/30 md:w-auto"
                 >
                   <Link href="#contact">Talk to Sales</Link>
                 </Button>

@@ -2,7 +2,6 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { Button } from "@/components/ui/button";
 import { Heart, Menu, X } from "lucide-react";
 
 export function Navbar() {
@@ -11,107 +10,125 @@ export function Navbar() {
   const toggleMenu = () => setIsOpen(!isOpen);
 
   return (
-    <nav className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      <div className="container mx-auto px-4">
-        <div className="flex h-16 items-center justify-between">
-          {/* Logo */}
-          <Link href="/" className="flex items-center space-x-2">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary">
-              <Heart className="h-5 w-5 text-primary-foreground" />
+    <nav className="sticky top-4 z-50 px-4">
+      <div className="container mx-auto">
+        <div className="flex items-center justify-between gap-4">
+          {/* Logo - Separate Glass Button */}
+          <Link href="/" className="flex items-center space-x-2 px-4 py-2.5 rounded-full bg-white/70 backdrop-blur-xl shadow-lg hover:shadow-xl transition-all shrink-0">
+            <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-[#A855F7] shadow-md">
+              <Heart className="h-4 w-4 text-white" />
             </div>
-            <span className="text-xl font-bold">ClinicOS</span>
+            <span className="text-lg font-bold text-[#A855F7]">
+              ClinicOS
+            </span>
           </Link>
 
-          {/* Desktop Navigation */}
-          <div className="hidden md:flex md:items-center md:space-x-8">
+          {/* Desktop Navigation - Center Glass Bar */}
+          <div className="hidden md:flex items-center gap-1 px-2 py-1.5 rounded-full bg-white/70 backdrop-blur-xl shadow-lg">
             <Link
               href="#features"
-              className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
+              className="px-4 py-2 text-sm font-medium text-gray-700 rounded-full transition-all hover:bg-white/60 hover:text-[#A855F7] hover:shadow-md"
             >
               Features
             </Link>
             <Link
               href="#pricing"
-              className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
+              className="px-4 py-2 text-sm font-medium text-gray-700 rounded-full transition-all hover:bg-white/60 hover:text-[#A855F7] hover:shadow-md"
             >
               Pricing
             </Link>
             <Link
               href="#about"
-              className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
+              className="px-4 py-2 text-sm font-medium text-gray-700 rounded-full transition-all hover:bg-white/60 hover:text-[#A855F7] hover:shadow-md"
             >
               About
             </Link>
             <Link
               href="#contact"
-              className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
+              className="px-4 py-2 text-sm font-medium text-gray-700 rounded-full transition-all hover:bg-white/60 hover:text-[#A855F7] hover:shadow-md"
             >
               Contact
             </Link>
           </div>
 
-          {/* Desktop CTA */}
-          <div className="hidden md:flex md:items-center md:space-x-4">
-            <Button variant="ghost" asChild>
-              <Link href="/login">Sign In</Link>
-            </Button>
-            <Button asChild>
-              <Link href="/signup">Get Started</Link>
-            </Button>
+          {/* Desktop CTA - Right Glass Buttons */}
+          <div className="hidden md:flex items-center gap-2 shrink-0">
+            <Link
+              href="/login"
+              className="px-5 py-2.5 text-sm font-medium text-gray-700 rounded-full bg-white/70 backdrop-blur-xl shadow-lg hover:bg-white/80 hover:shadow-xl transition-all"
+            >
+              Sign In
+            </Link>
+            <Link
+              href="/login"
+              className="px-5 py-2.5 text-sm font-medium text-white rounded-full bg-[#A855F7] shadow-lg hover:bg-[#9333EA] hover:shadow-xl hover:scale-105 transition-all"
+            >
+              Get Started
+            </Link>
           </div>
 
           {/* Mobile menu button */}
-          <div className="md:hidden">
-            <Button variant="ghost" size="icon" onClick={toggleMenu}>
-              {isOpen ? (
-                <X className="h-5 w-5" />
-              ) : (
-                <Menu className="h-5 w-5" />
-              )}
-              <span className="sr-only">Toggle menu</span>
-            </Button>
-          </div>
+          <button
+            onClick={toggleMenu}
+            className="md:hidden p-2.5 rounded-full bg-white/70 backdrop-blur-xl shadow-lg hover:shadow-xl transition-all"
+          >
+            {isOpen ? (
+              <X className="h-5 w-5 text-gray-700" />
+            ) : (
+              <Menu className="h-5 w-5 text-gray-700" />
+            )}
+            <span className="sr-only">Toggle menu</span>
+          </button>
         </div>
 
-        {/* Mobile Navigation */}
+        {/* Mobile Navigation Dropdown */}
         {isOpen && (
-          <div className="border-t md:hidden">
-            <div className="space-y-1 px-2 pb-3 pt-2">
+          <div className="md:hidden mt-3 rounded-3xl bg-white/70 backdrop-blur-xl shadow-2xl overflow-hidden animate-in slide-in-from-top-5">
+            <div className="p-3 space-y-1">
               <Link
                 href="#features"
-                className="block rounded-md px-3 py-2 text-base font-medium text-muted-foreground hover:bg-accent hover:text-foreground"
+                className="block px-4 py-3 text-base font-medium text-gray-700 rounded-2xl hover:bg-white/60 hover:text-[#A855F7] transition-all"
                 onClick={() => setIsOpen(false)}
               >
                 Features
               </Link>
               <Link
                 href="#pricing"
-                className="block rounded-md px-3 py-2 text-base font-medium text-muted-foreground hover:bg-accent hover:text-foreground"
+                className="block px-4 py-3 text-base font-medium text-gray-700 rounded-2xl hover:bg-white/60 hover:text-[#A855F7] transition-all"
                 onClick={() => setIsOpen(false)}
               >
                 Pricing
               </Link>
               <Link
                 href="#about"
-                className="block rounded-md px-3 py-2 text-base font-medium text-muted-foreground hover:bg-accent hover:text-foreground"
+                className="block px-4 py-3 text-base font-medium text-gray-700 rounded-2xl hover:bg-white/60 hover:text-[#A855F7] transition-all"
                 onClick={() => setIsOpen(false)}
               >
                 About
               </Link>
               <Link
                 href="#contact"
-                className="block rounded-md px-3 py-2 text-base font-medium text-muted-foreground hover:bg-accent hover:text-foreground"
+                className="block px-4 py-3 text-base font-medium text-gray-700 rounded-2xl hover:bg-white/60 hover:text-[#A855F7] transition-all"
                 onClick={() => setIsOpen(false)}
               >
                 Contact
               </Link>
-              <div className="flex flex-col space-y-2 px-3 pt-4">
-                <Button variant="ghost" asChild className="justify-start">
-                  <Link href="/login">Sign In</Link>
-                </Button>
-                <Button asChild className="justify-start">
-                  <Link href="/signup">Get Started</Link>
-                </Button>
+              
+              <div className="pt-3 mt-3 border-t space-y-2">
+                <Link
+                  href="/login"
+                  className="block w-full px-4 py-3 text-center text-base font-medium text-gray-700 rounded-2xl bg-white/60 hover:bg-white/80 transition-all"
+                  onClick={() => setIsOpen(false)}
+                >
+                  Sign In
+                </Link>
+                <Link
+                  href="/login"
+                  className="block w-full px-4 py-3 text-center text-base font-medium text-white rounded-2xl bg-[#A855F7] shadow-lg hover:bg-[#9333EA] hover:shadow-xl transition-all"
+                  onClick={() => setIsOpen(false)}
+                >
+                  Get Started
+                </Link>
               </div>
             </div>
           </div>

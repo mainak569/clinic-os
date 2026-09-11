@@ -11,10 +11,13 @@ Fill this in and commit it. This is the first file we open.
 
 ## Demo credentials
 
-| Role       | Email | Password |
-| ---------- | ----- | -------- |
-| FRONT_DESK |       |          |
-| PROVIDER   |       |          |
+After running `npm run db:seed`, log in with:
+
+| Role       | Email                   | Password      |
+| ---------- | ----------------------- | ------------- |
+| FRONT_DESK | frontdesk@clinicos.com  | FrontDesk123! |
+| PROVIDER   | dr.smith@clinicos.com   | DrSmith123!   |
+| PROVIDER   | dr.johnson@clinicos.com | DrJohnson123! |
 
 ## Stack
 

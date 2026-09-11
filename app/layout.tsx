@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
-import { Navbar } from "@/components/layout/navbar";
 import { QueryProvider } from "@/components/providers/query-provider";
 import { SessionProvider } from "@/components/providers/session-provider";
 import { Toaster } from "@/components/ui/sonner";
@@ -23,6 +22,13 @@ export const metadata: Metadata = {
     "medical billing",
   ],
   authors: [{ name: "ClinicOS Team" }],
+  icons: {
+    icon: [
+      { url: "/favicon.svg", type: "image/svg+xml" },
+    ],
+    shortcut: "/favicon.svg",
+    apple: "/favicon.svg",
+  },
   openGraph: {
     type: "website",
     locale: "en_US",
@@ -71,16 +77,7 @@ export default function RootLayout({
         <SessionProvider>
           <QueryProvider>
             <div className="relative flex min-h-screen flex-col">
-              <Navbar />
               <main className="flex-1">{children}</main>
-              <footer className="border-t py-8">
-                <div className="container mx-auto px-4 text-center text-muted-foreground">
-                  <p>
-                    © 2026 ClinicOS. All rights reserved. Built with modern
-                    healthcare in mind.
-                  </p>
-                </div>
-              </footer>
             </div>
             <Toaster />
           </QueryProvider>

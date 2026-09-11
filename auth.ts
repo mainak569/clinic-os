@@ -2,7 +2,7 @@ import NextAuth from "next-auth";
 import Credentials from "next-auth/providers/credentials";
 import bcrypt from "bcryptjs";
 import { authConfig } from "./auth.config";
-import { prisma } from "@/prisma.config";
+import { prisma } from "@/lib/prisma";
 
 /**
  * NextAuth.js v5 Configuration

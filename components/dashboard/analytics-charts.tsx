@@ -31,12 +31,12 @@ import { getDashboardAnalytics } from "@/app/actions/analytics.actions";
  */
 
 const STATUS_COLORS: Record<string, string> = {
-  REQUESTED: "#f59e0b",
-  CONFIRMED: "#3b82f6",
-  CHECKED_IN: "#8b5cf6",
-  COMPLETED: "#10b981",
-  NO_SHOW: "#ef4444",
-  CANCELLED: "#6b7280",
+  REQUESTED: "#E879F9",   // Softer purple for requested
+  CONFIRMED: "#A855F7",   // Primary purple for confirmed
+  CHECKED_IN: "#8B5CF6",  // Deeper purple for checked in
+  COMPLETED: "#22C55E",   // Green for completed/success
+  NO_SHOW: "#F87171",     // Red for no-show
+  CANCELLED: "#94A3B8",   // Gray for cancelled/inactive
 };
 
 export function AnalyticsCharts() {
@@ -84,48 +84,48 @@ export function AnalyticsCharts() {
     <div className="space-y-6">
       {/* Summary Cards */}
       <div className="grid gap-4 md:grid-cols-4">
-        <Card>
+        <Card className="bg-white/70 backdrop-blur-xl border-0 shadow-lg">
           <CardHeader className="pb-2">
-            <CardDescription>Total Appointments</CardDescription>
+            <CardDescription className="text-gray-600">Total Appointments</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">
+            <div className="text-2xl font-bold text-[#A855F7]">
               {summary.totalAppointments}
             </div>
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="bg-white/70 backdrop-blur-xl border-0 shadow-lg">
           <CardHeader className="pb-2">
-            <CardDescription>Completed</CardDescription>
+            <CardDescription className="text-gray-600">Completed</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-green-600">
+            <div className="text-2xl font-bold text-[#22C55E]">
               {summary.completedAppointments}
             </div>
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="bg-white/70 backdrop-blur-xl border-0 shadow-lg">
           <CardHeader className="pb-2">
-            <CardDescription>No-Shows</CardDescription>
+            <CardDescription className="text-gray-600">No-Shows</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-red-600">
+            <div className="text-2xl font-bold text-[#F87171]">
               {summary.noShowAppointments}
             </div>
-            <p className="text-xs text-muted-foreground mt-1">
+            <p className="text-xs text-gray-500 mt-1">
               {summary.overallNoShowRate.toFixed(1)}% rate
             </p>
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="bg-white/70 backdrop-blur-xl border-0 shadow-lg">
           <CardHeader className="pb-2">
-            <CardDescription>Cancelled</CardDescription>
+            <CardDescription className="text-gray-600">Cancelled</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-gray-600">
+            <div className="text-2xl font-bold text-[#94A3B8]">
               {summary.cancelledAppointments}
             </div>
           </CardContent>
@@ -136,30 +136,39 @@ export function AnalyticsCharts() {
       <div className="grid gap-6 md:grid-cols-2">
         {/* Appointments by Provider */}
         {analytics.appointmentsByProvider && (
-          <Card>
+          <Card className="bg-white/70 backdrop-blur-xl border-0 shadow-lg">
             <CardHeader>
-              <CardTitle>Appointments by Provider</CardTitle>
-              <CardDescription>
+              <CardTitle className="text-gray-800">Appointments by Provider</CardTitle>
+              <CardDescription className="text-gray-600">
                 Total appointments per provider
               </CardDescription>
             </CardHeader>
             <CardContent>
               <ResponsiveContainer width="100%" height={300}>
                 <BarChart data={analytics.appointmentsByProvider}>
-                  <CartesianGrid strokeDasharray="3 3" />
+                  <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" opacity={0.5} />
                   <XAxis
                     dataKey="providerName"
                     fontSize={12}
                     angle={-45}
                     textAnchor="end"
                     height={80}
+                    stroke="#9ca3af"
                   />
-                  <YAxis fontSize={12} />
-                  <Tooltip />
+                  <YAxis fontSize={12} stroke="#9ca3af" />
+                  <Tooltip 
+                    contentStyle={{
+                      backgroundColor: 'rgba(255, 255, 255, 0.9)',
+                      backdropFilter: 'blur(10px)',
+                      border: 'none',
+                      borderRadius: '12px',
+                      boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
+                    }}
+                  />
                   <Legend />
                   <Bar
                     dataKey="count"
-                    fill="#3b82f6"
+                    fill="#A855F7"
                     name="Appointments"
                     radius={[8, 8, 0, 0]}
                   />
@@ -170,10 +179,10 @@ export function AnalyticsCharts() {
         )}
 
         {/* Appointments by Status */}
-        <Card>
+        <Card className="bg-white/70 backdrop-blur-xl border-0 shadow-lg">
           <CardHeader>
-            <CardTitle>Appointments by Status</CardTitle>
-            <CardDescription>Distribution of appointment statuses</CardDescription>
+            <CardTitle className="text-gray-800">Appointments by Status</CardTitle>
+            <CardDescription className="text-gray-600">Distribution of appointment statuses</CardDescription>
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={300}>
@@ -186,30 +195,40 @@ export function AnalyticsCharts() {
                   cy="50%"
                   outerRadius={100}
                   label={(entry: any) => `${entry.status}: ${entry.count}`}
+                  labelLine={{ stroke: '#9ca3af', strokeWidth: 1 }}
                 >
                   {analytics.appointmentsByStatus.map(
                     (entry: any, index: number) => (
                       <Cell
                         key={`cell-${index}`}
-                        fill={STATUS_COLORS[entry.status] || "#6b7280"}
+                        fill={STATUS_COLORS[entry.status] || "#d1d5db"}
+                        opacity={0.9}
                       />
                     )
                   )}
                 </Pie>
-                <Tooltip />
+                <Tooltip 
+                  contentStyle={{
+                    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+                    backdropFilter: 'blur(10px)',
+                    border: 'none',
+                    borderRadius: '12px',
+                    boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
+                  }}
+                />
               </PieChart>
             </ResponsiveContainer>
             <div className="mt-4 grid grid-cols-2 gap-2 text-xs">
               {analytics.appointmentsByStatus.map((status: any) => (
                 <div key={status.status} className="flex items-center gap-2">
                   <div
-                    className="h-3 w-3 rounded"
+                    className="h-3 w-3 rounded-full shadow-sm"
                     style={{
                       backgroundColor:
-                        STATUS_COLORS[status.status] || "#6b7280",
+                        STATUS_COLORS[status.status] || "#d1d5db",
                     }}
                   />
-                  <span>
+                  <span className="text-gray-600">
                     {status.status}: {status.count} ({status.percentage.toFixed(1)}%)
                   </span>
                 </div>
@@ -220,9 +239,9 @@ export function AnalyticsCharts() {
       </div>
 
       {/* No-Show Rate Trend */}
-      <Card>
+      <Card className="bg-white/70 backdrop-blur-xl border-0 shadow-lg">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
+          <CardTitle className="flex items-center gap-2 text-gray-800">
             No-Show Rate - Last 8 Weeks
             {analytics.noShowRateLast8Weeks && (
               <>
@@ -230,48 +249,58 @@ export function AnalyticsCharts() {
                   analytics.noShowRateLast8Weeks.length - 1
                 ]?.noShowRate >
                 analytics.noShowRateLast8Weeks[0]?.noShowRate ? (
-                  <TrendingUp className="h-4 w-4 text-red-600" />
+                  <TrendingUp className="h-4 w-4 text-[#F87171]" />
                 ) : (
-                  <TrendingDown className="h-4 w-4 text-green-600" />
+                  <TrendingDown className="h-4 w-4 text-[#22C55E]" />
                 )}
               </>
             )}
           </CardTitle>
-          <CardDescription>
+          <CardDescription className="text-gray-600">
             Weekly no-show rate trends
           </CardDescription>
         </CardHeader>
         <CardContent>
           <ResponsiveContainer width="100%" height={300}>
             <LineChart data={analytics.noShowRateLast8Weeks}>
-              <CartesianGrid strokeDasharray="3 3" />
+              <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" opacity={0.5} />
               <XAxis
                 dataKey="week"
                 fontSize={12}
                 angle={-45}
                 textAnchor="end"
                 height={80}
+                stroke="#9ca3af"
               />
               <YAxis
                 fontSize={12}
+                stroke="#9ca3af"
                 label={{
                   value: "No-Show Rate (%)",
                   angle: -90,
                   position: "insideLeft",
+                  style: { fill: '#9ca3af' }
                 }}
               />
               <Tooltip
                 formatter={(value: any) => `${Number(value).toFixed(1)}%`}
+                contentStyle={{
+                  backgroundColor: 'rgba(255, 255, 255, 0.9)',
+                  backdropFilter: 'blur(10px)',
+                  border: 'none',
+                  borderRadius: '12px',
+                  boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
+                }}
               />
               <Legend />
               <Line
                 type="monotone"
                 dataKey="noShowRate"
-                stroke="#ef4444"
-                strokeWidth={2}
+                stroke="#F87171"
+                strokeWidth={3}
                 name="No-Show Rate"
-                dot={{ fill: "#ef4444", r: 4 }}
-                activeDot={{ r: 6 }}
+                dot={{ fill: "#F87171", r: 5, strokeWidth: 2, stroke: '#fff' }}
+                activeDot={{ r: 7, fill: "#F87171" }}
               />
             </LineChart>
           </ResponsiveContainer>
@@ -281,19 +310,19 @@ export function AnalyticsCharts() {
             {analytics.noShowRateLast8Weeks.map((week: any, index: number) => (
               <div
                 key={index}
-                className="rounded border p-2 text-center"
+                className="rounded-xl bg-white/50 backdrop-blur-sm border-0 p-3 text-center shadow-sm"
               >
-                <div className="font-medium">{week.week.split("of")[1]}</div>
-                <div className="text-muted-foreground">
+                <div className="font-medium text-gray-700">{week.week.split("of")[1]}</div>
+                <div className="text-gray-500">
                   {week.totalAppointments} appts
                 </div>
                 <div
                   className={`font-semibold ${
                     week.noShowRate > 10
-                      ? "text-red-600"
+                      ? "text-[#F87171]"
                       : week.noShowRate > 5
-                        ? "text-orange-600"
-                        : "text-green-600"
+                        ? "text-[#FB923C]"
+                        : "text-[#22C55E]"
                   }`}
                 >
                   {week.noShowRate.toFixed(1)}%
