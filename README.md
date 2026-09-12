@@ -1,6 +1,8 @@
 # ClinicOS
 
-A healthcare practice management application built with Next.js 15, TypeScript, and modern web technologies. Focuses on appointment scheduling, provider availability management, and clinical documentation.
+A healthcare practice management prototype built with Next.js 15, TypeScript, and modern web technologies. Designed as a demonstration project with HIPAA-oriented security and auditability considerations for appointment scheduling, provider availability management, and clinical documentation.
+
+**Note**: This is a student/prototype project for educational purposes. It demonstrates healthcare application architecture and security patterns but is not certified for production use with real patient data.
 
 ## Features
 
@@ -12,15 +14,15 @@ A healthcare practice management application built with Next.js 15, TypeScript, 
 - **Visit Notes**: Clinical documentation with SOAP format and vital signs tracking
 - **Alerts**: Automated reminders for requested appointments (24-hour and 1-hour notifications)
 - **Analytics**: Dashboard with charts showing appointments by provider, status, and no-show rates
-- **Audit Trail**: Comprehensive logging of all data access for compliance
+- **Audit Logging**: HIPAA-oriented audit trail for data access (demonstration purposes)
 
 ### Security & Authorization
 
 - **Authentication**: NextAuth.js v5 with JWT sessions and bcrypt password hashing
 - **Role-Based Access**: Provider and Front Desk roles with different permissions
 - **Provider Isolation**: Providers can only access their own appointments and patients
-- **Security Headers**: XSS, clickjacking, and HTTPS enforcement
-- **Rate Limiting**: Protection against brute-force attacks (100 req/min)
+- **Security Headers**: XSS, clickjacking, and HTTPS enforcement configured
+- **Rate Limiting**: Basic protection against brute-force attacks (100 req/min, memory-based)
 
 ## Tech Stack
 
@@ -166,14 +168,14 @@ npm run type-check      # TypeScript type check
 
 ## Testing
 
-The project includes 48 integration tests covering:
+The project includes 99 passing tests covering:
 
-- Appointment state machine (13 tests)
-- Authorization and access control (12 tests)
-- Duplicate booking prevention (11 tests)
-- Security (12 tests)
+- **Unit Tests** (44 tests): Validation schemas, appointment service logic, authorization helpers
+- **Integration Tests** (55 tests): State machine transitions, authorization boundaries, security controls, duplicate booking prevention
 
-**Note**: Tests require a test database to be configured. See [docs/development-notes.md](./docs/development-notes.md) for setup instructions.
+All tests pass successfully. Run with `npm test`.
+
+**Note**: Integration tests require a test database. Tests use mocked authentication and isolated database transactions.
 
 ## Documentation
 
@@ -186,31 +188,53 @@ The project includes 48 integration tests covering:
 
 ## Known Limitations
 
-1. **Rate Limiting**: Memory-based (single server only). Upgrade to Redis for multi-server.
-2. **Email Notifications**: Not implemented. Appointment confirmations are manual.
-3. **Password Requirements**: No complexity enforcement (but passwords are hashed with bcrypt).
-4. **Session Timeout**: No inactivity timeout. Sessions last 30 days.
-5. **Pagination**: Limited. May have performance issues with very large datasets.
-6. **Search**: Basic patient name search only. No full-text search.
+This is a prototype/demonstration project with the following limitations:
+
+1. **Not HIPAA Certified**: While security patterns follow HIPAA principles, this has not undergone formal compliance validation
+2. **Rate Limiting**: Memory-based (single server only). Production would require Redis for distributed systems
+3. **Email Notifications**: Not implemented. Appointment confirmations are manual
+4. **Password Requirements**: Basic validation only (no complexity enforcement, though passwords are bcrypt-hashed)
+5. **Session Management**: No inactivity timeout. Sessions last 30 days
+6. **Pagination**: Limited implementation. May have performance issues with large datasets (>1000 records)
+7. **Search**: Basic patient name search only. No full-text search capabilities
+8. **Audit Log Retention**: No automated retention policy or archival system
+9. **Multi-Tenancy**: Designed for single clinic use. Multi-clinic support not implemented
+10. **Backup/Recovery**: No automated backup system included
 
 See [docs/development-notes.md](./docs/development-notes.md) for complete list and future improvements.
 
 ## Security Considerations
 
+This prototype implements several security best practices:
+
 - Passwords hashed with bcrypt (cost factor 10)
 - JWT sessions with HTTP-only cookies
 - Role-based access control with provider isolation
 - Security headers configured (XSS, clickjacking protection)
-- Rate limiting active (100 req/min)
-- Audit logging for all data access
-- PHI data sanitized in error reports
+- Rate limiting active (100 req/min, memory-based)
+- Audit logging for data access events
+- Error messages sanitized to avoid information leakage
 
-**Note**: For production use with real patient data:
-1. Implement password complexity requirements
-2. Add session timeout on inactivity
-3. Configure Redis-based rate limiting for multi-server
-4. Set up 7-year audit log retention policy
-5. Review and implement remaining security recommendations
+**Important**: This is a demonstration project. For production use with real patient data, additional requirements include:
+
+1. **Compliance Certification**: HIPAA compliance audit and certification
+2. **Security Hardening**:
+   - Password complexity requirements and rotation policies
+   - Session timeout on inactivity (15-30 minutes)
+   - Multi-factor authentication (MFA)
+   - Redis-based rate limiting for distributed systems
+3. **Audit & Monitoring**:
+   - 7-year audit log retention policy
+   - Real-time security monitoring and alerting
+   - Regular security assessments and penetration testing
+4. **Data Protection**:
+   - Encryption at rest for PHI data
+   - Backup and disaster recovery procedures
+   - Data breach response plan
+5. **Access Controls**:
+   - Regular access reviews
+   - Principle of least privilege enforcement
+   - Secure credential management (secrets manager)
 
 ## License
 

@@ -95,24 +95,27 @@ describe("Security & Unauthorized Requests", () => {
       },
     });
 
-    // Create availability slots for providers
-    await prisma.availabilitySlot.create({
-      data: {
-        providerId: provider1.id,
-        dayOfWeek: "MONDAY",
-        startTime: new Date("2024-01-01T09:00:00"),
-        endTime: new Date("2024-01-01T17:00:00"),
-      },
-    });
+    // Create availability slots for providers (all days for testing)
+    const allDays = ["MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY", "SATURDAY", "SUNDAY"] as const;
+    for (const day of allDays) {
+      await prisma.availabilitySlot.create({
+        data: {
+          providerId: provider1.id,
+          dayOfWeek: day,
+          startTime: new Date("2024-01-01T09:00:00"),
+          endTime: new Date("2024-01-01T17:00:00"),
+        },
+      });
 
-    await prisma.availabilitySlot.create({
-      data: {
-        providerId: provider2.id,
-        dayOfWeek: "MONDAY",
-        startTime: new Date("2024-01-01T09:00:00"),
-        endTime: new Date("2024-01-01T17:00:00"),
-      },
-    });
+      await prisma.availabilitySlot.create({
+        data: {
+          providerId: provider2.id,
+          dayOfWeek: day,
+          startTime: new Date("2024-01-01T09:00:00"),
+          endTime: new Date("2024-01-01T17:00:00"),
+        },
+      });
+    }
   });
 
   afterAll(async () => {

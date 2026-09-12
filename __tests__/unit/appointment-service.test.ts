@@ -12,11 +12,15 @@ import {
 } from "@/lib/errors/appointment-errors";
 
 // Mock Prisma
-const mockPrismaAppointmentFindUnique = jest.fn();
-const mockPrismaAppointmentCreate = jest.fn();
-const mockPrismaAppointmentUpdate = jest.fn();
-const mockPrismaAppointmentFindMany = jest.fn();
-const mockPrismaAppointmentHistoryCreate = jest.fn();
+const mockPrismaAppointmentFindUnique = jest.fn() as jest.MockedFunction<any>;
+const mockPrismaAppointmentCreate = jest.fn() as jest.MockedFunction<any>;
+const mockPrismaAppointmentUpdate = jest.fn() as jest.MockedFunction<any>;
+const mockPrismaAppointmentFindMany = jest.fn() as jest.MockedFunction<any>;
+const mockPrismaAppointmentHistoryCreate = jest.fn() as jest.MockedFunction<any>;
+// createHistoryEntry verifies the acting user exists before writing history.
+// Without this model the lookup threw, the error was swallowed, and
+// appointmentHistory.create was never reached in any test.
+const mockPrismaUserFindUnique = jest.fn() as jest.MockedFunction<any>;
 
 jest.mock("@/lib/prisma", () => ({
   prisma: {
@@ -29,11 +33,14 @@ jest.mock("@/lib/prisma", () => ({
     appointmentHistory: {
       create: mockPrismaAppointmentHistoryCreate,
     },
+    user: {
+      findUnique: mockPrismaUserFindUnique,
+    },
   },
 }));
 
 // Mock availability service
-const mockIsProviderAvailable = jest.fn();
+const mockIsProviderAvailable = jest.fn() as jest.MockedFunction<any>;
 jest.mock("@/lib/services/availability.service", () => ({
   availabilityService: {
     isProviderAvailable: mockIsProviderAvailable,
@@ -45,6 +52,9 @@ import { appointmentService } from "@/lib/services/appointment.service";
 describe("Appointment Service - State Machine", () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    // The acting user exists by default, so the audit-trail write runs.
+    mockPrismaUserFindUnique.mockResolvedValue({ id: "user1" });
+    mockPrismaAppointmentHistoryCreate.mockResolvedValue({ id: "history1" });
   });
 
   describe("confirmAppointment", () => {
@@ -70,6 +80,46 @@ describe("Appointment Service - State Machine", () => {
         data: { status: "CONFIRMED" },
         include: expect.any(Object),
       });
+
+      // The audit trail is part of the transition, not an optional extra.
+      expect(mockPrismaAppointmentHistoryCreate).toHaveBeenCalledWith({
+        data: expect.objectContaining({
+          appointmentId: "appt1",
+          newValue: "CONFIRMED",
+          performedBy: "user1",
+        }),
+      });
+    });
+
+    it("should not fail the transition when the acting user is missing", async () => {
+      // A stale session after a database reset: history is skipped, but the
+      // appointment still moves. The service warns on this path, so capture
+      // the warning rather than letting it print through the test run.
+      const warn = jest
+        .spyOn(console, "error")
+        .mockImplementation(() => undefined);
+      mockPrismaUserFindUnique.mockResolvedValue(null);
+      mockPrismaAppointmentFindUnique.mockResolvedValue({
+        id: "appt1",
+        status: "REQUESTED",
+      });
+      mockPrismaAppointmentUpdate.mockResolvedValue({
+        id: "appt1",
+        status: "CONFIRMED",
+      });
+
+      const result = await appointmentService.confirmAppointment(
+        "appt1",
+        "ghost-user"
+      );
+
+      expect(result.status).toBe("CONFIRMED");
+      expect(mockPrismaAppointmentHistoryCreate).not.toHaveBeenCalled();
+      expect(warn).toHaveBeenCalledWith(
+        expect.stringContaining("ghost-user")
+      );
+
+      warn.mockRestore();
     });
 
     it("should reject invalid transition from COMPLETED", async () => {

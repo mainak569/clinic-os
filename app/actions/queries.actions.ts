@@ -209,10 +209,16 @@ export async function getAppointments(params: {
 
     const totalPages = Math.ceil(total / pageSize);
 
+    // Serialize Decimal fields for client components
+    const serializedAppointments = appointments.map((apt) => ({
+      ...apt,
+      cost: apt.cost ? Number(apt.cost) : null,
+    }));
+
     return {
       success: true,
       data: {
-        appointments,
+        appointments: serializedAppointments,
         total,
         page,
         pageSize,
@@ -299,7 +305,13 @@ export async function getCalendarAppointments(params: {
       },
     });
 
-    return { success: true, data: appointments };
+    // Serialize Decimal fields for client components
+    const serializedAppointments = appointments.map((apt) => ({
+      ...apt,
+      cost: apt.cost ? Number(apt.cost) : null,
+    }));
+
+    return { success: true, data: serializedAppointments };
   } catch (error) {
     console.error("getCalendarAppointments error:", error);
     return {
@@ -325,7 +337,13 @@ export async function getAppointmentById(
       return { success: false, error: "Appointment not found" };
     }
 
-    return { success: true, data: appointment };
+    // Serialize Decimal fields for client components
+    const serializedAppointment = {
+      ...appointment,
+      cost: appointment.cost ? Number(appointment.cost) : null,
+    };
+
+    return { success: true, data: serializedAppointment };
   } catch (error) {
     console.error("getAppointmentById error:", error);
     return {

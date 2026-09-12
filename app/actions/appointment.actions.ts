@@ -5,6 +5,7 @@ import { headers } from "next/headers";
 import { requireAuth, canAccessProviderData } from "@/lib/auth-helpers";
 import { appointmentService } from "@/lib/services/appointment.service";
 import { auditService } from "@/lib/services/audit.service";
+import { prisma } from "@/lib/prisma";
 import {
   createAppointmentSchema,
   confirmAppointmentSchema,
@@ -44,6 +45,20 @@ export async function createAppointment(
 ): Promise<ActionResult<{ id: string }>> {
   try {
     const session = await requireAuth();
+
+    // Validate that the session user actually exists in the database
+    // This can fail after database resets in development
+    const userExists = await prisma.user.findUnique({
+      where: { id: session.user.id },
+      select: { id: true },
+    });
+
+    if (!userExists) {
+      return {
+        success: false,
+        error: "Your session is outdated. Please log out and log back in to continue.",
+      };
+    }
 
     // Validate input
     const validatedInput = createAppointmentSchema.parse(input);
@@ -481,7 +496,13 @@ export async function getMyAppointments(filters?: {
       );
     }
 
-    return { success: true, data: appointments };
+    // Serialize Decimal fields for client components
+    const serializedAppointments = appointments.map((apt: any) => ({
+      ...apt,
+      cost: apt.cost ? Number(apt.cost) : null,
+    }));
+
+    return { success: true, data: serializedAppointments };
   } catch (error) {
     console.error("getMyAppointments error:", error);
 

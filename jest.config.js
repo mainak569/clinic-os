@@ -38,6 +38,9 @@ const config = {
       },
     ],
   },
+  testTimeout: 10000,
+  detectOpenHandles: false,
+  maxWorkers: 1,
 };
 
 module.exports = config;

@@ -9,7 +9,6 @@ import { describe, it, expect, beforeAll, afterAll } from "@jest/globals";
 import { prisma } from "@/lib/prisma";
 import { appointmentService } from "@/lib/services/appointment.service";
 import { canAccessProviderData, canAccessAppointment } from "@/lib/auth-helpers";
-import { UnauthorizedAppointmentAccessError } from "@/lib/errors/appointment-errors";
 import { auth } from "@/auth";
 
 // Mock auth module
@@ -24,7 +23,6 @@ describe("Authorization & Access Control", () => {
   let user2: any;
   let frontDeskUser: any;
   let patient: any;
-  let appointment1: any;
   let appointment2: any;
 
   beforeAll(async () => {
@@ -77,31 +75,34 @@ describe("Authorization & Access Control", () => {
       },
     });
 
-    // Create availability slots
-    await prisma.availabilitySlot.create({
-      data: {
-        providerId: provider1.id,
-        dayOfWeek: "MONDAY",
-        startTime: new Date("2024-01-01T09:00:00"),
-        endTime: new Date("2024-01-01T17:00:00"),
-      },
-    });
+    // Create availability slots for all days
+    const allDays = ["MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY", "SATURDAY", "SUNDAY"] as const;
+    for (const day of allDays) {
+      await prisma.availabilitySlot.create({
+        data: {
+          providerId: provider1.id,
+          dayOfWeek: day,
+          startTime: new Date("2024-01-01T09:00:00"),
+          endTime: new Date("2024-01-01T17:00:00"),
+        },
+      });
 
-    await prisma.availabilitySlot.create({
-      data: {
-        providerId: provider2.id,
-        dayOfWeek: "MONDAY",
-        startTime: new Date("2024-01-01T09:00:00"),
-        endTime: new Date("2024-01-01T17:00:00"),
-      },
-    });
+      await prisma.availabilitySlot.create({
+        data: {
+          providerId: provider2.id,
+          dayOfWeek: day,
+          startTime: new Date("2024-01-01T09:00:00"),
+          endTime: new Date("2024-01-01T17:00:00"),
+        },
+      });
+    }
 
     // Create appointments on next Monday
     const futureDate = new Date();
     futureDate.setDate(futureDate.getDate() + ((1 + 7 - futureDate.getDay()) % 7 || 7));
     futureDate.setHours(10, 0, 0, 0);
 
-    appointment1 = await appointmentService.createAppointment(
+    await appointmentService.createAppointment(
       {
         patientId: patient.id,
         providerId: provider1.id,

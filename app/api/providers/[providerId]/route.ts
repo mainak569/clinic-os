@@ -43,6 +43,15 @@ export async function GET(
             lastLogin: true,
           },
         },
+        availabilitySlots: {
+          where: {
+            isActive: true,
+          },
+          orderBy: [
+            { dayOfWeek: 'asc' },
+            { startTime: 'asc' },
+          ],
+        },
         _count: {
           select: {
             appointments: true,

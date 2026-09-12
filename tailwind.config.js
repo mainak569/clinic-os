@@ -6,6 +6,9 @@ module.exports = {
     "./components/**/*.{ts,tsx}",
     "./app/**/*.{ts,tsx}",
     "./src/**/*.{ts,tsx}",
+    // The shared status vocabulary lives here; without this path Tailwind
+    // purges every status badge colour.
+    "./lib/**/*.{ts,tsx}",
   ],
   prefix: "",
   theme: {
@@ -65,6 +68,9 @@ module.exports = {
         "accordion-up": {
           from: { height: "var(--radix-accordion-content-height)" },
           to: { height: "0" },
+        },
+        shimmer: {
+          "100%": { transform: "translateX(100%)" },
         },
       },
       animation: {

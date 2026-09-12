@@ -1,31 +1,34 @@
 import { LoginForm } from "@/components/auth/login-form";
-import { Heart } from "lucide-react";
+import { GlassBackground } from "@/components/layout/glass-background";
+import { Skeleton } from "@/components/ui/skeleton";
+import { ArrowLeft, Heart, ShieldCheck } from "lucide-react";
 import Link from "next/link";
 import { Suspense } from "react";
 
 export const metadata = {
-  title: "Login - ClinicOS",
+  title: "Sign In - ClinicOS",
   description: "Sign in to your ClinicOS account",
 };
 
 export default function LoginPage() {
   return (
-    <div className="relative flex min-h-screen flex-col items-center justify-center px-4">
-      {/* Background with glass effect */}
-      <div className="fixed inset-0 -z-10">
-        {/* Main gradient mesh */}
-        <div className="absolute inset-0 bg-gradient-to-br from-purple-50 via-pink-50 to-blue-50" />
-        
-        {/* Animated gradient orbs with vibrant blue glow */}
-        <div className="absolute top-0 -left-4 w-[500px] h-[500px] bg-purple-400/20 rounded-full mix-blend-multiply filter blur-3xl opacity-70 animate-pulse" style={{ boxShadow: '0 0 100px rgba(192, 132, 252, 0.25)' }} />
-        <div className="absolute top-1/4 right-0 w-[600px] h-[600px] bg-fuchsia-200/35 rounded-full mix-blend-multiply filter blur-3xl opacity-70 animate-pulse" style={{ animationDelay: '2s', animationDuration: '7s', boxShadow: '0 0 120px rgba(216, 180, 254, 0.25)' }} />
-      </div>
+    <div className="relative flex min-h-screen flex-col items-center justify-center px-4 py-10">
+      {/* Same background as the home page, from one shared component */}
+      <GlassBackground />
+
+      <Link
+        href="/"
+        className="absolute left-4 top-6 flex items-center gap-2 rounded-full bg-white/60 backdrop-blur-xl px-4 py-2 text-sm font-medium text-gray-700 shadow-lg transition-all hover:bg-white/80 hover:text-[#A855F7] hover:shadow-xl sm:left-8"
+      >
+        <ArrowLeft className="h-4 w-4" />
+        Back
+      </Link>
 
       <div className="w-full max-w-md">
         {/* Logo */}
         <Link
           href="/"
-          className="mb-8 flex items-center justify-center space-x-2 px-6 py-3 rounded-full bg-white/70 backdrop-blur-xl shadow-lg hover:shadow-xl transition-all mx-auto w-fit"
+          className="mx-auto mb-8 flex w-fit items-center justify-center space-x-2 rounded-full bg-white/70 backdrop-blur-xl px-6 py-3 shadow-lg transition-all hover:shadow-xl"
         >
           <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#A855F7] shadow-md">
             <Heart className="h-6 w-6 text-white" />
@@ -42,13 +45,22 @@ export default function LoginPage() {
             </p>
           </div>
 
-          <Suspense fallback={<div>Loading...</div>}>
+          <Suspense
+            fallback={
+              <div className="space-y-4">
+                <Skeleton className="h-[72px] w-full" />
+                <Skeleton className="h-[72px] w-full" />
+                <Skeleton className="h-11 w-full rounded-full" />
+              </div>
+            }
+          >
             <LoginForm />
           </Suspense>
         </div>
 
         {/* Footer */}
-        <p className="mt-4 text-center text-sm text-muted-foreground bg-white/50 backdrop-blur-sm px-4 py-2 rounded-full w-fit mx-auto">
+        <p className="mx-auto mt-4 flex w-fit items-center gap-2 rounded-full bg-white/50 backdrop-blur-sm px-4 py-2 text-sm text-muted-foreground">
+          <ShieldCheck className="h-4 w-4 text-[#A855F7]" />
           Protected by enterprise-grade security
         </p>
       </div>

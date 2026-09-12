@@ -1,0 +1,18 @@
+
+> clinicos@0.1.0 test
+> jest
+
+PASS __tests__/integration/security-tests.test.ts
+PASS __tests__/integration/appointment-state-machine.test.ts
+PASS __tests__/integration/duplicate-bookings.test.ts
+PASS __tests__/integration/appointment-workflow.test.ts
+PASS __tests__/unit/validation.test.ts
+PASS __tests__/integration/authorization.test.ts
+PASS __tests__/unit/appointment-service.test.ts
+PASS __tests__/unit/auth-helpers.test.ts
+
+Test Suites: 8 passed, 8 total
+Tests:       99 passed, 99 total
+Snapshots:   0 total
+Time:        5.94 s, estimated 9 s
+Ran all test suites.

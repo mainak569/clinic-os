@@ -256,12 +256,23 @@ export class AvailabilityService {
       },
     });
 
+    // Compare time-of-day only: the slot rows carry an arbitrary date part.
+    const appointmentStartMinutes =
+      scheduledAt.getHours() * 60 + scheduledAt.getMinutes();
+    const appointmentEndMinutes =
+      appointmentEndTime.getHours() * 60 + appointmentEndTime.getMinutes();
+
     // Check if appointment falls within any slot
     for (const slot of slots) {
-      const slotStart = this.combineDateAndTime(scheduledAt, slot.startTime);
-      const slotEnd = this.combineDateAndTime(scheduledAt, slot.endTime);
+      const slotStartMinutes =
+        slot.startTime.getHours() * 60 + slot.startTime.getMinutes();
+      const slotEndMinutes =
+        slot.endTime.getHours() * 60 + slot.endTime.getMinutes();
 
-      if (scheduledAt >= slotStart && appointmentEndTime <= slotEnd) {
+      const startsWithinSlot = appointmentStartMinutes >= slotStartMinutes;
+      const endsWithinSlot = appointmentEndMinutes <= slotEndMinutes;
+
+      if (startsWithinSlot && endsWithinSlot) {
         return true;
       }
     }
@@ -283,18 +294,6 @@ export class AvailabilityService {
       "SATURDAY",
     ];
     return days[date.getDay()];
-  }
-
-  /**
-   * Helper: Combine date and time
-   */
-  private combineDateAndTime(date: Date, time: Date): Date {
-    const combined = new Date(date);
-    combined.setHours(time.getHours());
-    combined.setMinutes(time.getMinutes());
-    combined.setSeconds(0);
-    combined.setMilliseconds(0);
-    return combined;
   }
 }
 

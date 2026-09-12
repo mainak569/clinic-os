@@ -104,10 +104,10 @@ export function VisitNoteHistory({
         </div>
 
         {/* Immutability notice */}
-        <div className="mt-6 rounded-md border border-blue-200 bg-blue-50 p-3 dark:border-blue-900 dark:bg-blue-950">
+        <div className="mt-6 rounded-2xl border border-purple-200 bg-purple-50/70 backdrop-blur-sm p-3">
           <div className="flex gap-2">
-            <AlertCircle className="h-4 w-4 text-blue-600 dark:text-blue-400 mt-0.5" />
-            <div className="text-xs text-blue-900 dark:text-blue-100">
+            <AlertCircle className="h-4 w-4 text-[#A855F7] mt-0.5" />
+            <div className="text-xs text-purple-900">
               <p className="font-semibold mb-1">Immutable Medical Records</p>
               <p>
                 All versions are permanently preserved and cannot be modified or
@@ -135,16 +135,16 @@ function VersionCard({
 
   return (
     <Collapsible open={isOpen} onOpenChange={setIsOpen}>
-      <div className="rounded-lg border bg-card">
+      <div className="rounded-2xl border border-white/60 bg-white/40 backdrop-blur-sm">
         <CollapsibleTrigger asChild>
-          <div className="flex items-start justify-between p-4 cursor-pointer hover:bg-muted/50 transition-colors">
+          <div className="flex items-start justify-between p-4 cursor-pointer hover:bg-white/60 transition-colors">
             <div className="flex-1 space-y-2">
               <div className="flex items-center gap-2">
                 <Badge variant={isLatest ? "default" : "secondary"}>
                   Version {versionNumber}
                 </Badge>
                 {isLatest && (
-                  <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+                  <Badge variant="outline" className="bg-green-100/80 text-green-700 border-green-200">
                     Latest
                   </Badge>
                 )}
@@ -294,7 +294,7 @@ function VitalField({
   if (value === null || value === undefined) return null;
 
   return (
-    <div className="rounded-md border bg-background p-2">
+    <div className="rounded-2xl border border-white/60 bg-white/50 backdrop-blur-sm p-2">
       <div className="text-xs text-muted-foreground mb-0.5">{label}</div>
       <div className="font-semibold">
         {value}

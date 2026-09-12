@@ -8,13 +8,13 @@
 import { describe, it, expect, jest, beforeEach } from "@jest/globals";
 
 // Mock the auth module
-const mockAuth = jest.fn();
+const mockAuth = jest.fn() as jest.MockedFunction<any>;
 jest.mock("@/auth", () => ({
   auth: mockAuth,
 }));
 
 // Mock Prisma
-const mockPrismaFindFirst = jest.fn();
+const mockPrismaFindFirst = jest.fn() as jest.MockedFunction<any>;
 jest.mock("@/prisma.config", () => ({
   prisma: {
     appointment: {

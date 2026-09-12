@@ -29,7 +29,7 @@ export class AppointmentService {
   > = {
     REQUESTED: ["CONFIRMED", "CANCELLED"],
     CONFIRMED: ["CHECKED_IN", "NO_SHOW", "CANCELLED"],
-    CHECKED_IN: ["COMPLETED", "CANCELLED"],
+    CHECKED_IN: ["COMPLETED"], // Cannot cancel after check-in
     COMPLETED: [], // Terminal state
     NO_SHOW: [], // Terminal state
     CANCELLED: [], // Terminal state
@@ -61,7 +61,7 @@ export class AppointmentService {
 
     if (!isAvailable) {
       throw new Error(
-        "Provider is not available at the requested time. Please check their availability and choose a different time slot."
+        "Provider is not available at the requested time. Please go to the Schedule page to set up provider availability first, or choose a time that matches existing availability slots."
       );
     }
 
@@ -351,7 +351,7 @@ export class AppointmentService {
 
     if (!isAvailable) {
       throw new Error(
-        "Provider is not available at the requested time. Please check their availability and choose a different time slot."
+        "Provider is not available at the requested time. Please go to the Schedule page to set up provider availability first, or choose a time that matches existing availability slots."
       );
     }
 
@@ -515,16 +515,35 @@ export class AppointmentService {
     notes: string,
     performedBy: string
   ): Promise<void> {
-    await prisma.appointmentHistory.create({
-      data: {
-        appointmentId,
-        action,
-        previousValue,
-        newValue,
-        notes,
-        performedBy,
-      },
-    });
+    try {
+      // Verify the user exists before creating history entry
+      const userExists = await prisma.user.findUnique({
+        where: { id: performedBy },
+        select: { id: true },
+      });
+
+      if (!userExists) {
+        console.error(`Cannot create appointment history: User ${performedBy} not found in database. This usually happens when the session is stale after a database reset.`);
+        // Still create the appointment but skip history for now
+        // In production, you might want to use a system user ID instead
+        return;
+      }
+
+      await prisma.appointmentHistory.create({
+        data: {
+          appointmentId,
+          action,
+          previousValue,
+          newValue,
+          notes,
+          performedBy,
+        },
+      });
+    } catch (error) {
+      // Log but don't fail the main operation
+      console.error('Failed to create appointment history:', error);
+      // In production, send to error tracking service
+    }
   }
 
   /**

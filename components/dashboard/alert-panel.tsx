@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   getMyAlerts,
   markAlertRead,
@@ -81,15 +82,15 @@ export function AlertPanel() {
   const getPriorityColor = (priority: string) => {
     switch (priority) {
       case "CRITICAL":
-        return "bg-red-600 text-white";
+        return "border-transparent bg-red-600 text-white";
       case "HIGH":
-        return "bg-orange-500 text-white";
+        return "border-transparent bg-red-500 text-white";
       case "MEDIUM":
-        return "bg-yellow-500 text-white";
+        return "border-transparent bg-amber-500 text-white";
       case "LOW":
-        return "bg-blue-500 text-white";
+        return "border-transparent bg-[#A855F7] text-white";
       default:
-        return "bg-gray-500 text-white";
+        return "border-transparent bg-slate-400 text-white";
     }
   };
 
@@ -103,7 +104,10 @@ export function AlertPanel() {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <p className="text-muted-foreground text-sm">Loading alerts...</p>
+          <div className="space-y-3">
+            <Skeleton className="h-20 w-full" />
+            <Skeleton className="h-20 w-full" />
+          </div>
         </CardContent>
       </Card>
     );
@@ -119,9 +123,11 @@ export function AlertPanel() {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="flex items-center gap-2 text-muted-foreground text-sm">
-            <Check className="h-4 w-4 text-green-600" />
-            <span>No active alerts</span>
+          <div className="flex items-center gap-3 rounded-2xl bg-white/50 p-4 text-sm text-muted-foreground">
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-green-100">
+              <Check className="h-4 w-4 text-green-600" />
+            </div>
+            <span>No active alerts — you&apos;re all caught up.</span>
           </div>
         </CardContent>
       </Card>
@@ -156,7 +162,7 @@ export function AlertPanel() {
         {alerts.map((alert) => (
           <div
             key={alert.id}
-            className="rounded-lg border bg-card p-4 space-y-2"
+            className="rounded-2xl border border-white/60 bg-white/50 backdrop-blur-sm p-4 space-y-2"
           >
             <div className="flex items-start justify-between gap-2">
               <div className="flex items-start gap-3 flex-1">

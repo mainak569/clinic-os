@@ -9,7 +9,6 @@ import { describe, it, expect, beforeAll, afterAll, beforeEach } from "@jest/glo
 import { prisma } from "@/lib/prisma";
 import { appointmentService } from "@/lib/services/appointment.service";
 import { InvalidTransitionError } from "@/lib/errors/appointment-errors";
-import { AppointmentStatus } from "@prisma/client";
 
 // Helper function to get next Monday
 function getNextMonday(daysAhead: number = 7): Date {
@@ -51,15 +50,18 @@ describe("Appointment State Machine", () => {
       },
     });
 
-    // Create availability for provider
-    await prisma.availabilitySlot.create({
-      data: {
-        providerId: testProvider.id,
-        dayOfWeek: "MONDAY",
-        startTime: new Date("2024-01-01T09:00:00"),
-        endTime: new Date("2024-01-01T17:00:00"),
-      },
-    });
+    // Create availability for all days of the week (including weekends for testing)
+    const allDays = ["MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY", "SATURDAY", "SUNDAY"] as const;
+    for (const day of allDays) {
+      await prisma.availabilitySlot.create({
+        data: {
+          providerId: testProvider.id,
+          dayOfWeek: day,
+          startTime: new Date("2024-01-01T09:00:00"),
+          endTime: new Date("2024-01-01T17:00:00"),
+        },
+      });
+    }
   });
 
   afterAll(async () => {

@@ -214,7 +214,7 @@ export function ScheduleExport({ providerId, providerName }: ScheduleExportProps
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="max-h-96 overflow-auto rounded-md border">
+            <div className="max-h-96 overflow-auto rounded-2xl border border-white/60 overflow-hidden">
               <Table>
                 <TableHeader>
                   <TableRow>

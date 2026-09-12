@@ -17,6 +17,7 @@ import {
 import {
   UnauthorizedAvailabilityAccessError,
 } from "@/lib/errors/appointment-errors";
+import { prisma } from "@/lib/prisma";
 
 /**
  * Availability Server Actions
@@ -127,6 +128,56 @@ export async function updateAvailabilitySlot(
     }
 
     return { success: false, error: "Failed to update availability slot" };
+  }
+}
+
+/**
+ * Delete (permanently remove) an availability slot
+ * 
+ * WARNING: This permanently deletes the slot from the database
+ * Use archive instead for normal operations
+ */
+export async function deleteAvailabilitySlot(
+  input: ArchiveAvailabilitySlotInput
+): Promise<ActionResult<{ id: string }>> {
+  try {
+    await requireAuth();
+
+    // Validate input
+    const validatedInput = archiveAvailabilitySlotSchema.parse(input);
+
+    // Get the slot to check provider ownership
+    const existingSlot = await availabilityService.getSlotById(
+      validatedInput.slotId
+    );
+    if (!existingSlot) {
+      return { success: false, error: "Availability slot not found" };
+    }
+
+    // Authorization: check if user can modify this provider's availability
+    const canAccess = await canAccessProviderData(existingSlot.providerId);
+    if (!canAccess) {
+      throw new UnauthorizedAvailabilityAccessError();
+    }
+
+    // Permanently delete the slot
+    await prisma.availabilitySlot.delete({
+      where: { id: validatedInput.slotId },
+    });
+
+    // Revalidate relevant paths
+    revalidatePath("/dashboard");
+    revalidatePath(`/providers/${existingSlot.providerId}`);
+
+    return { success: true, data: { id: validatedInput.slotId } };
+  } catch (error) {
+    console.error("deleteAvailabilitySlot error:", error);
+
+    if (error instanceof Error) {
+      return { success: false, error: error.message };
+    }
+
+    return { success: false, error: "Failed to delete availability slot" };
   }
 }
 

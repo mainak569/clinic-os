@@ -27,9 +27,6 @@ const formSchema = z.object({
   daysOfWeek: z.array(z.enum(["MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY", "SATURDAY", "SUNDAY"])).min(1),
   startTime: z.string().regex(/^\d{2}:\d{2}$/),
   endTime: z.string().regex(/^\d{2}:\d{2}$/),
-  startDate: z.string(),
-  endDate: z.string(),
-  skipCollisions: z.boolean(),
   overwriteExisting: z.boolean(),
 });
 
@@ -51,9 +48,6 @@ export function BulkAvailabilityForm({ providerId, providerName }: BulkAvailabil
       daysOfWeek: [],
       startTime: "09:00",
       endTime: "17:00",
-      startDate: format(new Date(), "yyyy-MM-dd"),
-      endDate: format(new Date(Date.now() + 60 * 24 * 60 * 60 * 1000), "yyyy-MM-dd"), // 60 days
-      skipCollisions: true,
       overwriteExisting: false,
     },
   });
@@ -95,14 +89,20 @@ export function BulkAvailabilityForm({ providerId, providerName }: BulkAvailabil
       const endTime = new Date();
       endTime.setHours(endHour, endMin, 0, 0);
 
+      // For recurring weekly slots, we don't need date range
+      // Use a nominal date range (today to 7 days from now) just for the API
+      const today = new Date();
+      const nextWeek = new Date(today);
+      nextWeek.setDate(today.getDate() + 7);
+
       const response = await bulkCreateAvailability({
         providerId: values.providerId,
         daysOfWeek: values.daysOfWeek as any,
         startTime,
         endTime,
-        startDate: new Date(values.startDate),
-        endDate: new Date(values.endDate),
-        skipCollisions: values.skipCollisions,
+        startDate: today,
+        endDate: nextWeek,
+        skipCollisions: true, // Always skip collisions for recurring slots
         overwriteExisting: values.overwriteExisting,
       });
 
@@ -126,9 +126,9 @@ export function BulkAvailabilityForm({ providerId, providerName }: BulkAvailabil
     <div className="space-y-6">
       <Card>
         <CardHeader>
-          <CardTitle>Bulk Create Availability</CardTitle>
+          <CardTitle>Create Recurring Weekly Availability</CardTitle>
           <CardDescription>
-            Create recurring availability slots for {providerName}
+            Set up {providerName}&apos;s recurring weekly schedule. These time slots will repeat every week.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -142,7 +142,7 @@ export function BulkAvailabilityForm({ providerId, providerName }: BulkAvailabil
                   <FormItem>
                     <FormLabel>Days of Week</FormLabel>
                     <FormDescription>
-                      Select days to create availability
+                      Select days when the provider is available (repeats every week)
                     </FormDescription>
                     <FormControl>
                       <div className="flex flex-wrap gap-2">
@@ -204,77 +204,17 @@ export function BulkAvailabilityForm({ providerId, providerName }: BulkAvailabil
                 />
               </div>
 
-              {/* Date Range */}
-              <div className="grid gap-4 md:grid-cols-2">
-                <FormField
-                  control={form.control}
-                  name="startDate"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Start Date</FormLabel>
-                      <FormControl>
-                        <div className="flex items-center gap-2">
-                          <Calendar className="h-4 w-4 text-muted-foreground" />
-                          <Input type="date" {...field} />
-                        </div>
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="endDate"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>End Date</FormLabel>
-                      <FormControl>
-                        <div className="flex items-center gap-2">
-                          <Calendar className="h-4 w-4 text-muted-foreground" />
-                          <Input type="date" {...field} />
-                        </div>
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-
               {/* Options */}
-              <div className="space-y-3 rounded-lg border p-4">
-                <FormField
-                  control={form.control}
-                  name="skipCollisions"
-                  render={({ field }) => (
-                    <FormItem className="flex items-center justify-between">
-                      <div>
-                        <FormLabel>Skip Collisions</FormLabel>
-                        <FormDescription className="text-xs">
-                          Skip dates that already have availability slots
-                        </FormDescription>
-                      </div>
-                      <FormControl>
-                        <input
-                          type="checkbox"
-                          checked={field.value}
-                          onChange={field.onChange}
-                          className="h-4 w-4"
-                        />
-                      </FormControl>
-                    </FormItem>
-                  )}
-                />
-
+              <div className="space-y-3 rounded-2xl border border-white/60 bg-white/40 p-4">
                 <FormField
                   control={form.control}
                   name="overwriteExisting"
                   render={({ field }) => (
                     <FormItem className="flex items-center justify-between">
                       <div>
-                        <FormLabel>Overwrite Existing</FormLabel>
+                        <FormLabel>Overwrite Existing Slots</FormLabel>
                         <FormDescription className="text-xs">
-                          Archive existing slots and create new ones
+                          Archive existing availability for these days/times and create new ones
                         </FormDescription>
                       </div>
                       <FormControl>
@@ -307,7 +247,7 @@ export function BulkAvailabilityForm({ providerId, providerName }: BulkAvailabil
           <CardContent className="space-y-4">
             {/* Summary */}
             <div className="grid gap-3 md:grid-cols-3">
-              <div className="rounded-lg border bg-green-50 p-3 dark:bg-green-950">
+              <div className="rounded-2xl border border-green-200 bg-green-50/70 backdrop-blur-sm p-3">
                 <div className="flex items-center gap-2">
                   <CheckCircle2 className="h-4 w-4 text-green-600" />
                   <span className="text-sm font-medium">Created</span>
@@ -317,7 +257,7 @@ export function BulkAvailabilityForm({ providerId, providerName }: BulkAvailabil
                 </p>
               </div>
 
-              <div className="rounded-lg border bg-amber-50 p-3 dark:bg-amber-950">
+              <div className="rounded-2xl border border-amber-200 bg-amber-50/70 backdrop-blur-sm p-3">
                 <div className="flex items-center gap-2">
                   <AlertCircle className="h-4 w-4 text-amber-600" />
                   <span className="text-sm font-medium">Skipped</span>
@@ -327,7 +267,7 @@ export function BulkAvailabilityForm({ providerId, providerName }: BulkAvailabil
                 </p>
               </div>
 
-              <div className="rounded-lg border bg-blue-50 p-3 dark:bg-blue-950">
+              <div className="rounded-2xl border border-purple-200 bg-purple-50/70 backdrop-blur-sm p-3">
                 <div className="flex items-center gap-2">
                   <Calendar className="h-4 w-4 text-blue-600" />
                   <span className="text-sm font-medium">Total</span>
@@ -346,7 +286,7 @@ export function BulkAvailabilityForm({ providerId, providerName }: BulkAvailabil
                   {result.skipped.map((skip: any, index: number) => (
                     <div
                       key={index}
-                      className="rounded-md border bg-muted/50 p-3 text-sm"
+                      className="rounded-xl border border-white/60 bg-white/50 p-3 text-sm"
                     >
                       <div className="flex items-start justify-between">
                         <div>

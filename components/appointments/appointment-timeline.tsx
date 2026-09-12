@@ -191,7 +191,7 @@ export function AppointmentTimeline({
 
                   {/* Field change details */}
                   {event.field && (
-                    <div className="rounded-md bg-muted/50 p-2 text-xs space-y-1">
+                    <div className="rounded-xl bg-white/50 p-2 text-xs space-y-1">
                       <div className="font-medium text-muted-foreground">
                         Field: {event.field}
                       </div>
@@ -212,7 +212,7 @@ export function AppointmentTimeline({
 
                   {/* Notes/reason */}
                   {event.notes && (
-                    <div className="rounded-md bg-muted/50 p-2 text-xs">
+                    <div className="rounded-xl bg-white/50 p-2 text-xs">
                       <div className="font-medium text-muted-foreground mb-1">
                         Notes:
                       </div>
@@ -226,10 +226,10 @@ export function AppointmentTimeline({
         </div>
 
         {/* Immutability notice */}
-        <div className="mt-6 rounded-md border border-blue-200 bg-blue-50 p-3 dark:border-blue-900 dark:bg-blue-950">
+        <div className="mt-6 rounded-2xl border border-purple-200 bg-purple-50/70 backdrop-blur-sm p-3">
           <div className="flex gap-2">
-            <AlertCircle className="h-4 w-4 text-blue-600 dark:text-blue-400 mt-0.5" />
-            <div className="text-xs text-blue-900 dark:text-blue-100">
+            <AlertCircle className="h-4 w-4 text-[#A855F7] mt-0.5" />
+            <div className="text-xs text-purple-900">
               <p className="font-semibold mb-1">Immutable Audit Trail</p>
               <p>
                 This history cannot be modified or deleted. All changes are

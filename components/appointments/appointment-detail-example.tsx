@@ -243,8 +243,8 @@ export function AppointmentDetailExample({
                   )}
 
                   {!isAuthor && canEditNote && (
-                    <div className="rounded-md border border-amber-200 bg-amber-50 p-3 dark:border-amber-900 dark:bg-amber-950">
-                      <p className="text-xs text-amber-900 dark:text-amber-100">
+                    <div className="rounded-2xl border border-amber-200 bg-amber-50/70 backdrop-blur-sm p-3">
+                      <p className="text-xs text-amber-900">
                         <span className="font-semibold">Note:</span> Only the
                         original author can edit this note. You can view the
                         complete history below.

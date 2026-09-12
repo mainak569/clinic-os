@@ -24,6 +24,7 @@
     "db:seed": "tsx prisma/seed.ts",
     "db:reset": "prisma migrate reset --force && npm run db:seed",
     "db:studio": "prisma studio",
+    "delete-availability": "tsx scripts/clear-availability.ts",
     "auth:test": "echo 'Run: npm run dev, then visit http://localhost:3000/login'",
     "auth:docs": "echo 'See: docs/authentication-system.md'"
   },
@@ -41,6 +42,7 @@
     "@radix-ui/react-label": "^2.1.15",
     "@radix-ui/react-popover": "^1.1.23",
     "@radix-ui/react-select": "^2.3.7",
+    "@radix-ui/react-separator": "^1.1.15",
     "@radix-ui/react-slot": "^1.0.2",
     "@radix-ui/react-tabs": "^1.1.21",
     "@radix-ui/react-toast": "^1.2.23",

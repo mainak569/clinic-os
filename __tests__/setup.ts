@@ -4,11 +4,12 @@
  * Initializes testing environment with Jest/Vitest
  */
 
-// Mock environment variables
+// Mock environment variables BEFORE any imports
 process.env.AUTH_SECRET = "test-secret-key-for-testing-only";
 process.env.AUTH_URL = "http://localhost:3000";
 process.env.DATABASE_URL = "postgresql://test_user:test_password@localhost:5432/clinicos_test";
 process.env.DIRECT_URL = "postgresql://test_user:test_password@localhost:5432/clinicos_test";
+// NODE_ENV is set by Jest automatically
 
 // Mock Next.js modules
 jest.mock("next/navigation", () => ({

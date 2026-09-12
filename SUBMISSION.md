@@ -1,4 +1,4 @@
-# ClinicOS - Healthcare Practice Management Platform
+# ClinicOS - Healthcare Practice Management Prototype
 
 ## Links
 
@@ -7,7 +7,9 @@
 
 ## Project Overview
 
-ClinicOS is a modern healthcare practice management system built with Next.js 15, TypeScript, and PostgreSQL. It focuses on appointment scheduling, provider availability management, clinical documentation, and HIPAA-compliant audit logging.
+ClinicOS is a healthcare practice management prototype built with Next.js 15, TypeScript, and PostgreSQL. Designed as a demonstration project with HIPAA-oriented security and auditability considerations for appointment scheduling, provider availability management, and clinical documentation.
+
+**Important**: This is a student/prototype project for educational purposes. It demonstrates healthcare application architecture and security patterns but is not certified for production use with real patient data.
 
 ## Demo Credentials
 
@@ -45,7 +47,7 @@ After running `npm run db:seed`, log in with:
 | 5   | Clinical Documentation (Visit Notes) | Complete | SOAP format, vital signs tracking, immutable history, amendment system with user attribution |
 | 6   | Alerts & Notifications System | Complete | 24-hour and 1-hour automated alerts, cron job (every 15min), deduplication logic, dismissal tracking |
 | 7   | Analytics Dashboard | Complete | Charts for appointments by provider/status, no-show rates, date range filtering, real-time React Query updates |
-| 8   | Audit Logging for HIPAA Compliance | Complete | PHI access tracking, user action logging with IP/user agent, immutable audit trail, 7-year retention ready |
+| 8   | Audit Logging for HIPAA Compliance | Complete | HIPAA-oriented audit trail (demonstration): PHI access tracking, user action logging with IP/user agent, immutable audit log, retention-ready structure |
 | 9   | Security Implementation | Complete | Rate limiting (100 req/min), security headers, Zod input validation, provider isolation, CSRF protection |
 | 10  | Responsive UI & Landing Page | Complete | Mobile-first glassmorphism design, pricing/about/contact sections, sticky navigation, responsive across all devices |
 
@@ -108,18 +110,18 @@ After running `npm run db:seed`, log in with:
 - Real-time data with React Query
 
 ### Audit Logging
-- Comprehensive PHI access tracking
+- HIPAA-oriented audit trail structure (demonstration purposes)
+- PHI access event tracking
 - User action logging with IP and user agent
-- Immutable audit trail
-- Audit service for compliance
-- 7-year retention capability
+- Immutable audit log design
+- 7-year retention capability (structure in place, automation not implemented)
 
 ### Security Features
-- Security headers (XSS, clickjacking protection)
-- Rate limiting (100 requests/minute)
-- Input validation with Zod
-- SQL injection prevention (Prisma)
-- CSRF protection (NextAuth)
+- Security headers configured (XSS, clickjacking protection)
+- Rate limiting (100 requests/minute, memory-based for single server)
+- Input validation with Zod schemas
+- SQL injection prevention (Prisma parameterized queries)
+- CSRF protection (NextAuth built-in)
 - Error sanitization (no PHI in error messages)
 
 ### Responsive Landing Page
@@ -182,28 +184,32 @@ clinic-os/
 
 ## Testing Status
 
-- Unit Tests: 29/29 passing (100%)
-  - Authentication helpers
-  - Appointment service business logic
-  - Validation schemas
+- **Unit Tests**: 44/44 passing (100%)
+  - Validation schemas (13 tests)
+  - Appointment service business logic (18 tests)
+  - Authorization helpers (13 tests)
   
-- Integration Tests: 70/70 passing (100%)
-  - Appointment state machine (13 tests)
+- **Integration Tests**: 55/55 passing (100%)
+  - Security and unauthorized access (15 tests)
+  - Appointment state machine (12 tests)
   - Authorization and access control (12 tests)
-  - Duplicate booking prevention (11 tests)
-  - Security tests (12 tests)
+  - Duplicate booking prevention (10 tests)
   - Appointment workflow (6 tests)
-  - Other integration scenarios (16 tests)
 
 **Total: 99/99 tests passing**
 
+All tests use mocked authentication and isolated database transactions.
+
 ## Build & Deployment Status
 
-- Build: Passes successfully
-- Type checking: No TypeScript errors
-- Linting: ESLint passes
-- Production ready: Can be deployed to Vercel
-- Environment variables: Template provided in `.env.example`
+- **Build**: Passes successfully (`npm run build`)
+- **Type checking**: No TypeScript errors (`npx tsc --noEmit`)
+- **Linting**: ESLint passes (`npm run lint`)
+- **Tests**: All 99 tests passing (`npm test`)
+- **Deployment**: Vercel-ready with environment variable template
+- **Demo**: Live at [vercel](https://clinic-os-352p.vercel.app/)
+
+**Note**: This is a demonstration deployment. Not for production use with real patient data.
 
 ## What's Working
 
@@ -230,14 +236,19 @@ clinic-os/
 
 ## Known Limitations
 
-1. **Email Notifications**: Not implemented (alerts shown in UI only)
-2. **Password Complexity**: No enforcement (but bcrypt hashing works)
-3. **Session Timeout**: No inactivity timeout (30-day expiry only)
-4. **Rate Limiting**: Memory-based (single server, not Redis)
-5. **Pagination**: Basic implementation, may struggle with 10,000+ records
-6. **Search**: Patient name only, no full-text search
-7. **File Upload**: Not implemented for visit notes
-8. **Multi-Clinic**: Single clinic deployment only
+This is a prototype/demonstration project with the following limitations:
+
+1. **Not HIPAA Certified**: Security patterns follow HIPAA principles, but no formal compliance validation
+2. **Email Notifications**: Not implemented (alerts shown in UI only)
+3. **Password Complexity**: Basic validation only (no complexity enforcement, though bcrypt hashing works)
+4. **Session Timeout**: No inactivity timeout (30-day expiry only)
+5. **Rate Limiting**: Memory-based (single server, not Redis-backed for distributed systems)
+6. **Pagination**: Basic implementation, may have performance issues with large datasets (>1000 records)
+7. **Search**: Patient name only, no full-text search capabilities
+8. **File Upload**: Not implemented for visit notes attachments
+9. **Multi-Clinic**: Single clinic deployment only
+10. **Audit Log Retention**: No automated retention policy or archival system
+11. **Backup/Recovery**: No automated backup system included
 
 ## Time Spent
 
@@ -368,10 +379,10 @@ End-to-end TypeScript with Zod runtime validation and Prisma generated types.
 ## Notes for Reviewer
 
 - **Development**: Run `npm install`, `npx prisma generate`, `npx prisma migrate deploy`, `npm run db:seed`, then `npm run dev`
-- **Testing**: All 99 tests passing (29 unit + 70 integration)
-- **Production**: Build passes, ready for Vercel deployment
+- **Testing**: All 99 tests passing (44 unit + 55 integration)
+- **Build**: Passes successfully, ready for Vercel deployment
 - **Demo Data**: Seed creates 3 users, 2 providers, 20 patients, 30 appointments, 50 availability slots
-- **Documentation**: See `/docs` folder for architecture, decisions, schema details
-- **Code Quality**: TypeScript strict mode, ESLint, Prettier formatting
+- **Documentation**: See `/docs` folder for architecture, decisions, schema details, and error handling implementation
+- **Code Quality**: TypeScript strict mode, ESLint passing, Prettier formatting
 
-The application is production-ready for a healthcare practice with up to 500 appointments/month. Main gaps are email notifications, horizontal scaling support, and advanced pagination.
+**Project Positioning**: This is a demonstration of healthcare application architecture and security patterns. It shows HIPAA-oriented design considerations but is not a certified, production-ready system for handling real patient data. Suitable as a portfolio/learning project or starting point for a production application that would require additional security hardening, compliance validation, and operational infrastructure.
