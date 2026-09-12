@@ -89,18 +89,9 @@ export function CreateAvailabilityDialog({
     setIsSubmitting(true);
 
     try {
-      // Convert times to Date objects
-      const [startHour, startMin] = values.startTime.split(":").map(Number);
-      const [endHour, endMin] = values.endTime.split(":").map(Number);
-
-      const startTime = new Date();
-      startTime.setHours(startHour, startMin, 0, 0);
-
-      const endTime = new Date();
-      endTime.setHours(endHour, endMin, 0, 0);
-
-      // Validate time range
-      if (endTime <= startTime) {
+      // HH:MM strings compare correctly as strings, and are sent as-is so the
+      // browser's timezone never leaks into the stored slot.
+      if (values.endTime <= values.startTime) {
         toast.error("End time must be after start time");
         setIsSubmitting(false);
         return;
@@ -109,8 +100,8 @@ export function CreateAvailabilityDialog({
       const result = await createAvailabilitySlot({
         providerId,
         dayOfWeek: values.dayOfWeek,
-        startTime,
-        endTime,
+        startTime: values.startTime,
+        endTime: values.endTime,
       });
 
       if (result.success) {

@@ -223,4 +223,4 @@ pids/
 storybook-static/
 
 # Sentry
-.sentryclirc
+.sentryclirc.db-backups/

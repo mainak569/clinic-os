@@ -41,12 +41,12 @@ After running `npm run db:seed`, log in with:
 | #   | Goal | Status | Notes |
 | --- | ---- | ------ | ----- |
 | 1   | User Authentication & Authorization | Complete | NextAuth.js v5 with JWT sessions, bcrypt hashing, role-based access (PROVIDER, FRONT_DESK), provider data isolation |
-| 2   | Appointment Management System | Complete | Full CRUD with state machine (6 states), conflict detection, duplicate prevention, cancellation/no-show tracking |
-| 3   | Provider Scheduling & Availability | Complete | Recurring weekly slots, bulk creation tool, overlap detection, availability checking before booking |
-| 4   | Patient Record Management | Complete | Demographics, medical history, emergency contacts, search functionality, appointment linking |
-| 5   | Clinical Documentation (Visit Notes) | Complete | SOAP format, vital signs tracking, immutable history, amendment system with user attribution |
-| 6   | Alerts & Notifications System | Complete | 24-hour and 1-hour automated alerts, cron job (every 15min), deduplication logic, dismissal tracking |
-| 7   | Analytics Dashboard | Complete | Charts for appointments by provider/status, no-show rates, date range filtering, real-time React Query updates |
+| 2   | Appointment Management System | Complete | State machine (6 states), duration-aware conflict detection, per-provider locking against concurrent double-booking, cancellation/no-show/reschedule tracking |
+| 3   | Provider Scheduling & Availability | Complete | Recurring weekly slots stored as clinic wall-clock time, bulk creation, overlap detection, availability checking before booking, provider management (add/edit/deactivate) |
+| 4   | Patient Record Management | Complete | Demographics, medical history, emergency contacts, search by name/email/phone, soft delete with restore on re-registration |
+| 5   | Clinical Documentation (Visit Notes) | Complete | SOAP format, range-checked vital signs, clearable fields, immutable history, amendment system with user attribution |
+| 6   | Alerts & Notifications System | Complete | 24-hour and 1-hour automated alerts, daily Vercel cron (Hobby plan limit), deduplication logic, dismissal tracking |
+| 7   | Analytics Dashboard | Complete | Charts for appointments by provider/status, weekly no-show rates, live counts for today's appointments and check-ins |
 | 8   | Audit Logging for HIPAA Compliance | Complete | HIPAA-oriented audit trail (demonstration): PHI access tracking, user action logging with IP/user agent, immutable audit log, retention-ready structure |
 | 9   | Security Implementation | Complete | Rate limiting (100 req/min), security headers, Zod input validation, provider isolation, CSRF protection |
 | 10  | Responsive UI & Landing Page | Complete | Mobile-first glassmorphism design, pricing/about/contact sections, sticky navigation, responsive across all devices |
@@ -68,11 +68,13 @@ After running `npm run db:seed`, log in with:
 - Appointment creation, confirmation, check-in, completion workflow
 - Reason tracking for cancellations and no-shows
 - Appointment type classification (CONSULTATION, FOLLOW_UP, PROCEDURE, EMERGENCY)
-- Conflict detection and duplicate booking prevention
+- Conflict detection that uses each existing visit's real duration
+- Per-provider database lock so two simultaneous requests can't book the same slot
+- Bookings rejected for past times, archived patients and inactive providers
 - Back-to-back appointment support
 
 ### Provider Scheduling
-- Recurring availability slots (weekly patterns)
+- Recurring availability slots (weekly patterns), stored as clinic wall-clock time so hours don't shift between browser and server timezones
 - Manual slot creation and management
 - Bulk availability creation tool
 - Slot overlap detection
@@ -80,16 +82,23 @@ After running `npm run db:seed`, log in with:
 - Slot archiving (soft delete)
 - Schedule export functionality
 
+### Provider Management
+- Front desk can add providers: login, provider record and profile created together in one transaction
+- Edit name, title, email, password and scheduling defaults
+- Deactivate (disables login and booking; refused while appointments are open) and reactivate
+
 ### Patient Management
 - Patient demographics (name, DOB, contact)
 - Medical history tracking
 - Emergency contact information
-- Patient search by name
+- Patient search by name, email or phone
+- Emails normalised so different casing counts as the same patient
+- Soft delete; registering the same person again restores their archived record and history
 - Patient record linking to appointments
 
 ### Clinical Documentation
 - Visit notes with SOAP format (Subjective, Objective, Assessment, Plan)
-- Vital signs tracking (BP, HR, temp, weight, height)
+- Vital signs tracking (BP, HR, temp, weight, height) with clinically plausible ranges that match the database column precision
 - Chief complaint documentation
 - Diagnosis and treatment plan recording
 - Immutable visit note history
@@ -99,15 +108,14 @@ After running `npm run db:seed`, log in with:
 - Automated 24-hour alerts for requested appointments
 - 1-hour urgent alerts before appointments
 - Alert deduplication logic
-- Cron job for alert generation (every 15 minutes)
+- Cron job for alert generation (daily on Vercel Hobby; runs more often on paid plans)
 - Alert dismissal and acknowledgment
 
 ### Analytics Dashboard
 - Appointments by provider (bar chart)
 - Appointments by status (pie chart)
-- No-show rate tracking
-- Date range filtering
-- Real-time data with React Query
+- No-show rate tracking (last 8 weeks)
+- Today's appointments, check-ins and weekly no-shows counted from the database
 
 ### Audit Logging
 - HIPAA-oriented audit trail structure (demonstration purposes)
@@ -142,7 +150,7 @@ clinic-os/
 ├── app/
 │   ├── actions/           # Server Actions (API layer)
 │   ├── api/               # REST API routes
-│   ├── dashboard/         # Protected dashboard
+│   ├── dashboard/         # Protected dashboard (appointments, patients, schedule, providers)
 │   ├── login/             # Auth pages
 │   └── page.tsx           # Landing page
 ├── components/
@@ -151,44 +159,53 @@ clinic-os/
 │   ├── availability/      # Scheduling components
 │   ├── dashboard/         # Analytics widgets
 │   ├── landing/           # Landing page sections
-│   └── layout/            # Navigation, footer
+│   ├── patients/          # Patient table and dialogs
+│   ├── provider-management/ # Providers table and form
+│   ├── schedule/          # Schedule views
+│   └── layout/            # Navigation, shared background
 ├── lib/
 │   ├── services/          # Business logic layer
 │   ├── validations/       # Zod schemas
 │   ├── errors/            # Custom error classes
+│   ├── clinic-time.ts     # Wall-clock time helpers for availability
 │   ├── auth-helpers.ts    # Authorization utilities
 │   └── prisma.ts          # Database client
 ├── prisma/
-│   ├── schema.prisma      # Database schema (9 models)
+│   ├── schema.prisma      # Database schema (11 models)
 │   ├── migrations/        # Migration history
 │   └── seed.ts            # Demo data seeding
+├── scripts/
+│   └── migrate-slot-times.ts # Data migration for availability slot times
 ├── __tests__/
-│   ├── unit/              # Unit tests (29 passing)
-│   └── integration/       # Integration tests (43 need fixing)
+│   ├── unit/              # Unit tests (60 passing)
+│   └── integration/       # Integration tests (55 passing)
 └── docs/                  # Architecture, decisions, schema
 ```
 
 ## Database Schema
 
-9 core models with proper relationships:
+11 models with proper relationships:
 
 1. **User** - Authentication and authorization
-2. **Provider** - Healthcare provider profiles
-3. **Patient** - Patient records
-4. **Appointment** - Appointment scheduling
-5. **AvailabilitySlot** - Provider availability
-6. **VisitNote** - Clinical documentation
-7. **Alert** - System notifications
-8. **AuditLog** - Compliance logging
+2. **Provider** - Healthcare providers
+3. **ProviderProfile** - Specialization, license, contact and scheduling defaults
+4. **Patient** - Patient records
+5. **Appointment** - Appointment scheduling
+6. **AppointmentHistory** - Immutable appointment change history
+7. **AvailabilitySlot** - Provider availability
+8. **VisitNote** - Clinical documentation
 9. **VisitNoteHistory** - Immutable note history
+10. **Alert** - System notifications
+11. **AuditLog** - Compliance logging
 
 ## Testing Status
 
-- **Unit Tests**: 44/44 passing (100%)
+- **Unit Tests**: 60/60 passing (100%)
   - Validation schemas (13 tests)
-  - Appointment service business logic (18 tests)
+  - Appointment service business logic (25 tests)
   - Authorization helpers (13 tests)
-  
+  - Clinic-time conversions (9 tests)
+
 - **Integration Tests**: 55/55 passing (100%)
   - Security and unauthorized access (15 tests)
   - Appointment state machine (12 tests)
@@ -196,17 +213,17 @@ clinic-os/
   - Duplicate booking prevention (10 tests)
   - Appointment workflow (6 tests)
 
-**Total: 99/99 tests passing**
+**Total: 115/115 tests passing**
 
-All tests use mocked authentication and isolated database transactions.
+Unit tests mock the database. Integration tests run against a local PostgreSQL test database (`clinicos_test`) with mocked authentication, never against Supabase.
 
 ## Build & Deployment Status
 
 - **Build**: Passes successfully (`npm run build`)
 - **Type checking**: No TypeScript errors (`npx tsc --noEmit`)
 - **Linting**: ESLint passes (`npm run lint`)
-- **Tests**: All 99 tests passing (`npm test`)
-- **Deployment**: Vercel-ready with environment variable template
+- **Tests**: All 115 tests passing (`npm test`)
+- **Deployment**: Vercel-ready with environment variable template (set `CLINIC_TIMEZONE`)
 - **Demo**: Live at [vercel](https://clinic-os-352p.vercel.app/)
 
 **Note**: This is a demonstration deployment. Not for production use with real patient data.
@@ -217,9 +234,10 @@ All tests use mocked authentication and isolated database transactions.
 1. User Authentication: Login → Session → Dashboard → Logout
 2. Appointment Lifecycle: Create → Confirm → Check-in → Complete (with state validation)
 3. Provider Scheduling: Create slots → Check availability → Book appointments
-4. Clinical Documentation: Create visit notes → View history → Track amendments
-5. Analytics: Real-time dashboard with filterable charts
-6. Audit Trail: All actions logged with full context
+4. Provider Management: Add provider → Edit profile → Deactivate / Reactivate
+5. Clinical Documentation: Create visit notes → View history → Track amendments
+6. Analytics: Dashboard with live daily counts and trend charts
+7. Audit Trail: Patient, appointment, visit note and provider changes logged with full context
 
 ### Authorization
 - Providers can only see their own appointments and patients
@@ -228,11 +246,13 @@ All tests use mocked authentication and isolated database transactions.
 - Middleware protects all routes
 
 ### Data Integrity
-- No double-booking same time slot
+- No double-booking: overlap detection uses each visit's real duration, and bookings for one provider are serialized with a database lock
 - State machine prevents invalid transitions
-- Availability checking before booking
-- Conflict detection for overlapping appointments
-- Audit logging captures all changes
+- Availability checked on the clinic's wall clock, independent of server timezone
+- No bookings in the past, for archived patients, or for inactive providers
+- Deleted patients can be re-registered without unique-constraint errors
+- Decimal vitals and costs converted before reaching the browser
+- Audit logging captures patient, appointment, visit note and provider changes
 
 ## Known Limitations
 
@@ -240,15 +260,17 @@ This is a prototype/demonstration project with the following limitations:
 
 1. **Not HIPAA Certified**: Security patterns follow HIPAA principles, but no formal compliance validation
 2. **Email Notifications**: Not implemented (alerts shown in UI only)
-3. **Password Complexity**: Basic validation only (no complexity enforcement, though bcrypt hashing works)
+3. **Password Complexity**: Minimum length only (no complexity enforcement, though bcrypt hashing works)
 4. **Session Timeout**: No inactivity timeout (30-day expiry only)
 5. **Rate Limiting**: Memory-based (single server, not Redis-backed for distributed systems)
 6. **Pagination**: Basic implementation, may have performance issues with large datasets (>1000 records)
-7. **Search**: Patient name only, no full-text search capabilities
+7. **Search**: Patient name, email or phone; no full-text search capabilities
 8. **File Upload**: Not implemented for visit notes attachments
 9. **Multi-Clinic**: Single clinic deployment only
 10. **Audit Log Retention**: No automated retention policy or archival system
 11. **Backup/Recovery**: No automated backup system included
+12. **Alert Linking**: Alerts reference appointments through an ID in the message text, not a foreign key
+13. **Single Timezone**: One clinic timezone per deployment
 
 ## Time Spent
 
@@ -326,11 +348,11 @@ Breakdown:
 ---
 
 ### 4. Limited Error Handling in UI
-**Why**: Error boundaries exist but error messages are generic. No retry logic for failed requests.
+**Why**: Validation errors now return a single readable message, and failed saves are no longer retried automatically (retrying a rejected write could only repeat the rejection). But there are still no retry buttons or offline detection.
 
-**Impact**: Poor user experience when things go wrong. Users don't know how to recover.
+**Impact**: Users see what went wrong, but recovery after a network failure is still manual.
 
-**Fix**: Better error messages, retry buttons, offline detection, clearer recovery paths.
+**Fix**: Retry buttons for network failures, offline detection, clearer recovery paths.
 
 ---
 
@@ -341,23 +363,24 @@ Breakdown:
 
 **Fix**: Integrate email service (Resend/SendGrid) with transactional email templates.
 
-## Time Spent
+## Backend / Frontend / Database Consistency Pass
 
-**Total**: Approximately 36-40 hours
+A full audit compared the Prisma schema, Zod validation, services, server actions, API routes and forms. Issues found and fixed:
 
-Breakdown:
-- Planning & Architecture: 3 hours
-- Database Schema Design: 2 hours
-- Authentication System: 4 hours
-- Appointment Management: 8 hours
-- Provider Scheduling: 4 hours
-- Visit Notes & Clinical: 3 hours
-- Analytics Dashboard: 3 hours
-- Audit Logging: 2 hours
-- Landing Page & UI: 4 hours
-- Testing (Unit + Integration): 5 hours
-- Documentation: 2 hours
-- Bug fixes & Refactoring: 4 hours
+| Area | Inconsistency | Fix |
+| ---- | ------------- | --- |
+| Availability | Slot times stored in two encodings and read in the server's timezone; seeded 8 AM hours displayed as 1:30 PM | Canonical wall-clock encoding, clinic timezone setting, data migration of existing slots |
+| Appointments | 15-min booking accepted inside a 60-min visit | Overlap check uses each visit's own duration |
+| Appointments | Two simultaneous bookings for the same slot could both succeed | Per-provider advisory lock around check + insert |
+| Appointments | Past bookings, archived patients and inactive providers accepted | Rejected with clear messages |
+| Appointments | `POST /api/appointments` skipped validation, availability, conflicts and audit | Routed through the service layer |
+| Appointments | Cancel, no-show and reschedule not audit-logged | Audit entries added |
+| Patients | Re-registering a deleted patient failed on the unique email/phone index | Archived record restored with new details |
+| Patients | Email uniqueness was case-sensitive | Emails normalised |
+| Patients | Provider patient list filtered after pagination (wrong totals, unreachable pages) | Filter moved into the database query |
+| Providers | No way to add or manage providers outside the seed script | Providers page, service and validated API |
+| Visit notes | No range limits (database overflow errors), fields couldn't be cleared, Decimal vitals couldn't reach the browser | Bounds, nullable updates, serialization |
+| App-wide | Validation errors shown as raw JSON; failed saves retried 3 times; revalidation targeted non-existent routes | Readable messages, no retries of rejected writes, correct revalidation |
 
 ## Architecture Highlights
 
@@ -368,7 +391,13 @@ Business logic separated from HTTP/action layer for testability and reusability.
 Explicit states and transitions prevent invalid workflows (can't complete without check-in).
 
 ### Provider Isolation
-Database-level filtering ensures providers can never access other providers' data.
+Database-level filtering ensures providers can never access other providers' data, including patient search, which is filtered in the query so pagination and totals stay correct.
+
+### Concurrency-Safe Booking
+The conflict check and the insert run inside one transaction holding a per-provider Postgres advisory lock, so two simultaneous requests for the same slot can't both succeed. Verified through the Supabase connection pooler.
+
+### Clinic Wall-Clock Time
+Availability slots store wall-clock time on a fixed date; appointments are converted to the clinic's timezone before comparison. The same answer on a laptop and on a UTC server.
 
 ### Audit Trail
 Every PHI access logged with user, timestamp, IP, and action for HIPAA compliance.
@@ -379,10 +408,11 @@ End-to-end TypeScript with Zod runtime validation and Prisma generated types.
 ## Notes for Reviewer
 
 - **Development**: Run `npm install`, `npx prisma generate`, `npx prisma migrate deploy`, `npm run db:seed`, then `npm run dev`
-- **Testing**: All 99 tests passing (44 unit + 55 integration)
+- **Testing**: All 115 tests passing (60 unit + 55 integration). Integration tests need a local PostgreSQL `clinicos_test` database
 - **Build**: Passes successfully, ready for Vercel deployment
-- **Demo Data**: Seed creates 3 users, 2 providers, 20 patients, 30 appointments, 50 availability slots
-- **Documentation**: See `/docs` folder for architecture, decisions, schema details, and error handling implementation
+- **Demo Data**: Seed creates 3 users, 2 providers, 5 patients, 5 appointments, 18 availability slots, 1 visit note and 3 alerts
+- **Documentation**: See `/docs` for architecture, decisions, schema details and the development plan
+- **Environment**: Set `CLINIC_TIMEZONE` (defaults to `Asia/Kolkata`) wherever the app runs
 - **Code Quality**: TypeScript strict mode, ESLint passing, Prettier formatting
 
 **Project Positioning**: This is a demonstration of healthcare application architecture and security patterns. It shows HIPAA-oriented design considerations but is not a certified, production-ready system for handling real patient data. Suitable as a portfolio/learning project or starting point for a production application that would require additional security hardening, compliance validation, and operational infrastructure.

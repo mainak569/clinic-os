@@ -27,6 +27,12 @@ import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { createVisitNote, updateVisitNote } from "@/app/actions/visit-note.actions";
+import {
+  BLOOD_PRESSURE_RE,
+  VITAL_BOUNDS,
+  type CreateVisitNoteInput,
+  type UpdateVisitNoteInput,
+} from "@/lib/validations/visit-note";
 
 /**
  * Visit Note Form Component
@@ -34,6 +40,19 @@ import { createVisitNote, updateVisitNote } from "@/app/actions/visit-note.actio
  * Professional clinical documentation interface
  * Supports SOAP format + vitals + orders
  */
+
+/** A vital typed as text: blank is allowed, anything else must be in range. */
+function vitalString(key: keyof typeof VITAL_BOUNDS) {
+  const { label, min, max, integer } = VITAL_BOUNDS[key];
+  return z
+    .string()
+    .optional()
+    .refine((v) => {
+      if (!v?.trim()) return true;
+      const n = Number(v);
+      return Number.isFinite(n) && n >= min && n <= max && (!integer || Number.isInteger(n));
+    }, `${label} must be ${integer ? "a whole number " : "a number "}between ${min} and ${max}`);
+}
 
 const visitNoteFormSchema = z.object({
   // Chief Complaint & SOAP
@@ -43,14 +62,17 @@ const visitNoteFormSchema = z.object({
   assessment: z.string().optional(),
   plan: z.string().optional(),
   
-  // Vital Signs
-  bloodPressure: z.string().optional(),
-  heartRate: z.string().optional(),
-  temperature: z.string().optional(),
-  respiratoryRate: z.string().optional(),
-  oxygenSaturation: z.string().optional(),
-  weight: z.string().optional(),
-  height: z.string().optional(),
+  // Vital Signs - same bounds as the server (lib/validations/visit-note.ts)
+  bloodPressure: z
+    .string()
+    .optional()
+    .refine((v) => !v?.trim() || BLOOD_PRESSURE_RE.test(v.trim()), "Blood pressure must look like 120/80"),
+  heartRate: vitalString("heartRate"),
+  temperature: vitalString("temperature"),
+  respiratoryRate: vitalString("respiratoryRate"),
+  oxygenSaturation: vitalString("oxygenSaturation"),
+  weight: vitalString("weight"),
+  height: vitalString("height"),
   
   // Orders & Treatment
   prescriptions: z.string().optional(),
@@ -118,36 +140,38 @@ export function VisitNoteForm({
     setIsSubmitting(true);
 
     try {
-      // Convert string numbers to actual numbers
-      const heartRate = values.heartRate ? parseInt(values.heartRate) : undefined;
-      const temperature = values.temperature ? parseFloat(values.temperature) : undefined;
-      const respiratoryRate = values.respiratoryRate ? parseInt(values.respiratoryRate) : undefined;
-      const oxygenSaturation = values.oxygenSaturation ? parseInt(values.oxygenSaturation) : undefined;
-      const weight = values.weight ? parseFloat(values.weight) : undefined;
-      const height = values.height ? parseFloat(values.height) : undefined;
+      // Blank means "not recorded". On create it's simply left out; on edit
+      // it's sent as null, which is the only way to clear a saved value.
+      const blank = mode === "edit" ? null : undefined;
+      const num = (v?: string) => (v?.trim() ? Number(v) : blank);
+      const text = (v?: string) => (v?.trim() ? v.trim() : blank);
+
+      const fields = {
+        chiefComplaint: text(values.chiefComplaint),
+        historyOfPresent: text(values.historyOfPresent),
+        physicalExam: text(values.physicalExam),
+        assessment: text(values.assessment),
+        plan: text(values.plan),
+        bloodPressure: text(values.bloodPressure),
+        heartRate: num(values.heartRate),
+        temperature: num(values.temperature),
+        respiratoryRate: num(values.respiratoryRate),
+        oxygenSaturation: num(values.oxygenSaturation),
+        weight: num(values.weight),
+        height: num(values.height),
+        prescriptions: text(values.prescriptions),
+        labOrders: text(values.labOrders),
+        imagingOrders: text(values.imagingOrders),
+        referrals: text(values.referrals),
+        followUpInstructions: text(values.followUpInstructions),
+        nextVisitDate: values.nextVisitDate ?? blank,
+      };
 
       if (mode === "create") {
         const result = await createVisitNote({
           appointmentId,
-          chiefComplaint: values.chiefComplaint,
-          historyOfPresent: values.historyOfPresent,
-          physicalExam: values.physicalExam,
-          assessment: values.assessment,
-          plan: values.plan,
-          bloodPressure: values.bloodPressure,
-          heartRate,
-          temperature,
-          respiratoryRate,
-          oxygenSaturation,
-          weight,
-          height,
-          prescriptions: values.prescriptions,
-          labOrders: values.labOrders,
-          imagingOrders: values.imagingOrders,
-          referrals: values.referrals,
-          followUpInstructions: values.followUpInstructions,
-          nextVisitDate: values.nextVisitDate,
-        });
+          ...fields,
+        } as CreateVisitNoteInput);
 
         if (result.success) {
           toast.success("Visit note created successfully");
@@ -163,26 +187,9 @@ export function VisitNoteForm({
 
         const result = await updateVisitNote({
           visitNoteId: existingNote.id,
-          changeReason: values.changeReason,
-          chiefComplaint: values.chiefComplaint,
-          historyOfPresent: values.historyOfPresent,
-          physicalExam: values.physicalExam,
-          assessment: values.assessment,
-          plan: values.plan,
-          bloodPressure: values.bloodPressure,
-          heartRate,
-          temperature,
-          respiratoryRate,
-          oxygenSaturation,
-          weight,
-          height,
-          prescriptions: values.prescriptions,
-          labOrders: values.labOrders,
-          imagingOrders: values.imagingOrders,
-          referrals: values.referrals,
-          followUpInstructions: values.followUpInstructions,
-          nextVisitDate: values.nextVisitDate,
-        });
+          changeReason: values.changeReason?.trim() || undefined,
+          ...fields,
+        } as UpdateVisitNoteInput);
 
         if (result.success) {
           toast.success("Visit note updated successfully");

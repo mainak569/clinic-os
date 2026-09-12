@@ -1,6 +1,8 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
+import { revalidateDashboard } from "@/lib/revalidate";
+import { actionErrorMessage } from "@/lib/action-error";
+import { serializeAppointment } from "@/lib/serialize";
 import { headers } from "next/headers";
 import { requireAuth, canAccessProviderData } from "@/lib/auth-helpers";
 import { appointmentService } from "@/lib/services/appointment.service";
@@ -101,9 +103,7 @@ export async function createAppointment(
       userAgent: headersList.get("user-agent") ?? null,
     });
 
-    // Revalidate relevant paths
-    revalidatePath("/dashboard");
-    revalidatePath("/appointments");
+    revalidateDashboard();
 
     return { success: true, data: { id: appointment.id } };
   } catch (error) {
@@ -118,11 +118,7 @@ export async function createAppointment(
       });
     }
 
-    if (error instanceof Error) {
-      return { success: false, error: error.message };
-    }
-
-    return { success: false, error: "Failed to create appointment" };
+    return { success: false, error: actionErrorMessage(error, "Failed to create appointment") };
   }
 }
 
@@ -170,20 +166,13 @@ export async function confirmAppointment(
       userAgent: headersList.get("user-agent") ?? null,
     });
 
-    // Revalidate relevant paths
-    revalidatePath("/dashboard");
-    revalidatePath("/appointments");
-    revalidatePath(`/appointments/${validatedInput.appointmentId}`);
+    revalidateDashboard();
 
     return { success: true, data: { id: updated.id } };
   } catch (error) {
     console.error("confirmAppointment error:", error);
 
-    if (error instanceof Error) {
-      return { success: false, error: error.message };
-    }
-
-    return { success: false, error: "Failed to confirm appointment" };
+    return { success: false, error: actionErrorMessage(error, "Failed to confirm appointment") };
   }
 }
 
@@ -231,20 +220,13 @@ export async function checkInAppointment(
       userAgent: headersList.get("user-agent") ?? null,
     });
 
-    // Revalidate relevant paths
-    revalidatePath("/dashboard");
-    revalidatePath("/appointments");
-    revalidatePath(`/appointments/${validatedInput.appointmentId}`);
+    revalidateDashboard();
 
     return { success: true, data: { id: updated.id } };
   } catch (error) {
     console.error("checkInAppointment error:", error);
 
-    if (error instanceof Error) {
-      return { success: false, error: error.message };
-    }
-
-    return { success: false, error: "Failed to check in appointment" };
+    return { success: false, error: actionErrorMessage(error, "Failed to check in appointment") };
   }
 }
 
@@ -292,20 +274,13 @@ export async function completeAppointment(
       userAgent: headersList.get("user-agent") ?? null,
     });
 
-    // Revalidate relevant paths
-    revalidatePath("/dashboard");
-    revalidatePath("/appointments");
-    revalidatePath(`/appointments/${validatedInput.appointmentId}`);
+    revalidateDashboard();
 
     return { success: true, data: { id: updated.id } };
   } catch (error) {
     console.error("completeAppointment error:", error);
 
-    if (error instanceof Error) {
-      return { success: false, error: error.message };
-    }
-
-    return { success: false, error: "Failed to complete appointment" };
+    return { success: false, error: actionErrorMessage(error, "Failed to complete appointment") };
   }
 }
 
@@ -346,20 +321,25 @@ export async function markAppointmentNoShow(
       session.user.id
     );
 
-    // Revalidate relevant paths
-    revalidatePath("/dashboard");
-    revalidatePath("/appointments");
-    revalidatePath(`/appointments/${validatedInput.appointmentId}`);
+    // HIPAA Audit Log
+    const headersList = await headers();
+    await auditService.log({
+      userId: session.user.id,
+      action: "UPDATE",
+      resource: "APPOINTMENT",
+      resourceId: validatedInput.appointmentId,
+      details: { action: "NO_SHOW", newStatus: "NO_SHOW", notes: validatedInput.notes ?? null },
+      ipAddress: headersList.get("x-forwarded-for") ?? null,
+      userAgent: headersList.get("user-agent") ?? null,
+    });
+
+    revalidateDashboard();
 
     return { success: true, data: { id: updated.id } };
   } catch (error) {
     console.error("markAppointmentNoShow error:", error);
 
-    if (error instanceof Error) {
-      return { success: false, error: error.message };
-    }
-
-    return { success: false, error: "Failed to mark appointment as no-show" };
+    return { success: false, error: actionErrorMessage(error, "Failed to mark appointment as no-show") };
   }
 }
 
@@ -400,20 +380,25 @@ export async function cancelAppointment(
       session.user.id
     );
 
-    // Revalidate relevant paths
-    revalidatePath("/dashboard");
-    revalidatePath("/appointments");
-    revalidatePath(`/appointments/${validatedInput.appointmentId}`);
+    // HIPAA Audit Log
+    const headersList = await headers();
+    await auditService.log({
+      userId: session.user.id,
+      action: "UPDATE",
+      resource: "APPOINTMENT",
+      resourceId: validatedInput.appointmentId,
+      details: { action: "CANCEL", newStatus: "CANCELLED", reason: validatedInput.cancellationReason },
+      ipAddress: headersList.get("x-forwarded-for") ?? null,
+      userAgent: headersList.get("user-agent") ?? null,
+    });
+
+    revalidateDashboard();
 
     return { success: true, data: { id: updated.id } };
   } catch (error) {
     console.error("cancelAppointment error:", error);
 
-    if (error instanceof Error) {
-      return { success: false, error: error.message };
-    }
-
-    return { success: false, error: "Failed to cancel appointment" };
+    return { success: false, error: actionErrorMessage(error, "Failed to cancel appointment") };
   }
 }
 
@@ -451,20 +436,25 @@ export async function rescheduleAppointment(
       session.user.id
     );
 
-    // Revalidate relevant paths
-    revalidatePath("/dashboard");
-    revalidatePath("/appointments");
-    revalidatePath(`/appointments/${validatedInput.appointmentId}`);
+    // HIPAA Audit Log
+    const headersList = await headers();
+    await auditService.log({
+      userId: session.user.id,
+      action: "UPDATE",
+      resource: "APPOINTMENT",
+      resourceId: validatedInput.appointmentId,
+      details: { action: "RESCHEDULE", from: appointment.scheduledAt.toISOString(), to: validatedInput.newScheduledAt.toISOString(), reason: validatedInput.reason ?? null },
+      ipAddress: headersList.get("x-forwarded-for") ?? null,
+      userAgent: headersList.get("user-agent") ?? null,
+    });
+
+    revalidateDashboard();
 
     return { success: true, data: { id: updated.id } };
   } catch (error) {
     console.error("rescheduleAppointment error:", error);
 
-    if (error instanceof Error) {
-      return { success: false, error: error.message };
-    }
-
-    return { success: false, error: "Failed to reschedule appointment" };
+    return { success: false, error: actionErrorMessage(error, "Failed to reschedule appointment") };
   }
 }
 
@@ -497,19 +487,12 @@ export async function getMyAppointments(filters?: {
     }
 
     // Serialize Decimal fields for client components
-    const serializedAppointments = appointments.map((apt: any) => ({
-      ...apt,
-      cost: apt.cost ? Number(apt.cost) : null,
-    }));
+    const serializedAppointments = appointments.map((apt: any) => serializeAppointment(apt));
 
     return { success: true, data: serializedAppointments };
   } catch (error) {
     console.error("getMyAppointments error:", error);
 
-    if (error instanceof Error) {
-      return { success: false, error: error.message };
-    }
-
-    return { success: false, error: "Failed to get appointments" };
+    return { success: false, error: actionErrorMessage(error, "Failed to get appointments") };
   }
 }

@@ -4,6 +4,7 @@ import {
   AvailabilitySlotNotFoundError,
   OverlappingSlotError,
 } from "@/lib/errors/appointment-errors";
+import { clinicWallClock, slotMinutes } from "@/lib/clinic-time";
 
 /**
  * Availability Service Layer
@@ -77,6 +78,10 @@ export class AvailabilityService {
     const updatedDayOfWeek = input.dayOfWeek ?? existingSlot.dayOfWeek;
     const updatedStartTime = input.startTime ?? existingSlot.startTime;
     const updatedEndTime = input.endTime ?? existingSlot.endTime;
+
+    if (slotMinutes(updatedEndTime) <= slotMinutes(updatedStartTime)) {
+      throw new Error("End time must be after start time");
+    }
 
     // Check for overlapping slots (excluding current slot)
     const hasOverlap = await this.checkForOverlap(
@@ -242,59 +247,32 @@ export class AvailabilityService {
     scheduledAt: Date,
     duration: number
   ): Promise<boolean> {
-    const dayOfWeek = this.getDayOfWeek(scheduledAt);
-    const appointmentEndTime = new Date(
-      scheduledAt.getTime() + duration * 60000
-    );
+    // Compare on the clinic's wall clock, not the server's local clock, so the
+    // answer is the same on a laptop in IST and on a UTC host.
+    const wall = clinicWallClock(scheduledAt);
+    const appointmentStart = wall.minutes;
+    const appointmentEnd = wall.minutes + duration;
 
-    // Get provider's availability for the day
+    // A visit that runs past midnight can't fit inside a same-day slot.
+    if (appointmentEnd > 24 * 60) {
+      return false;
+    }
+
     const slots = await prisma.availabilitySlot.findMany({
       where: {
         providerId,
-        dayOfWeek,
+        dayOfWeek: wall.dayOfWeek,
         isActive: true,
       },
     });
 
-    // Compare time-of-day only: the slot rows carry an arbitrary date part.
-    const appointmentStartMinutes =
-      scheduledAt.getHours() * 60 + scheduledAt.getMinutes();
-    const appointmentEndMinutes =
-      appointmentEndTime.getHours() * 60 + appointmentEndTime.getMinutes();
-
-    // Check if appointment falls within any slot
-    for (const slot of slots) {
-      const slotStartMinutes =
-        slot.startTime.getHours() * 60 + slot.startTime.getMinutes();
-      const slotEndMinutes =
-        slot.endTime.getHours() * 60 + slot.endTime.getMinutes();
-
-      const startsWithinSlot = appointmentStartMinutes >= slotStartMinutes;
-      const endsWithinSlot = appointmentEndMinutes <= slotEndMinutes;
-
-      if (startsWithinSlot && endsWithinSlot) {
-        return true;
-      }
-    }
-
-    return false;
+    return slots.some(
+      (slot) =>
+        appointmentStart >= slotMinutes(slot.startTime) &&
+        appointmentEnd <= slotMinutes(slot.endTime)
+    );
   }
 
-  /**
-   * Helper: Get DayOfWeek enum from Date
-   */
-  private getDayOfWeek(date: Date): DayOfWeek {
-    const days: DayOfWeek[] = [
-      "SUNDAY",
-      "MONDAY",
-      "TUESDAY",
-      "WEDNESDAY",
-      "THURSDAY",
-      "FRIDAY",
-      "SATURDAY",
-    ];
-    return days[date.getDay()];
-  }
 }
 
 // Singleton instance

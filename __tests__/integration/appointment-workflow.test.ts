@@ -47,8 +47,8 @@ describe("Appointment Workflow Integration Tests", () => {
         data: {
           providerId: testProvider.id,
           dayOfWeek: day,
-          startTime: new Date("2024-01-01T09:00:00"),
-          endTime: new Date("2024-01-01T17:00:00"),
+          startTime: new Date("1970-01-01T09:00:00Z"),
+          endTime: new Date("1970-01-01T17:00:00Z"),
         },
       });
     }
@@ -143,17 +143,20 @@ describe("Appointment Workflow Integration Tests", () => {
       pastDate.setDate(pastDate.getDate() + dayOffset);
       pastDate.setHours(10, 0, 0, 0);
 
-      const created = await appointmentService.createAppointment(
-        {
+      // The service now refuses to book in the past, which is correct. A no-show
+      // is always an appointment booked earlier whose time has since passed, so
+      // insert that historical appointment directly.
+      const created = await prisma.appointment.create({
+        data: {
           patientId: testPatient.id,
           providerId: testProvider.id,
           scheduledAt: pastDate,
           duration: 30,
           type: "FOLLOW_UP",
           reason: "Checkup",
+          status: "REQUESTED",
         },
-        testUser.id
-      );
+      });
 
       // Confirm
       await appointmentService.confirmAppointment(created.id, testUser.id);

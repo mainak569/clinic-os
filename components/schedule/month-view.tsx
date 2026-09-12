@@ -1,5 +1,7 @@
 "use client";
 
+import { formatSlotTime } from "@/lib/clinic-time";
+
 import { useState } from "react";
 import {
   format,
@@ -159,7 +161,7 @@ export function MonthView({ slots, onSlotClick, isLoading }: MonthViewProps) {
                       onClick={() => onSlotClick(slot)}
                       className="w-full rounded bg-green-100/80 px-1.5 py-0.5 text-left text-[10px] text-green-800 transition-colors hover:bg-green-200/80"
                     >
-                      {format(new Date(slot.startTime), "h:mm a")}
+                      {formatSlotTime(slot.startTime)}
                     </button>
                   ))}
                   {daySlots.length > 2 && (

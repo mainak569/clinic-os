@@ -1,6 +1,9 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
+import { revalidateDashboard } from "@/lib/revalidate";
+import { actionErrorMessage } from "@/lib/action-error";
+import { timeStringToSlotDate } from "@/lib/clinic-time";
+import { prisma } from "@/lib/prisma";
 import { requireAuth, canAccessProviderData } from "@/lib/auth-helpers";
 import { bulkAvailabilityService } from "@/lib/services/bulk-availability.service";
 import {
@@ -65,18 +68,13 @@ export async function bulkCreateAvailability(
     const result = await bulkAvailabilityService.bulkCreateAvailability({
       providerId: validatedInput.providerId,
       daysOfWeek: validatedInput.daysOfWeek,
-      startTime: validatedInput.startTime,
-      endTime: validatedInput.endTime,
-      startDate: validatedInput.startDate,
-      endDate: validatedInput.endDate,
+      startTime: timeStringToSlotDate(validatedInput.startTime),
+      endTime: timeStringToSlotDate(validatedInput.endTime),
       skipCollisions: validatedInput.skipCollisions,
       overwriteExisting: validatedInput.overwriteExisting,
     });
 
-    // Revalidate relevant paths
-    revalidatePath("/dashboard");
-    revalidatePath("/availability");
-    revalidatePath(`/providers/${validatedInput.providerId}/availability`);
+    revalidateDashboard();
 
     return {
       success: true,
@@ -89,11 +87,7 @@ export async function bulkCreateAvailability(
   } catch (error) {
     console.error("bulkCreateAvailability error:", error);
 
-    if (error instanceof Error) {
-      return { success: false, error: error.message };
-    }
-
-    return { success: false, error: "Failed to create availability slots" };
+    return { success: false, error: actionErrorMessage(error, "Failed to create availability slots") };
   }
 }
 
@@ -121,7 +115,7 @@ export async function exportScheduleToCSV(
     }
 
     // Get provider info for filename
-    const provider = await prisma?.provider.findUnique({
+    const provider = await prisma.provider.findUnique({
       where: { id: validatedInput.providerId },
       select: { firstName: true, lastName: true },
     });
@@ -148,11 +142,7 @@ export async function exportScheduleToCSV(
   } catch (error) {
     console.error("exportScheduleToCSV error:", error);
 
-    if (error instanceof Error) {
-      return { success: false, error: error.message };
-    }
-
-    return { success: false, error: "Failed to export schedule" };
+    return { success: false, error: actionErrorMessage(error, "Failed to export schedule") };
   }
 }
 
@@ -180,7 +170,7 @@ export async function exportScheduleToJSON(
     }
 
     // Get provider info for filename
-    const provider = await prisma?.provider.findUnique({
+    const provider = await prisma.provider.findUnique({
       where: { id: validatedInput.providerId },
       select: { firstName: true, lastName: true },
     });
@@ -207,11 +197,7 @@ export async function exportScheduleToJSON(
   } catch (error) {
     console.error("exportScheduleToJSON error:", error);
 
-    if (error instanceof Error) {
-      return { success: false, error: error.message };
-    }
-
-    return { success: false, error: "Failed to export schedule" };
+    return { success: false, error: actionErrorMessage(error, "Failed to export schedule") };
   }
 }
 
@@ -251,11 +237,7 @@ export async function getDailySchedule(input: {
   } catch (error) {
     console.error("getDailySchedule error:", error);
 
-    if (error instanceof Error) {
-      return { success: false, error: error.message };
-    }
-
-    return { success: false, error: "Failed to get schedule" };
+    return { success: false, error: actionErrorMessage(error, "Failed to get schedule") };
   }
 }
 
@@ -286,14 +268,9 @@ export async function deleteBulkAvailability(
     const result = await bulkAvailabilityService.deleteBulkAvailability({
       providerId: validatedInput.providerId,
       daysOfWeek: validatedInput.daysOfWeek,
-      startDate: validatedInput.startDate,
-      endDate: validatedInput.endDate,
     });
 
-    // Revalidate relevant paths
-    revalidatePath("/dashboard");
-    revalidatePath("/availability");
-    revalidatePath(`/providers/${validatedInput.providerId}/availability`);
+    revalidateDashboard();
 
     return {
       success: true,
@@ -302,13 +279,7 @@ export async function deleteBulkAvailability(
   } catch (error) {
     console.error("deleteBulkAvailability error:", error);
 
-    if (error instanceof Error) {
-      return { success: false, error: error.message };
-    }
-
-    return { success: false, error: "Failed to delete availability slots" };
+    return { success: false, error: actionErrorMessage(error, "Failed to delete availability slots") };
   }
 }
 
-// Fix: Import prisma for provider lookup
-import { prisma } from "@/lib/prisma";

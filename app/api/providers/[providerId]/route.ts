@@ -1,15 +1,17 @@
-import { requireAuth, canAccessProviderData } from "@/lib/auth-helpers";
-import { prisma } from "@/prisma.config";
 import { NextResponse } from "next/server";
+import { ZodError } from "zod";
+
+import { requireAuth, canAccessProviderData } from "@/lib/auth-helpers";
+import { providerService } from "@/lib/services/provider.service";
+import { prisma } from "@/lib/prisma";
+import { updateProviderSchema } from "@/lib/validations/provider";
 
 /**
  * GET /api/providers/[providerId]
- * 
- * Returns provider details with authorization check
- * 
- * Authorization:
- * - FRONT_DESK: Can access any provider
- * - PROVIDER: Can only access their own data
+ *
+ * Provider details with active availability.
+ * - FRONT_DESK: any provider
+ * - PROVIDER: only themselves
  */
 export async function GET(
   _request: Request,
@@ -19,73 +21,47 @@ export async function GET(
     await requireAuth();
     const { providerId } = await params;
 
-    // Authorization check
-    const canAccess = await canAccessProviderData(providerId);
-    if (!canAccess) {
+    if (!(await canAccessProviderData(providerId))) {
       return NextResponse.json(
-        { 
+        {
           error: "Unauthorized: You can only access your own provider data",
-          message: "Providers can only view their own information. Front desk staff can view all providers."
+          message:
+            "Providers can only view their own information. Front desk staff can view all providers.",
         },
         { status: 403 }
       );
     }
 
-    // Fetch provider data
     const provider = await prisma.provider.findUnique({
       where: { id: providerId },
       include: {
         profile: true,
-        user: {
-          select: {
-            email: true,
-            isActive: true,
-            lastLogin: true,
-          },
-        },
+        user: { select: { email: true, isActive: true, lastLogin: true } },
         availabilitySlots: {
-          where: {
-            isActive: true,
-          },
-          orderBy: [
-            { dayOfWeek: 'asc' },
-            { startTime: 'asc' },
-          ],
+          where: { isActive: true },
+          orderBy: [{ dayOfWeek: "asc" }, { startTime: "asc" }],
         },
-        _count: {
-          select: {
-            appointments: true,
-            availabilitySlots: true,
-          },
-        },
+        _count: { select: { appointments: true, availabilitySlots: true } },
       },
     });
 
     if (!provider) {
-      return NextResponse.json(
-        { error: "Provider not found" },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: "Provider not found" }, { status: 404 });
     }
 
     return NextResponse.json(provider);
   } catch (error) {
     console.error("Error fetching provider:", error);
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }
 
 /**
  * PATCH /api/providers/[providerId]
- * 
- * Updates provider information
- * 
- * Authorization:
- * - FRONT_DESK: Can update any provider
- * - PROVIDER: Can only update their own data
+ *
+ * Updates a provider through the same validated service as the Providers page.
+ * The body was previously written straight into the database, including an
+ * unvalidated `profile` object passed to an upsert.
  */
 export async function PATCH(
   request: Request,
@@ -95,9 +71,7 @@ export async function PATCH(
     await requireAuth();
     const { providerId } = await params;
 
-    // Authorization check
-    const canAccess = await canAccessProviderData(providerId);
-    if (!canAccess) {
+    if (!(await canAccessProviderData(providerId))) {
       return NextResponse.json(
         { error: "Unauthorized: You can only update your own provider data" },
         { status: 403 }
@@ -105,35 +79,21 @@ export async function PATCH(
     }
 
     const body = await request.json();
-    const { firstName, lastName, title, profile } = body;
+    const input = updateProviderSchema.parse({ ...body, id: providerId });
+    const updated = await providerService.updateProvider(input);
 
-    // Update provider
-    const updatedProvider = await prisma.provider.update({
-      where: { id: providerId },
-      data: {
-        ...(firstName && { firstName }),
-        ...(lastName && { lastName }),
-        ...(title && { title }),
-        ...(profile && {
-          profile: {
-            upsert: {
-              create: profile,
-              update: profile,
-            },
-          },
-        }),
-      },
-      include: {
-        profile: true,
-      },
-    });
-
-    return NextResponse.json(updatedProvider);
+    return NextResponse.json(updated);
   } catch (error) {
+    if (error instanceof ZodError) {
+      return NextResponse.json(
+        { error: error.issues[0]?.message ?? "Invalid provider", issues: error.issues },
+        { status: 400 }
+      );
+    }
+    if (error instanceof Error) {
+      return NextResponse.json({ error: error.message }, { status: 409 });
+    }
     console.error("Error updating provider:", error);
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }

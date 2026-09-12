@@ -5,6 +5,8 @@ import { appointmentService } from "@/lib/services/appointment.service";
 import { prisma } from "@/lib/prisma";
 import { AppointmentStatus } from "@prisma/client";
 import { startOfDay, endOfDay, startOfWeek, endOfWeek } from "date-fns";
+import { serializeAppointment } from "@/lib/serialize";
+import { actionErrorMessage } from "@/lib/action-error";
 
 /**
  * Query Actions for Dashboard
@@ -64,7 +66,9 @@ export async function getDashboardStats(): Promise<
               gte: todayStart,
               lte: todayEnd,
             },
-            status: "CHECKED_IN",
+            // Everyone who arrived today, including those already seen.
+            // Counting only CHECKED_IN made the number drop as visits finished.
+            status: { in: ["CHECKED_IN", "COMPLETED"] },
           },
         }),
         // No shows this week
@@ -105,7 +109,7 @@ export async function getDashboardStats(): Promise<
     console.error("getDashboardStats error:", error);
     return {
       success: false,
-      error: error instanceof Error ? error.message : "Failed to fetch stats",
+      error: actionErrorMessage(error, "Failed to fetch stats"),
     };
   }
 }
@@ -229,7 +233,7 @@ export async function getAppointments(params: {
     console.error("getAppointments error:", error);
     return {
       success: false,
-      error: error instanceof Error ? error.message : "Failed to fetch appointments",
+      error: actionErrorMessage(error, "Failed to fetch appointments"),
     };
   }
 }
@@ -257,7 +261,7 @@ export async function getProviders(): Promise<ActionResult<any[]>> {
     console.error("getProviders error:", error);
     return {
       success: false,
-      error: error instanceof Error ? error.message : "Failed to fetch providers",
+      error: actionErrorMessage(error, "Failed to fetch providers"),
     };
   }
 }
@@ -317,7 +321,7 @@ export async function getCalendarAppointments(params: {
     return {
       success: false,
       error:
-        error instanceof Error ? error.message : "Failed to fetch calendar appointments",
+        actionErrorMessage(error, "Failed to fetch calendar appointments"),
     };
   }
 }
@@ -337,18 +341,15 @@ export async function getAppointmentById(
       return { success: false, error: "Appointment not found" };
     }
 
-    // Serialize Decimal fields for client components
-    const serializedAppointment = {
-      ...appointment,
-      cost: appointment.cost ? Number(appointment.cost) : null,
-    };
+    // Serialize Decimal fields (cost, and visit-note vitals) for client components
+    const serializedAppointment = serializeAppointment(appointment as any);
 
     return { success: true, data: serializedAppointment };
   } catch (error) {
     console.error("getAppointmentById error:", error);
     return {
       success: false,
-      error: error instanceof Error ? error.message : "Failed to fetch appointment",
+      error: actionErrorMessage(error, "Failed to fetch appointment"),
     };
   }
 }

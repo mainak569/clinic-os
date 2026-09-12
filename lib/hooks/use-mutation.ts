@@ -94,12 +94,17 @@ export function useMutation<TData = unknown, TVariables = unknown>(
 
         if (result.success && result.data !== undefined) {
           return result.data;
-        } else {
-          throw new Error(result.error || "Operation failed");
         }
+        // The server answered and said no. That is a decision, not a glitch:
+        // retrying a rejected write can only repeat the rejection, or worse.
+        throw new ActionRejectedError(result.error || "Operation failed");
       } catch (error) {
-        // If retries left and error is retriable, try again
-        if (attemptsLeft > 0 && isRetriableError(error)) {
+        // Retry only when the request itself failed to complete.
+        if (
+          attemptsLeft > 0 &&
+          !(error instanceof ActionRejectedError) &&
+          isRetriableError(error)
+        ) {
           await sleep(retryDelay);
           return executeWithRetry(variables, attemptsLeft - 1);
         }
@@ -208,7 +213,15 @@ export function useMutation<TData = unknown, TVariables = unknown>(
 }
 
 /**
+ * A server action that returned `{ success: false }`. Never retried.
+ */
+class ActionRejectedError extends Error {}
+
+/**
  * Helper: Determines if an error is retriable
+ *
+ * Only transport failures qualify. Unknown errors are not retried: a request
+ * that failed after the server committed a write would otherwise create it twice.
  */
 function isRetriableError(error: unknown): boolean {
   if (!(error instanceof Error)) return false;
@@ -236,8 +249,8 @@ function isRetriableError(error: unknown): boolean {
     return false;
   }
 
-  // Default: retriable
-  return true;
+  // Default: not retriable
+  return false;
 }
 
 /**

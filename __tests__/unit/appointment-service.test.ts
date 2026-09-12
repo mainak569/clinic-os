@@ -21,6 +21,12 @@ const mockPrismaAppointmentHistoryCreate = jest.fn() as jest.MockedFunction<any>
 // Without this model the lookup threw, the error was swallowed, and
 // appointmentHistory.create was never reached in any test.
 const mockPrismaUserFindUnique = jest.fn() as jest.MockedFunction<any>;
+// createAppointment refuses archived patients and inactive providers.
+const mockPrismaPatientFindUnique = jest.fn() as jest.MockedFunction<any>;
+const mockPrismaProviderFindUnique = jest.fn() as jest.MockedFunction<any>;
+// Bookings run inside a transaction holding a per-provider lock.
+const mockPrismaTransaction = jest.fn() as jest.MockedFunction<any>;
+const mockPrismaQueryRaw = jest.fn() as jest.MockedFunction<any>;
 
 jest.mock("@/lib/prisma", () => ({
   prisma: {
@@ -36,6 +42,14 @@ jest.mock("@/lib/prisma", () => ({
     user: {
       findUnique: mockPrismaUserFindUnique,
     },
+    patient: {
+      findUnique: mockPrismaPatientFindUnique,
+    },
+    provider: {
+      findUnique: mockPrismaProviderFindUnique,
+    },
+    $transaction: mockPrismaTransaction,
+    $queryRaw: mockPrismaQueryRaw,
   },
 }));
 
@@ -48,6 +62,7 @@ jest.mock("@/lib/services/availability.service", () => ({
 }));
 
 import { appointmentService } from "@/lib/services/appointment.service";
+import { prisma as mockedPrisma } from "@/lib/prisma";
 
 describe("Appointment Service - State Machine", () => {
   beforeEach(() => {
@@ -55,6 +70,12 @@ describe("Appointment Service - State Machine", () => {
     // The acting user exists by default, so the audit-trail write runs.
     mockPrismaUserFindUnique.mockResolvedValue({ id: "user1" });
     mockPrismaAppointmentHistoryCreate.mockResolvedValue({ id: "history1" });
+    // Patients and providers are bookable unless a test says otherwise.
+    mockPrismaPatientFindUnique.mockResolvedValue({ isActive: true });
+    mockPrismaProviderFindUnique.mockResolvedValue({ isActive: true });
+    // The transaction client is the same mocked prisma.
+    mockPrismaQueryRaw.mockResolvedValue([]);
+    mockPrismaTransaction.mockImplementation(async (fn: any) => fn(mockedPrisma));
   });
 
   describe("confirmAppointment", () => {
@@ -373,7 +394,7 @@ describe("Appointment Service - State Machine", () => {
     it("should reject if scheduling conflict exists", async () => {
       mockIsProviderAvailable.mockResolvedValue(true);
       mockPrismaAppointmentFindMany.mockResolvedValue([
-        { id: "existing", status: "CONFIRMED" },
+        { id: "existing", status: "CONFIRMED", scheduledAt: new Date(), duration: 30 },
       ]);
 
       await expect(
@@ -389,6 +410,100 @@ describe("Appointment Service - State Machine", () => {
           "user1"
         )
       ).rejects.toThrow("This time slot conflicts with an existing appointment");
+    });
+  });
+
+  describe("createAppointment - booking rules", () => {
+    const at = (hours: number, minutes = 0) => {
+      const d = new Date(Date.now() + 24 * 3600000); // tomorrow
+      d.setHours(hours, minutes, 0, 0);
+      return d;
+    };
+    const base = {
+      patientId: "patient1",
+      providerId: "provider1",
+      type: "FOLLOW_UP" as const,
+      reason: "Checkup",
+    };
+
+    beforeEach(() => {
+      mockIsProviderAvailable.mockResolvedValue(true);
+      mockPrismaAppointmentCreate.mockResolvedValue({ id: "new", status: "REQUESTED" });
+    });
+
+    it("detects overlap with a longer visit that started earlier", async () => {
+      // Regression: a 15-minute booking at 10:30 slipped past a 60-minute
+      // visit at 10:00, because the old query measured the existing visit with
+      // the *new* visit's duration.
+      mockPrismaAppointmentFindMany.mockResolvedValue([
+        { scheduledAt: at(10, 0), duration: 60 },
+      ]);
+
+      await expect(
+        appointmentService.createAppointment(
+          { ...base, scheduledAt: at(10, 30), duration: 15 },
+          "user1"
+        )
+      ).rejects.toThrow("This time slot conflicts with an existing appointment");
+      expect(mockPrismaAppointmentCreate).not.toHaveBeenCalled();
+    });
+
+    it("allows a visit that starts exactly when the previous one ends", async () => {
+      mockPrismaAppointmentFindMany.mockResolvedValue([
+        { scheduledAt: at(10, 0), duration: 30 },
+      ]);
+
+      await appointmentService.createAppointment(
+        { ...base, scheduledAt: at(10, 30), duration: 30 },
+        "user1"
+      );
+
+      expect(mockPrismaAppointmentCreate).toHaveBeenCalled();
+    });
+
+    it("checks conflicts and creates inside one locked transaction", async () => {
+      mockPrismaAppointmentFindMany.mockResolvedValue([]);
+
+      await appointmentService.createAppointment(
+        { ...base, scheduledAt: at(9, 0), duration: 30 },
+        "user1"
+      );
+
+      expect(mockPrismaTransaction).toHaveBeenCalledTimes(1);
+      expect(mockPrismaQueryRaw).toHaveBeenCalled();
+    });
+
+    it("refuses to book an archived patient", async () => {
+      mockPrismaPatientFindUnique.mockResolvedValue({ isActive: false });
+
+      await expect(
+        appointmentService.createAppointment(
+          { ...base, scheduledAt: at(9, 0), duration: 30 },
+          "user1"
+        )
+      ).rejects.toThrow("archived");
+      expect(mockPrismaAppointmentCreate).not.toHaveBeenCalled();
+    });
+
+    it("refuses to book an inactive provider", async () => {
+      mockPrismaProviderFindUnique.mockResolvedValue({ isActive: false });
+
+      await expect(
+        appointmentService.createAppointment(
+          { ...base, scheduledAt: at(9, 0), duration: 30 },
+          "user1"
+        )
+      ).rejects.toThrow("inactive");
+    });
+
+    it("refuses a start time in the past", async () => {
+      await expect(
+        appointmentService.createAppointment(
+          { ...base, scheduledAt: new Date(Date.now() - 3600000), duration: 30 },
+          "user1"
+        )
+      ).rejects.toThrow("in the past");
+      expect(mockIsProviderAvailable).not.toHaveBeenCalled();
     });
   });
 

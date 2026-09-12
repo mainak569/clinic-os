@@ -8,13 +8,15 @@ A healthcare practice management prototype built with Next.js 15, TypeScript, an
 
 ### Core Functionality
 
-- **Appointment Management**: Create, confirm, check-in, and complete appointments with state machine validation
-- **Provider Scheduling**: Manage provider availability with recurring slots and conflict detection
-- **Patient Records**: Store patient demographics, medical history, and contact information
-- **Visit Notes**: Clinical documentation with SOAP format and vital signs tracking
-- **Alerts**: Automated reminders for requested appointments (24-hour and 1-hour notifications)
-- **Analytics**: Dashboard with charts showing appointments by provider, status, and no-show rates
-- **Audit Logging**: HIPAA-oriented audit trail for data access (demonstration purposes)
+- **Appointment Management**: Create, confirm, check-in, complete, cancel, mark no-show, and reschedule appointments with state machine validation
+- **Double-Booking Protection**: Overlap detection that accounts for each visit's real duration, serialized per provider so simultaneous requests can't both book the same slot
+- **Provider Scheduling**: Recurring weekly availability slots with overlap detection and bulk creation
+- **Provider Management**: Front desk can add providers (login, profile and scheduling defaults in one step), edit them, and deactivate or reactivate them
+- **Patient Records**: Demographics, medical history, insurance and emergency contacts; deleted records are archived and restored if the same person is registered again
+- **Visit Notes**: SOAP documentation with range-checked vital signs and an immutable edit history
+- **Alerts**: Automated reminders for unconfirmed appointments (24-hour and 1-hour)
+- **Analytics**: Dashboard with appointments by provider, by status, and weekly no-show rates
+- **Audit Logging**: HIPAA-oriented audit trail for patient, appointment, visit note and provider changes (demonstration purposes)
 
 ### Security & Authorization
 
@@ -22,18 +24,18 @@ A healthcare practice management prototype built with Next.js 15, TypeScript, an
 - **Role-Based Access**: Provider and Front Desk roles with different permissions
 - **Provider Isolation**: Providers can only access their own appointments and patients
 - **Security Headers**: XSS, clickjacking, and HTTPS enforcement configured
-- **Rate Limiting**: Basic protection against brute-force attacks (100 req/min, memory-based)
+- **Rate Limiting**: Basic protection against brute-force attacks (memory-based)
 
 ## Tech Stack
 
-- **Framework**: Next.js 15.0.3 (App Router)
+- **Framework**: Next.js 15.5 (App Router)
 - **Language**: TypeScript 5 (strict mode)
 - **Database**: PostgreSQL via Supabase with Prisma ORM 5.22
 - **Authentication**: NextAuth.js v5
 - **UI**: Tailwind CSS + shadcn/ui (Radix UI components)
 - **Forms**: React Hook Form + Zod validation
-- **State**: TanStack React Query 5.102
-- **Charts**: Recharts 3.10
+- **State**: TanStack React Query 5
+- **Charts**: Recharts 3
 - **Testing**: Jest + ts-jest
 
 ## Getting Started
@@ -42,6 +44,7 @@ A healthcare practice management prototype built with Next.js 15, TypeScript, an
 
 - Node.js 18+
 - Supabase account (or local PostgreSQL)
+- For integration tests: a local PostgreSQL database (see [Testing](#testing))
 
 ### Installation
 
@@ -70,11 +73,17 @@ A healthcare practice management prototype built with Next.js 15, TypeScript, an
    # Generate with: openssl rand -base64 32
    AUTH_SECRET="your-secret-key"
    AUTH_URL="http://localhost:3000"
+
+   # Timezone the clinic's opening hours are expressed in (IANA name).
+   # Defaults to Asia/Kolkata. Set this explicitly on any server that runs in UTC.
+   CLINIC_TIMEZONE="Asia/Kolkata"
    ```
+
+   > **Deploying to Vercel?** Set `CLINIC_TIMEZONE` in the project's environment variables. Availability is compared on the clinic's wall clock, so a missing or wrong value makes every slot appear shifted.
 
 4. **Set up database**
    ```bash
-   # Run migrations
+   # Apply migrations
    npx prisma migrate deploy
 
    # Generate Prisma client
@@ -90,53 +99,76 @@ A healthcare practice management prototype built with Next.js 15, TypeScript, an
    ```
 
 6. **Open application**
-   
+
    Navigate to [http://localhost:3000](http://localhost:3000)
 
 ### Demo Credentials
 
 After seeding the database, log in with:
 
-**Provider**:
-- Email: `dr.smith@clinicos.com`
-- Password: `DrSmith123!`
+| Role       | Email                     | Password        |
+| ---------- | ------------------------- | --------------- |
+| Front Desk | `frontdesk@clinicos.com`  | `FrontDesk123!` |
+| Provider   | `dr.smith@clinicos.com`   | `DrSmith123!`   |
+| Provider   | `dr.johnson@clinicos.com` | `DrJohnson123!` |
 
-**Front Desk**:
-- Email: `frontdesk@clinicos.com`
-- Password: `FrontDesk123!`
+The seed creates 3 users, 2 providers (with profiles), 18 availability slots, 5 patients, 5 appointments, 1 visit note and 3 alerts.
 
 ## Project Structure
 
 ```
 app/
-  actions/              # Server Actions (business logic entry points)
-  api/                  # API Routes
-  dashboard/            # Protected dashboard page
+  actions/              # Server Actions (authorization + validation entry points)
+  api/                  # API Routes (appointments, patients, providers, cron)
+  dashboard/
+    layout.tsx          # Shared header and navigation for all dashboard routes
+    appointments/       # Appointment management
+    patients/           # Patient records
+    schedule/           # Provider availability
+    providers/          # Provider management (Front Desk only)
   login/                # Authentication page
 
 components/
   ui/                   # shadcn/ui components
-  appointments/         # Appointment components
-  availability/         # Scheduling components
-  dashboard/            # Dashboard widgets
+  appointments/         # Appointment dialogs, tables, visit notes
+  availability/         # Bulk availability and schedule export
+  schedule/             # Week / month / list schedule views
+  patients/             # Patient table and dialogs
+  provider-management/  # Providers table and form
+  dashboard/            # Dashboard widgets and charts
+  layout/               # Header, navigation, shared background
 
 lib/
   services/             # Business logic layer
     appointment.service.ts
     availability.service.ts
+    bulk-availability.service.ts
+    patient.service.ts
+    provider.service.ts
+    visit-note.service.ts
     alert.service.ts
+    analytics.service.ts
     audit.service.ts
-  validations/          # Zod schemas
+  validations/          # Zod schemas (shared by forms and server actions)
+  clinic-time.ts        # Wall-clock time helpers for availability
+  appointment-status.ts # Single source of appointment status labels and colours
+  serialize.ts          # Converts Prisma Decimals before data reaches the client
+  action-error.ts       # Readable error messages for server actions
+  revalidate.ts         # Cache revalidation for dashboard routes
   auth-helpers.ts       # Authorization utilities
   prisma.ts             # Prisma client
 
 prisma/
-  schema.prisma         # Database schema
+  schema.prisma         # Database schema (11 models)
   migrations/           # Database migrations
   seed.ts               # Seed data
 
+scripts/
+  migrate-slot-times.ts # One-off data migration for availability slot times
+
 __tests__/
-  integration/          # Integration tests (48 tests)
+  unit/                 # Unit tests (60)
+  integration/          # Integration tests (55)
 ```
 
 ## Development Commands
@@ -144,38 +176,53 @@ __tests__/
 ```bash
 # Development
 npm run dev              # Start development server
-npm run build           # Build for production
-npm run start           # Start production server
+npm run build            # Build for production
+npm run start            # Start production server
 
 # Database
-npm run db:generate     # Generate Prisma client
-npm run db:push         # Push schema changes (dev)
-npm run db:migrate      # Create migration
-npm run db:seed         # Seed database
-npm run db:studio       # Open Prisma Studio
+npm run db:generate      # Generate Prisma client
+npm run db:push          # Push schema changes (dev)
+npm run db:migrate       # Create migration
+npm run db:seed          # Seed database
+npm run db:studio        # Open Prisma Studio
 
 # Testing
-npm run test:integration # Run integration tests
-npm run test:watch      # Watch mode
-npm run test:coverage   # Coverage report
+npm test                 # Run all tests
+npm run test:unit        # Unit tests only
+npm run test:integration # Integration tests only
+npm run test:watch       # Watch mode
+npm run test:coverage    # Coverage report
 
 # Code Quality
-npm run lint            # Run ESLint
-npm run lint:fix        # Fix ESLint errors
-npm run format          # Format code with Prettier
-npm run type-check      # TypeScript type check
+npm run lint             # Run ESLint
+npm run lint:fix         # Fix ESLint errors
+npm run format           # Format code with Prettier
+npm run type-check       # TypeScript type check
 ```
 
 ## Testing
 
-The project includes 99 passing tests covering:
+The project includes **115 passing tests**:
 
-- **Unit Tests** (44 tests): Validation schemas, appointment service logic, authorization helpers
-- **Integration Tests** (55 tests): State machine transitions, authorization boundaries, security controls, duplicate booking prevention
+- **Unit Tests (60)**: Validation schemas, appointment service rules (state machine, double-booking, archived patients, past bookings, per-provider locking), authorization helpers, and clinic-time conversions
+- **Integration Tests (55)**: State machine transitions, authorization boundaries, security controls, duplicate and concurrent booking prevention, end-to-end appointment workflows
 
-All tests pass successfully. Run with `npm test`.
+Run with `npm test`.
 
-**Note**: Integration tests require a test database. Tests use mocked authentication and isolated database transactions.
+**Integration tests need a local PostgreSQL database.** `__tests__/setup.ts` points them at `postgresql://test_user:test_password@localhost:5432/clinicos_test`, so they never touch your Supabase database. They create and delete their own records. The test clinic timezone is set to the machine's own timezone, so the suite passes on a local machine and on a UTC CI runner.
+
+## Availability and Time Zones
+
+Availability slots are recurring wall-clock times ("Mondays 09:00–12:00"), not moments in time. They are stored on a fixed date (`1970-01-01`) in the UTC fields, so `09:00` is always `1970-01-01T09:00:00Z`, whatever timezone the browser or server runs in. Appointments stay real timestamps and are converted to the clinic's wall clock (`CLINIC_TIMEZONE`) before being checked against slots.
+
+Existing databases created before this change can be converted with:
+
+```bash
+npx tsx scripts/migrate-slot-times.ts           # dry run: prints the plan
+npx tsx scripts/migrate-slot-times.ts --apply   # applies it in one transaction
+```
+
+The script is safe to re-run and refuses to write if a conversion would produce an invalid or duplicate slot. See [docs/schema.md](./docs/schema.md#5-availabilityslot) for details.
 
 ## Documentation
 
@@ -183,7 +230,6 @@ All tests pass successfully. Run with `npm test`.
 - [Schema](./docs/schema.md) - Database schema and relationships
 - [Decisions](./docs/decisions.md) - Key technical decisions and trade-offs
 - [Plan](./docs/plan.md) - Development timeline and lessons learned
-- [Development Notes](./docs/development-notes.md) - Testing, debugging, and known limitations
 - [AI Prompts](./docs/ai-prompts.md) - AI assistance used during development
 
 ## Known Limitations
@@ -192,16 +238,16 @@ This is a prototype/demonstration project with the following limitations:
 
 1. **Not HIPAA Certified**: While security patterns follow HIPAA principles, this has not undergone formal compliance validation
 2. **Rate Limiting**: Memory-based (single server only). Production would require Redis for distributed systems
-3. **Email Notifications**: Not implemented. Appointment confirmations are manual
-4. **Password Requirements**: Basic validation only (no complexity enforcement, though passwords are bcrypt-hashed)
-5. **Session Management**: No inactivity timeout. Sessions last 30 days
-6. **Pagination**: Limited implementation. May have performance issues with large datasets (>1000 records)
-7. **Search**: Basic patient name search only. No full-text search capabilities
-8. **Audit Log Retention**: No automated retention policy or archival system
-9. **Multi-Tenancy**: Designed for single clinic use. Multi-clinic support not implemented
-10. **Backup/Recovery**: No automated backup system included
-
-See [docs/development-notes.md](./docs/development-notes.md) for complete list and future improvements.
+3. **Email Notifications**: Not implemented. Alerts are shown in the dashboard only
+4. **Password Requirements**: Minimum length only for new provider accounts (no complexity rules), though all passwords are bcrypt-hashed
+5. **Session Management**: No inactivity timeout. Sessions last 30 days, and a provider's name change appears after they sign in again
+6. **Pagination**: Offset-based. May have performance issues with large datasets (>1000 records)
+7. **Search**: Patients by name, email or phone. No full-text search
+8. **Alert Linking**: Alerts reference their appointment through an ID embedded in the message text rather than a database foreign key
+9. **Single Timezone**: One clinic timezone per deployment
+10. **Audit Log Retention**: No automated retention policy or archival system
+11. **Multi-Tenancy**: Designed for single clinic use. Multi-clinic support not implemented
+12. **Backup/Recovery**: No automated backup system included beyond the hosting provider's
 
 ## Security Considerations
 
@@ -211,9 +257,9 @@ This prototype implements several security best practices:
 - JWT sessions with HTTP-only cookies
 - Role-based access control with provider isolation
 - Security headers configured (XSS, clickjacking protection)
-- Rate limiting active (100 req/min, memory-based)
-- Audit logging for data access events
-- Error messages sanitized to avoid information leakage
+- Rate limiting active (memory-based)
+- Audit logging for data access and changes
+- Error messages sanitized to avoid information leakage; validation failures return a single readable message
 
 **Important**: This is a demonstration project. For production use with real patient data, additional requirements include:
 
@@ -249,4 +295,4 @@ Copyright © 2026 ClinicOS. All rights reserved.
 5. Update documentation
 6. Test on mobile, tablet, and desktop
 
-For more details, see [docs/development-notes.md](./docs/development-notes.md).
+For architecture conventions, see [docs/architecture.md](./docs/architecture.md).

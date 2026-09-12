@@ -1,6 +1,7 @@
 "use client";
 
-import { format } from "date-fns";
+import { formatSlotTime } from "@/lib/clinic-time";
+
 import { Clock, Calendar as CalendarIcon } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -114,13 +115,13 @@ export function ListView({
                           <div className="flex items-center gap-2">
                             <Clock className="h-4 w-4 text-muted-foreground" />
                             <span className="font-medium">
-                              {format(startTime, "h:mm a")}
+                              {formatSlotTime(slot.startTime)}
                             </span>
                           </div>
                         </TableCell>
                         <TableCell>
                           <span className="font-medium">
-                            {format(endTime, "h:mm a")}
+                            {formatSlotTime(slot.endTime)}
                           </span>
                         </TableCell>
                         <TableCell className="text-muted-foreground">

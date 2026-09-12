@@ -4,12 +4,16 @@ import type {
   AppointmentStatus,
   AppointmentType,
   HistoryAction,
+  Prisma,
 } from "@prisma/client";
 import {
   AppointmentNotFoundError,
   InvalidTransitionError,
 } from "@/lib/errors/appointment-errors";
 import { availabilityService } from "./availability.service";
+
+/** Longest visit the booking form allows (matches createAppointmentSchema). */
+const MAX_APPOINTMENT_MINUTES = 240;
 
 /**
  * Appointment Service Layer
@@ -52,6 +56,9 @@ export class AppointmentService {
     },
     performedBy: string
   ): Promise<Appointment> {
+    this.assertNotInPast(input.scheduledAt);
+    await this.assertBookable(input.patientId, input.providerId);
+
     // Check provider availability
     const isAvailable = await availabilityService.isProviderAvailable(
       input.providerId,
@@ -65,35 +72,39 @@ export class AppointmentService {
       );
     }
 
-    // Check for scheduling conflicts
-    const hasConflict = await this.hasSchedulingConflict(
-      input.providerId,
-      input.scheduledAt,
-      input.duration
-    );
-
-    if (hasConflict) {
-      throw new Error(
-        "This time slot conflicts with an existing appointment. Please choose a different time."
+    // Conflict check and insert happen under one per-provider lock, so two
+    // simultaneous requests for the same slot can't both pass the check.
+    const appointment = await this.withProviderLock(input.providerId, async (tx) => {
+      const hasConflict = await this.hasSchedulingConflict(
+        input.providerId,
+        input.scheduledAt,
+        input.duration,
+        undefined,
+        tx
       );
-    }
 
-    // Create appointment in REQUESTED status
-    const appointment = await prisma.appointment.create({
-      data: {
-        patientId: input.patientId,
-        providerId: input.providerId,
-        scheduledAt: input.scheduledAt,
-        duration: input.duration,
-        type: input.type,
-        status: "REQUESTED",
-        reason: input.reason,
-        notes: input.notes || null,
-      },
-      include: {
-        patient: true,
-        provider: true,
-      },
+      if (hasConflict) {
+        throw new Error(
+          "This time slot conflicts with an existing appointment. Please choose a different time."
+        );
+      }
+
+      return tx.appointment.create({
+        data: {
+          patientId: input.patientId,
+          providerId: input.providerId,
+          scheduledAt: input.scheduledAt,
+          duration: input.duration,
+          type: input.type,
+          status: "REQUESTED",
+          reason: input.reason,
+          notes: input.notes || null,
+        },
+        include: {
+          patient: true,
+          provider: true,
+        },
+      });
     });
 
     // Create history entry
@@ -342,6 +353,8 @@ export class AppointmentService {
       );
     }
 
+    this.assertNotInPast(newScheduledAt);
+
     // Check provider availability at new time
     const isAvailable = await availabilityService.isProviderAvailable(
       appointment.providerId,
@@ -355,32 +368,34 @@ export class AppointmentService {
       );
     }
 
-    // Check for scheduling conflicts
-    const hasConflict = await this.hasSchedulingConflict(
-      appointment.providerId,
-      newScheduledAt,
-      appointment.duration,
-      appointmentId
-    );
-
-    if (hasConflict) {
-      throw new Error(
-        "This time slot conflicts with an existing appointment. Please choose a different time."
+    const updated = await this.withProviderLock(appointment.providerId, async (tx) => {
+      const hasConflict = await this.hasSchedulingConflict(
+        appointment.providerId,
+        newScheduledAt,
+        appointment.duration,
+        appointmentId,
+        tx
       );
-    }
 
-    const updated = await prisma.appointment.update({
-      where: { id: appointmentId },
-      data: {
-        scheduledAt: newScheduledAt,
-        notes: reason
-          ? `${appointment.notes || ""}\nRescheduled: ${reason}`.trim()
-          : appointment.notes,
-      },
-      include: {
-        patient: true,
-        provider: true,
-      },
+      if (hasConflict) {
+        throw new Error(
+          "This time slot conflicts with an existing appointment. Please choose a different time."
+        );
+      }
+
+      return tx.appointment.update({
+        where: { id: appointmentId },
+        data: {
+          scheduledAt: newScheduledAt,
+          notes: reason
+            ? `${appointment.notes || ""}\nRescheduled: ${reason}`.trim()
+            : appointment.notes,
+        },
+        include: {
+          patient: true,
+          provider: true,
+        },
+      });
     });
 
     await this.createHistoryEntry(
@@ -547,47 +562,108 @@ export class AppointmentService {
   }
 
   /**
+   * Run `fn` in a transaction that holds a lock for this provider.
+   *
+   * Checking for a conflict and then inserting is two steps; without a lock,
+   * two requests for the same slot both see it free and both insert. A
+   * transaction-scoped Postgres advisory lock makes bookings for one provider
+   * take turns, while other providers are unaffected. It is released
+   * automatically when the transaction ends, which also suits the Supabase
+   * pooler's transaction mode.
+   */
+  private async withProviderLock<T>(
+    providerId: string,
+    fn: (tx: Prisma.TransactionClient) => Promise<T>
+  ): Promise<T> {
+    return prisma.$transaction(
+      async (tx) => {
+        // pg_advisory_xact_lock returns void, which Prisma can't deserialize.
+        await tx.$queryRaw`SELECT pg_advisory_xact_lock(hashtext(${providerId}))::text`;
+        return fn(tx);
+      },
+      { maxWait: 10000, timeout: 15000 }
+    );
+  }
+
+  /**
+   * Reject bookings for archived patients or inactive providers.
+   *
+   * Without this, a deleted patient could still be booked by id, and a missing
+   * id surfaced as a raw foreign-key error from the database.
+   */
+  private async assertBookable(patientId: string, providerId: string): Promise<void> {
+    const [patient, provider] = await Promise.all([
+      prisma.patient.findUnique({ where: { id: patientId }, select: { isActive: true } }),
+      prisma.provider.findUnique({ where: { id: providerId }, select: { isActive: true } }),
+    ]);
+
+    if (!patient) {
+      throw new Error("Patient not found.");
+    }
+    if (!patient.isActive) {
+      throw new Error(
+        "This patient's record is archived. Re-register the patient before booking."
+      );
+    }
+    if (!provider) {
+      throw new Error("Provider not found.");
+    }
+    if (!provider.isActive) {
+      throw new Error("This provider is inactive and can't take new appointments.");
+    }
+  }
+
+  /**
+   * A new or moved appointment can't start in the past. A few minutes of grace
+   * covers the time between opening the form and submitting it.
+   */
+  private assertNotInPast(when: Date): void {
+    const GRACE_MS = 5 * 60 * 1000;
+    if (when.getTime() < Date.now() - GRACE_MS) {
+      throw new Error(
+        "Appointments can't be scheduled in the past. Choose a future date and time."
+      );
+    }
+  }
+
+  /**
    * Check for scheduling conflicts
+   *
+   * Two visits overlap when each starts before the other ends. The previous
+   * query measured existing appointments with the *new* visit's duration, so a
+   * 15-minute booking at 10:30 slipped past a 60-minute visit at 10:00.
    */
   private async hasSchedulingConflict(
     providerId: string,
     scheduledAt: Date,
     duration: number,
-    excludeAppointmentId?: string
+    excludeAppointmentId?: string,
+    client: Prisma.TransactionClient = prisma
   ): Promise<boolean> {
-    const appointmentEnd = new Date(scheduledAt.getTime() + duration * 60000);
+    const start = scheduledAt.getTime();
+    const end = start + duration * 60000;
 
-    const conflicts = await prisma.appointment.findMany({
+    // No visit is longer than MAX_APPOINTMENT_MINUTES, so nothing that starts
+    // earlier than that can still be running when this one begins.
+    const windowStart = new Date(start - MAX_APPOINTMENT_MINUTES * 60000);
+
+    const candidates = await client.appointment.findMany({
       where: {
         providerId,
         status: {
           in: ["REQUESTED", "CONFIRMED", "CHECKED_IN"],
         },
         ...(excludeAppointmentId ? { id: { not: excludeAppointmentId } } : {}),
-        OR: [
-          // New appointment starts during existing appointment
-          {
-            AND: [
-              { scheduledAt: { lte: scheduledAt } },
-              {
-                scheduledAt: {
-                  gt: new Date(scheduledAt.getTime() - duration * 60000),
-                },
-              },
-            ],
-          },
-          // New appointment ends during existing appointment
-          {
-            AND: [
-              { scheduledAt: { lt: appointmentEnd } },
-              { scheduledAt: { gte: scheduledAt } },
-            ],
-          },
-        ],
+        scheduledAt: { gte: windowStart, lt: new Date(end) },
       },
+      select: { scheduledAt: true, duration: true },
     });
 
-    return conflicts.length > 0;
+    return candidates.some((existing) => {
+      const existingStart = new Date(existing.scheduledAt).getTime();
+      const existingEnd = existingStart + existing.duration * 60000;
+      return existingStart < end && existingEnd > start;
+    });
   }
 }
 

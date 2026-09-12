@@ -1,208 +1,215 @@
+import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import type { Patient, Appointment } from "@prisma/client";
 
 /**
  * Patient Service Layer
- * 
- * Handles all business logic for patient management
- * Separated from authorization - call with pre-authorized data
+ *
+ * Handles all business logic for patient management.
+ * Separated from authorization - call with pre-authorized data.
+ *
+ * Consistency rules enforced here:
+ *  - Email is stored trimmed and lower-cased, so "John@X.com" and "john@x.com"
+ *    are the same patient (the database unique index is case-sensitive).
+ *  - Deleting a patient is a soft delete that keeps their email and phone,
+ *    and those columns are unique. Registering the same person again used to
+ *    pass the service check and then fail with a raw database error. Now the
+ *    archived record is restored with the new details, keeping their history.
  */
+
+type PatientFields = {
+  firstName: string;
+  lastName: string;
+  email?: string | null;
+  phone?: string | null;
+  dateOfBirth?: Date | null;
+  address?: string | null;
+  city?: string | null;
+  state?: string | null;
+  zipCode?: string | null;
+  emergencyContactName?: string | null;
+  emergencyContactPhone?: string | null;
+  insuranceProvider?: string | null;
+  insuranceId?: string | null;
+  allergies?: string | null;
+  medications?: string | null;
+  medicalHistory?: string | null;
+};
+
+const OPEN_STATUSES = ["REQUESTED", "CONFIRMED", "CHECKED_IN"] as const;
+
+function clean(value: string | null | undefined): string | null {
+  const trimmed = value?.trim();
+  return trimmed ? trimmed : null;
+}
+
+function normalizeEmail(value: string | null | undefined): string | null {
+  return clean(value)?.toLowerCase() ?? null;
+}
+
+function toData(input: PatientFields) {
+  return {
+    firstName: input.firstName.trim(),
+    lastName: input.lastName.trim(),
+    email: normalizeEmail(input.email),
+    phone: clean(input.phone),
+    dateOfBirth: input.dateOfBirth || null,
+    address: clean(input.address),
+    city: clean(input.city),
+    state: clean(input.state)?.toUpperCase() ?? null,
+    zipCode: clean(input.zipCode),
+    emergencyContactName: clean(input.emergencyContactName),
+    emergencyContactPhone: clean(input.emergencyContactPhone),
+    insuranceProvider: clean(input.insuranceProvider),
+    insuranceId: clean(input.insuranceId),
+    allergies: clean(input.allergies),
+    medications: clean(input.medications),
+    medicalHistory: clean(input.medicalHistory),
+  };
+}
+
+/** Turn a unique-constraint violation into a message a person can act on. */
+function friendlyWriteError(error: unknown): never {
+  if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
+    const target = String((error.meta as { target?: unknown })?.target ?? "");
+    if (target.includes("email")) {
+      throw new Error("A patient with this email already exists. Please use a different email address.");
+    }
+    if (target.includes("phone")) {
+      throw new Error("A patient with this phone number already exists. Please use a different phone number.");
+    }
+    throw new Error("A patient with these details already exists.");
+  }
+  throw error;
+}
 
 export class PatientService {
   /**
-   * Create a new patient
+   * Create a new patient.
+   *
+   * If the email or phone belongs to an archived patient, that record is
+   * restored with the submitted details instead of failing on the unique index.
+   *
+   * @returns the patient, and whether an archived record was restored
    */
-  async createPatient(input: {
-    firstName: string;
-    lastName: string;
-    email?: string | null;
-    phone?: string | null;
-    dateOfBirth?: Date | null;
-    address?: string | null;
-    city?: string | null;
-    state?: string | null;
-    zipCode?: string | null;
-    emergencyContactName?: string | null;
-    emergencyContactPhone?: string | null;
-    insuranceProvider?: string | null;
-    insuranceId?: string | null;
-    allergies?: string | null;
-    medications?: string | null;
-    medicalHistory?: string | null;
-  }): Promise<Patient> {
-    // Check for duplicate email
-    if (input.email) {
-      const existingByEmail = await prisma.patient.findUnique({
-        where: { email: input.email },
-      });
-      if (existingByEmail && existingByEmail.isActive) {
-        throw new Error(
-          "A patient with this email already exists. Please use a different email address."
-        );
-      }
+  async createPatient(input: PatientFields): Promise<Patient & { restored?: boolean }> {
+    const data = toData(input);
+
+    const [byEmail, byPhone] = await Promise.all([
+      data.email ? prisma.patient.findUnique({ where: { email: data.email } }) : null,
+      data.phone ? prisma.patient.findUnique({ where: { phone: data.phone } }) : null,
+    ]);
+
+    if (byEmail?.isActive) {
+      throw new Error("A patient with this email already exists. Please use a different email address.");
+    }
+    if (byPhone?.isActive) {
+      throw new Error("A patient with this phone number already exists. Please use a different phone number.");
     }
 
-    // Check for duplicate phone
-    if (input.phone) {
-      const existingByPhone = await prisma.patient.findUnique({
-        where: { phone: input.phone },
-      });
-      if (existingByPhone && existingByPhone.isActive) {
-        throw new Error(
-          "A patient with this phone number already exists. Please use a different phone number."
-        );
-      }
+    const archived = byEmail ?? byPhone;
+    if (byEmail && byPhone && byEmail.id !== byPhone.id) {
+      throw new Error(
+        "This email and phone number belong to two different archived patient records. Use a different email or phone."
+      );
     }
 
-    const patient = await prisma.patient.create({
-      data: {
-        firstName: input.firstName,
-        lastName: input.lastName,
-        email: input.email || null,
-        phone: input.phone || null,
-        dateOfBirth: input.dateOfBirth || null,
-        address: input.address || null,
-        city: input.city || null,
-        state: input.state || null,
-        zipCode: input.zipCode || null,
-        emergencyContactName: input.emergencyContactName || null,
-        emergencyContactPhone: input.emergencyContactPhone || null,
-        insuranceProvider: input.insuranceProvider || null,
-        insuranceId: input.insuranceId || null,
-        allergies: input.allergies || null,
-        medications: input.medications || null,
-        medicalHistory: input.medicalHistory || null,
-        isActive: true,
-      },
-    });
+    try {
+      if (archived) {
+        const restored = await prisma.patient.update({
+          where: { id: archived.id },
+          data: { ...data, isActive: true, deletedAt: null },
+        });
+        return { ...restored, restored: true };
+      }
 
-    return patient;
+      return await prisma.patient.create({
+        data: { ...data, isActive: true },
+      });
+    } catch (error) {
+      friendlyWriteError(error);
+    }
   }
 
   /**
    * Update an existing patient
    */
-  async updatePatient(
-    patientId: string,
-    input: {
-      firstName?: string;
-      lastName?: string;
-      email?: string | null;
-      phone?: string | null;
-      dateOfBirth?: Date | null;
-      address?: string | null;
-      city?: string | null;
-      state?: string | null;
-      zipCode?: string | null;
-      emergencyContactName?: string | null;
-      emergencyContactPhone?: string | null;
-      insuranceProvider?: string | null;
-      insuranceId?: string | null;
-      allergies?: string | null;
-      medications?: string | null;
-      medicalHistory?: string | null;
-    }
-  ): Promise<Patient> {
-    // Verify patient exists
+  async updatePatient(patientId: string, input: PatientFields): Promise<Patient> {
     const existingPatient = await this.getPatientById(patientId);
     if (!existingPatient) {
       throw new Error("Patient not found");
     }
 
-    // Check for duplicate email (excluding current patient)
-    if (input.email && input.email !== existingPatient.email) {
-      const duplicateEmail = await prisma.patient.findUnique({
-        where: { email: input.email },
-      });
-      if (duplicateEmail && duplicateEmail.id !== patientId && duplicateEmail.isActive) {
+    const data = toData(input);
+
+    // The unique index covers archived records too, so check every other row.
+    if (data.email && data.email !== existingPatient.email) {
+      const duplicate = await prisma.patient.findUnique({ where: { email: data.email } });
+      if (duplicate && duplicate.id !== patientId) {
         throw new Error(
-          "A patient with this email already exists. Please use a different email address."
+          duplicate.isActive
+            ? "A patient with this email already exists. Please use a different email address."
+            : "This email belongs to an archived patient record. Please use a different email address."
         );
       }
     }
 
-    // Check for duplicate phone (excluding current patient)
-    if (input.phone && input.phone !== existingPatient.phone) {
-      const duplicatePhone = await prisma.patient.findUnique({
-        where: { phone: input.phone },
-      });
-      if (duplicatePhone && duplicatePhone.id !== patientId && duplicatePhone.isActive) {
+    if (data.phone && data.phone !== existingPatient.phone) {
+      const duplicate = await prisma.patient.findUnique({ where: { phone: data.phone } });
+      if (duplicate && duplicate.id !== patientId) {
         throw new Error(
-          "A patient with this phone number already exists. Please use a different phone number."
+          duplicate.isActive
+            ? "A patient with this phone number already exists. Please use a different phone number."
+            : "This phone number belongs to an archived patient record. Please use a different phone number."
         );
       }
     }
 
-    const updated = await prisma.patient.update({
-      where: { id: patientId },
-      data: {
-        ...(input.firstName !== undefined && { firstName: input.firstName }),
-        ...(input.lastName !== undefined && { lastName: input.lastName }),
-        ...(input.email !== undefined && { email: input.email || null }),
-        ...(input.phone !== undefined && { phone: input.phone || null }),
-        ...(input.dateOfBirth !== undefined && { dateOfBirth: input.dateOfBirth || null }),
-        ...(input.address !== undefined && { address: input.address || null }),
-        ...(input.city !== undefined && { city: input.city || null }),
-        ...(input.state !== undefined && { state: input.state || null }),
-        ...(input.zipCode !== undefined && { zipCode: input.zipCode || null }),
-        ...(input.emergencyContactName !== undefined && {
-          emergencyContactName: input.emergencyContactName || null,
-        }),
-        ...(input.emergencyContactPhone !== undefined && {
-          emergencyContactPhone: input.emergencyContactPhone || null,
-        }),
-        ...(input.insuranceProvider !== undefined && {
-          insuranceProvider: input.insuranceProvider || null,
-        }),
-        ...(input.insuranceId !== undefined && { insuranceId: input.insuranceId || null }),
-        ...(input.allergies !== undefined && { allergies: input.allergies || null }),
-        ...(input.medications !== undefined && { medications: input.medications || null }),
-        ...(input.medicalHistory !== undefined && {
-          medicalHistory: input.medicalHistory || null,
-        }),
-      },
-    });
-
-    return updated;
+    try {
+      return await prisma.patient.update({
+        where: { id: patientId },
+        data,
+      });
+    } catch (error) {
+      friendlyWriteError(error);
+    }
   }
 
   /**
    * Soft delete a patient (set isActive to false)
+   *
+   * Blocked while the patient has any open appointment - including one whose
+   * start time has already passed, such as a patient who is checked in now.
    */
   async deletePatient(patientId: string): Promise<Patient> {
     const patient = await this.getPatientById(patientId);
     if (!patient) {
       throw new Error("Patient not found");
     }
+    if (!patient.isActive) {
+      throw new Error("This patient has already been deleted.");
+    }
 
-    // Check if patient has future appointments
-    const futureAppointments = await prisma.appointment.count({
+    const openAppointments = await prisma.appointment.count({
       where: {
         patientId,
-        scheduledAt: {
-          gte: new Date(),
-        },
-        status: {
-          in: ["REQUESTED", "CONFIRMED", "CHECKED_IN"],
-        },
+        status: { in: [...OPEN_STATUSES] },
       },
     });
 
-    if (futureAppointments > 0) {
+    if (openAppointments > 0) {
       throw new Error(
-        `Cannot delete patient with ${futureAppointments} upcoming appointment(s). Please cancel or complete the appointments first.`
+        `Cannot delete patient with ${openAppointments} open appointment(s). Please cancel or complete the appointments first.`
       );
     }
 
-    const deleted = await prisma.patient.update({
+    return prisma.patient.update({
       where: { id: patientId },
       data: {
         isActive: false,
         deletedAt: new Date(),
       },
     });
-
-    return deleted;
   }
 
   /**
@@ -243,13 +250,19 @@ export class PatientService {
   }
 
   /**
-   * Search patients with pagination
+   * Search patients with pagination.
+   *
+   * `providerId` limits results to patients who have an appointment with that
+   * provider. The filter runs in the database: it previously fetched one page
+   * of *all* patients and then filtered it in memory, so a provider saw a
+   * partial first page, wrong totals, and could never reach later patients.
    */
   async searchPatients(params: {
     query?: string;
     page?: number;
     pageSize?: number;
     includeInactive?: boolean;
+    providerId?: string;
   }): Promise<{
     patients: Patient[];
     total: number;
@@ -261,20 +274,23 @@ export class PatientService {
     const pageSize = params.pageSize || 10;
     const skip = (page - 1) * pageSize;
 
-    const whereClause: any = {};
+    const whereClause: Prisma.PatientWhereInput = {};
 
-    // Filter by active status
     if (!params.includeInactive) {
       whereClause.isActive = true;
     }
 
-    // Search query
-    if (params.query && params.query.trim()) {
+    if (params.providerId) {
+      whereClause.appointments = { some: { providerId: params.providerId } };
+    }
+
+    const query = params.query?.trim();
+    if (query) {
       whereClause.OR = [
-        { firstName: { contains: params.query, mode: "insensitive" } },
-        { lastName: { contains: params.query, mode: "insensitive" } },
-        { email: { contains: params.query, mode: "insensitive" } },
-        { phone: { contains: params.query, mode: "insensitive" } },
+        { firstName: { contains: query, mode: "insensitive" } },
+        { lastName: { contains: query, mode: "insensitive" } },
+        { email: { contains: query, mode: "insensitive" } },
+        { phone: { contains: query, mode: "insensitive" } },
       ];
     }
 
@@ -288,14 +304,12 @@ export class PatientService {
       prisma.patient.count({ where: whereClause }),
     ]);
 
-    const totalPages = Math.ceil(total / pageSize);
-
     return {
       patients,
       total,
       page,
       pageSize,
-      totalPages,
+      totalPages: Math.ceil(total / pageSize),
     };
   }
 

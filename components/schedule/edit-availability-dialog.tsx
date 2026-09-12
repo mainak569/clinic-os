@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { format } from "date-fns";
+import { slotDateToTimeString } from "@/lib/clinic-time";
 import { Clock, Archive, ArchiveRestore, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -95,15 +95,12 @@ export function EditAvailabilityDialog({
   const [showArchiveDialog, setShowArchiveDialog] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
 
-  const startTime = new Date(slot.startTime);
-  const endTime = new Date(slot.endTime);
-
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       dayOfWeek: slot.dayOfWeek as any,
-      startTime: format(startTime, "HH:mm"),
-      endTime: format(endTime, "HH:mm"),
+      startTime: slotDateToTimeString(slot.startTime),
+      endTime: slotDateToTimeString(slot.endTime),
     },
   });
 
@@ -111,18 +108,7 @@ export function EditAvailabilityDialog({
     setIsSubmitting(true);
 
     try {
-      // Convert times to Date objects
-      const [startHour, startMin] = values.startTime.split(":").map(Number);
-      const [endHour, endMin] = values.endTime.split(":").map(Number);
-
-      const newStartTime = new Date();
-      newStartTime.setHours(startHour, startMin, 0, 0);
-
-      const newEndTime = new Date();
-      newEndTime.setHours(endHour, endMin, 0, 0);
-
-      // Validate time range
-      if (newEndTime <= newStartTime) {
+      if (values.endTime <= values.startTime) {
         toast.error("End time must be after start time");
         setIsSubmitting(false);
         return;
@@ -131,8 +117,8 @@ export function EditAvailabilityDialog({
       const result = await updateAvailabilitySlot({
         slotId: slot.id,
         dayOfWeek: values.dayOfWeek,
-        startTime: newStartTime,
-        endTime: newEndTime,
+        startTime: values.startTime,
+        endTime: values.endTime,
       });
 
       if (result.success) {

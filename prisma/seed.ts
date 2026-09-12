@@ -105,6 +105,9 @@ async function main() {
   
   console.log('Creating availability slots...');
 
+  // Slot times are wall-clock values stored on 1970-01-01 in the UTC fields
+  // (see lib/clinic-time.ts): '1970-01-01T09:00:00Z' means 9:00 AM clinic time.
+
   // Dr. Smith's availability - Monday to Friday, 9 AM to 5 PM
   const drSmithSlots = [];
   const weekdays = [DayOfWeek.MONDAY, DayOfWeek.TUESDAY, DayOfWeek.WEDNESDAY, DayOfWeek.THURSDAY, DayOfWeek.FRIDAY];
@@ -114,16 +117,16 @@ async function main() {
     drSmithSlots.push({
       providerId: drSmith.id,
       dayOfWeek: day,
-      startTime: new Date('2024-01-01T09:00:00Z'),
-      endTime: new Date('2024-01-01T12:00:00Z'),
+      startTime: new Date('1970-01-01T09:00:00Z'),
+      endTime: new Date('1970-01-01T12:00:00Z'),
     });
     
     // Afternoon session: 1:00 PM - 5:00 PM
     drSmithSlots.push({
       providerId: drSmith.id,
       dayOfWeek: day,
-      startTime: new Date('2024-01-01T13:00:00Z'),
-      endTime: new Date('2024-01-01T17:00:00Z'),
+      startTime: new Date('1970-01-01T13:00:00Z'),
+      endTime: new Date('1970-01-01T17:00:00Z'),
     });
   }
 
@@ -140,16 +143,16 @@ async function main() {
     drJohnsonSlots.push({
       providerId: drJohnson.id,
       dayOfWeek: day,
-      startTime: new Date('2024-01-01T08:00:00Z'),
-      endTime: new Date('2024-01-01T12:00:00Z'),
+      startTime: new Date('1970-01-01T08:00:00Z'),
+      endTime: new Date('1970-01-01T12:00:00Z'),
     });
     
     // Afternoon session: 1:00 PM - 4:00 PM
     drJohnsonSlots.push({
       providerId: drJohnson.id,
       dayOfWeek: day,
-      startTime: new Date('2024-01-01T13:00:00Z'),
-      endTime: new Date('2024-01-01T16:00:00Z'),
+      startTime: new Date('1970-01-01T13:00:00Z'),
+      endTime: new Date('1970-01-01T16:00:00Z'),
     });
   }
 

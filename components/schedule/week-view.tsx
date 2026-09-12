@@ -1,5 +1,7 @@
 "use client";
 
+import { formatSlotTime } from "@/lib/clinic-time";
+
 import { useState } from "react";
 import { format, startOfWeek, addDays, isSameDay } from "date-fns";
 import { ChevronLeft, ChevronRight, Clock } from "lucide-react";
@@ -133,10 +135,10 @@ export function WeekView({ slots, onSlotClick, isLoading }: WeekViewProps) {
                         <div className="flex-1">
                           <div className="flex items-center gap-1 text-xs font-medium">
                             <Clock className="h-3 w-3" />
-                            {format(new Date(slot.startTime), "h:mm a")}
+                            {formatSlotTime(slot.startTime)}
                           </div>
                           <div className="ml-4 text-xs text-muted-foreground">
-                            {format(new Date(slot.endTime), "h:mm a")}
+                            {formatSlotTime(slot.endTime)}
                           </div>
                         </div>
                         {!slot.isActive && (

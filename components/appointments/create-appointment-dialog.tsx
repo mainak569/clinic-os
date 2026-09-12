@@ -41,6 +41,7 @@ import {
 } from "@/components/ui/popover";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { cn } from "@/lib/utils";
+import { formatSlotTime } from "@/lib/clinic-time";
 
 import { type CreateAppointmentInput } from "@/lib/validations/appointment";
 import { createAppointment } from "@/app/actions/appointment.actions";
@@ -150,22 +151,16 @@ export function CreateAppointmentDialog({
 
   const loadProviderSchedule = async (providerId: string) => {
     try {
-      console.log('Loading schedule for provider:', providerId);
       const response = await fetch(`/api/providers/${providerId}`);
-      console.log('Provider API response status:', response.status);
       
       if (response.ok) {
         const data = await response.json();
-        console.log('Provider API data:', data);
-        console.log('Availability slots:', data.availabilitySlots);
         
         if (data.availabilitySlots && data.availabilitySlots.length > 0) {
           // Format availability schedule for display
           const schedule = formatAvailabilitySchedule(data.availabilitySlots);
-          console.log('Formatted schedule:', schedule);
           setProviderSchedule(schedule);
         } else {
-          console.log('No availability slots found');
           setProviderSchedule("No availability configured. Please set up availability on the Schedule page.");
         }
       } else {
@@ -185,24 +180,10 @@ export function CreateAppointmentDialog({
     const dayGroups: Record<string, { start: string; end: string }[]> = {};
     
     slots.forEach((slot: any) => {
-      console.log('Formatting slot:', {
-        dayOfWeek: slot.dayOfWeek,
-        startTime: slot.startTime,
-        endTime: slot.endTime,
-        startDate: new Date(slot.startTime),
-        endDate: new Date(slot.endTime),
-      });
       const day = slot.dayOfWeek;
-      const startTime = new Date(slot.startTime).toLocaleTimeString('en-US', { 
-        hour: 'numeric', 
-        minute: '2-digit',
-        hour12: true 
-      });
-      const endTime = new Date(slot.endTime).toLocaleTimeString('en-US', { 
-        hour: 'numeric', 
-        minute: '2-digit',
-        hour12: true 
-      });
+      // Slot times are wall-clock values; format them without a timezone.
+      const startTime = formatSlotTime(slot.startTime);
+      const endTime = formatSlotTime(slot.endTime);
 
       if (!dayGroups[day]) {
         dayGroups[day] = [];
@@ -234,7 +215,6 @@ export function CreateAppointmentDialog({
     // This is a simplified version - in production you'd have proper search
     try {
       const response = await fetch("/api/patients?pageSize=100");
-      console.log("Patient API response status:", response.status, response.ok);
       
       if (!response.ok) {
         const errorText = await response.text();
@@ -244,15 +224,12 @@ export function CreateAppointmentDialog({
       }
 
       const data = await response.json();
-      console.log("Patient API data:", data);
       
       // API returns { patients: [...], total, page, pageSize, totalPages }
       if (data && typeof data === 'object' && 'patients' in data && Array.isArray(data.patients)) {
-        console.log("Setting patients from data.patients:", data.patients.length);
         setPatients(data.patients);
       } else if (Array.isArray(data)) {
         // Fallback for direct array response
-        console.log("Setting patients from array:", data.length);
         setPatients(data);
       } else {
         console.error("Invalid patients data format:", data);
@@ -265,19 +242,13 @@ export function CreateAppointmentDialog({
   };
 
   const onSubmit = async (data: any) => {
-    console.log('onSubmit called with data:', data);
-    console.log('Form errors:', form.formState.errors);
     
     try {
       // Combine appointmentDate and appointmentTime into scheduledAt
       const [hours, minutes] = data.appointmentTime.split(':').map(Number);
-      console.log('Parsed time:', { hours, minutes });
       
       const scheduledAt = new Date(data.appointmentDate);
       scheduledAt.setHours(hours, minutes, 0, 0);
-      console.log('Scheduled at:', scheduledAt);
-      console.log('Scheduled at ISO:', scheduledAt.toISOString());
-      console.log('Scheduled at day of week:', scheduledAt.getDay(), ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'][scheduledAt.getDay()]);
 
       const formattedData = {
         patientId: data.patientId,
@@ -289,7 +260,6 @@ export function CreateAppointmentDialog({
         notes: data.notes || "",
       };
       
-      console.log("Submitting appointment data:", formattedData);
       await createMutation.mutate(formattedData as CreateAppointmentInput);
     } catch (error) {
       console.error('Error in onSubmit:', error);

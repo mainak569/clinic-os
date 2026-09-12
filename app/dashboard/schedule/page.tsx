@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { requireAuth } from "@/lib/auth-helpers";
 import { PageHeading } from "@/components/layout/page-heading";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -34,7 +35,9 @@ export default async function SchedulePage({
     providerName = session.user.providerName || session.user.email;
   } else if (session.user.role === "FRONT_DESK") {
     // Front desk can manage any provider's schedule
+    // Only active providers can be booked, so only they get a schedule here.
     allProviders = await prisma.provider.findMany({
+      where: { isActive: true },
       select: {
         id: true,
         firstName: true,
@@ -49,8 +52,11 @@ export default async function SchedulePage({
           <AlertTriangle className="h-4 w-4 !text-amber-600" />
           <AlertTitle>No providers yet</AlertTitle>
           <AlertDescription className="text-amber-900/80">
-            Availability belongs to a provider, so add one before setting up a
-            schedule.
+            Availability belongs to a provider, so{" "}
+            <Link href="/dashboard/providers" className="font-medium underline underline-offset-4">
+              add a provider
+            </Link>{" "}
+            before setting up a schedule.
           </AlertDescription>
         </Alert>
       );

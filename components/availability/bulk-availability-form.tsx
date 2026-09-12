@@ -79,30 +79,13 @@ export function BulkAvailabilityForm({ providerId, providerName }: BulkAvailabil
     setResult(null);
 
     try {
-      // Convert times to Date objects
-      const [startHour, startMin] = values.startTime.split(":").map(Number);
-      const [endHour, endMin] = values.endTime.split(":").map(Number);
-
-      const startTime = new Date();
-      startTime.setHours(startHour, startMin, 0, 0);
-
-      const endTime = new Date();
-      endTime.setHours(endHour, endMin, 0, 0);
-
-      // For recurring weekly slots, we don't need date range
-      // Use a nominal date range (today to 7 days from now) just for the API
-      const today = new Date();
-      const nextWeek = new Date(today);
-      nextWeek.setDate(today.getDate() + 7);
-
+      // Weekly recurring slots: days + wall-clock times, sent as HH:MM strings.
       const response = await bulkCreateAvailability({
         providerId: values.providerId,
         daysOfWeek: values.daysOfWeek as any,
-        startTime,
-        endTime,
-        startDate: today,
-        endDate: nextWeek,
-        skipCollisions: true, // Always skip collisions for recurring slots
+        startTime: values.startTime,
+        endTime: values.endTime,
+        skipCollisions: true,
         overwriteExisting: values.overwriteExisting,
       });
 
@@ -291,7 +274,7 @@ export function BulkAvailabilityForm({ providerId, providerName }: BulkAvailabil
                       <div className="flex items-start justify-between">
                         <div>
                           <p className="font-medium">
-                            {format(new Date(skip.date), "EEEE, MMM d")}
+                            {skip.dayOfWeek.charAt(0) + skip.dayOfWeek.slice(1).toLowerCase()}
                           </p>
                           <p className="text-muted-foreground text-xs">
                             {skip.reason}

@@ -1,5 +1,7 @@
 "use client";
 
+import { formatSlotTime } from "@/lib/clinic-time";
+
 import { useState } from "react";
 import { Calendar, Download, FileJson, FileSpreadsheet } from "lucide-react";
 import { format } from "date-fns";
@@ -245,8 +247,8 @@ export function ScheduleExport({ providerId, providerName }: ScheduleExportProps
                                 key={slotIndex}
                                 className="text-sm"
                               >
-                                {format(new Date(slot.startTime), "h:mm a")} -{" "}
-                                {format(new Date(slot.endTime), "h:mm a")}
+                                {formatSlotTime(slot.startTime)} -{" "}
+                                {formatSlotTime(slot.endTime)}
                               </div>
                             ))}
                           </div>

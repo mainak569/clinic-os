@@ -9,6 +9,10 @@ process.env.AUTH_SECRET = "test-secret-key-for-testing-only";
 process.env.AUTH_URL = "http://localhost:3000";
 process.env.DATABASE_URL = "postgresql://test_user:test_password@localhost:5432/clinicos_test";
 process.env.DIRECT_URL = "postgresql://test_user:test_password@localhost:5432/clinicos_test";
+// Tests build appointment times with local setHours(), so read them on the same
+// wall clock as the machine running the tests. Without this, availability
+// checks would pass on a laptop in IST and fail on a UTC CI runner.
+process.env.CLINIC_TIMEZONE = Intl.DateTimeFormat().resolvedOptions().timeZone;
 // NODE_ENV is set by Jest automatically
 
 // Mock Next.js modules

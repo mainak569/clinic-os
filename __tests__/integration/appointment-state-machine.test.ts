@@ -57,8 +57,8 @@ describe("Appointment State Machine", () => {
         data: {
           providerId: testProvider.id,
           dayOfWeek: day,
-          startTime: new Date("2024-01-01T09:00:00"),
-          endTime: new Date("2024-01-01T17:00:00"),
+          startTime: new Date("1970-01-01T09:00:00Z"),
+          endTime: new Date("1970-01-01T17:00:00Z"),
         },
       });
     }

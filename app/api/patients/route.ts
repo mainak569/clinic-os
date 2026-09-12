@@ -22,36 +22,21 @@ export async function GET(request: Request) {
     const pageSize = parseInt(searchParams.get("pageSize") || "100", 10);
     const includeInactive = searchParams.get("includeInactive") === "true";
 
-    // Get patients from service
+    // Providers only see patients they have appointments with, filtered in the
+    // database so pagination and totals are correct.
+    if (session.user.role === "PROVIDER" && !session.user.providerId) {
+      return NextResponse.json({ patients: [], total: 0, page, pageSize, totalPages: 0 });
+    }
+
     const result = await patientService.searchPatients({
       query,
       page,
       pageSize,
       includeInactive,
+      ...(session.user.role === "PROVIDER" && session.user.providerId
+        ? { providerId: session.user.providerId }
+        : {}),
     });
-
-    // Filter for PROVIDER role - only show patients they have appointments with
-    if (session.user.role === "PROVIDER" && session.user.providerId) {
-      const { prisma } = await import("@/lib/prisma");
-      
-      const patientIds = await prisma.appointment.findMany({
-        where: {
-          providerId: session.user.providerId,
-        },
-        select: {
-          patientId: true,
-        },
-        distinct: ["patientId"],
-      });
-
-      const accessiblePatientIds = new Set(patientIds.map((a) => a.patientId));
-      
-      result.patients = result.patients.filter((p) =>
-        accessiblePatientIds.has(p.id)
-      );
-      result.total = result.patients.length;
-      result.totalPages = Math.ceil(result.total / result.pageSize);
-    }
 
     return NextResponse.json(result);
   } catch (error) {

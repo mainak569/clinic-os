@@ -114,6 +114,8 @@ export class VisitNoteService {
 
   /**
    * Update a visit note
+   *
+   * `undefined` leaves a field unchanged; `null` clears it.
    * 
    * Creates immutable history snapshot before updating
    * Only the author can edit their own notes (enforced at action layer)
@@ -123,23 +125,23 @@ export class VisitNoteService {
     editorId: string,
     updates: {
       changeReason?: string;
-      chiefComplaint?: string;
-      historyOfPresent?: string;
-      physicalExam?: string;
-      assessment?: string;
-      plan?: string;
-      bloodPressure?: string;
-      heartRate?: number;
-      temperature?: number;
-      respiratoryRate?: number;
-      oxygenSaturation?: number;
-      weight?: number;
-      height?: number;
-      prescriptions?: string;
-      labOrders?: string;
-      imagingOrders?: string;
-      referrals?: string;
-      followUpInstructions?: string;
+      chiefComplaint?: string | null;
+      historyOfPresent?: string | null;
+      physicalExam?: string | null;
+      assessment?: string | null;
+      plan?: string | null;
+      bloodPressure?: string | null;
+      heartRate?: number | null;
+      temperature?: number | null;
+      respiratoryRate?: number | null;
+      oxygenSaturation?: number | null;
+      weight?: number | null;
+      height?: number | null;
+      prescriptions?: string | null;
+      labOrders?: string | null;
+      imagingOrders?: string | null;
+      referrals?: string | null;
+      followUpInstructions?: string | null;
       nextVisitDate?: Date | null;
     }
   ): Promise<VisitNote> {

@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import type { DayOfWeek, AvailabilitySlot } from "@prisma/client";
+import { formatSlotTime } from "@/lib/clinic-time";
 
 /**
  * Bulk Availability Service Layer
@@ -21,7 +22,6 @@ export interface BulkCreateResult {
 
 export interface SkippedSlot {
   dayOfWeek: DayOfWeek;
-  date: Date;
   startTime: Date;
   endTime: Date;
   reason: string;
@@ -55,8 +55,6 @@ export class BulkAvailabilityService {
     daysOfWeek: DayOfWeek[];
     startTime: Date;
     endTime: Date;
-    startDate: Date;
-    endDate: Date;
     skipCollisions?: boolean;
     overwriteExisting?: boolean;
   }): Promise<BulkCreateResult> {
@@ -64,19 +62,12 @@ export class BulkAvailabilityService {
     const skipped: SkippedSlot[] = [];
     let errors = 0;
 
-    // Generate all dates within range that match the days of week
-    const datesToCreate = this.generateDates(
-      input.startDate,
-      input.endDate,
-      input.daysOfWeek
-    );
+    // One recurring slot per weekday. Slots have no date, so iterating over a
+    // date range only produced repeat attempts at the same weekday.
+    const days = [...new Set(input.daysOfWeek)];
 
-    // Process each date
-    for (const date of datesToCreate) {
-      const dayOfWeek = this.getDayOfWeek(date);
-
+    for (const dayOfWeek of days) {
       try {
-        // Check for existing slots on this day
         const hasCollision = await this.checkCollision(
           input.providerId,
           dayOfWeek,
@@ -84,70 +75,46 @@ export class BulkAvailabilityService {
           input.endTime
         );
 
-        if (hasCollision) {
-          if (input.overwriteExisting) {
-            // Archive existing conflicting slots
-            await this.archiveConflictingSlots(
-              input.providerId,
-              dayOfWeek,
-              input.startTime,
-              input.endTime
-            );
-
-            // Create new slot
-            const slot = await this.createSlot(
-              input.providerId,
-              dayOfWeek,
-              input.startTime,
-              input.endTime
-            );
-            created.push(slot);
-          } else if (input.skipCollisions) {
-            // Skip this slot
-            const collisionDetails = await this.getCollisionDetails(
-              input.providerId,
-              dayOfWeek,
-              input.startTime,
-              input.endTime
-            );
-
-            skipped.push({
-              dayOfWeek,
-              date,
-              startTime: input.startTime,
-              endTime: input.endTime,
-              reason: "Collision with existing slot",
-              collisionDetails,
-            });
-          } else {
-            // Report error
-            skipped.push({
-              dayOfWeek,
-              date,
-              startTime: input.startTime,
-              endTime: input.endTime,
-              reason: "Collision with existing slot (not skipped)",
-            });
-            errors++;
-          }
-        } else {
-          // No collision, create slot
-          const slot = await this.createSlot(
+        if (hasCollision && input.overwriteExisting) {
+          await this.archiveConflictingSlots(
             input.providerId,
             dayOfWeek,
             input.startTime,
             input.endTime
           );
-          created.push(slot);
+        } else if (hasCollision) {
+          const collisionDetails = await this.getCollisionDetails(
+            input.providerId,
+            dayOfWeek,
+            input.startTime,
+            input.endTime
+          );
+          skipped.push({
+            dayOfWeek,
+            startTime: input.startTime,
+            endTime: input.endTime,
+            reason: "Overlaps an existing slot",
+            collisionDetails,
+          });
+          if (!input.skipCollisions) {
+            errors++;
+          }
+          continue;
         }
+
+        const slot = await this.createSlot(
+          input.providerId,
+          dayOfWeek,
+          input.startTime,
+          input.endTime
+        );
+        created.push(slot);
       } catch (error) {
         skipped.push({
           dayOfWeek,
-          date,
           startTime: input.startTime,
           endTime: input.endTime,
-          reason:
-            error instanceof Error ? error.message : "Unknown error occurred",
+          reason: error instanceof Error ? error.message : "Unknown error occurred",
         });
         errors++;
       }
@@ -157,7 +124,7 @@ export class BulkAvailabilityService {
       created,
       skipped,
       summary: {
-        totalAttempted: datesToCreate.length,
+        totalAttempted: days.length,
         successfullyCreated: created.length,
         skipped: skipped.length,
         errors,
@@ -195,8 +162,8 @@ export class BulkAvailabilityService {
         .filter((slot) => slot.dayOfWeek === dayOfWeek)
         .map((slot) => ({
           id: slot.id,
-          startTime: this.combineDateAndTime(date, slot.startTime),
-          endTime: this.combineDateAndTime(date, slot.endTime),
+          startTime: slot.startTime,
+          endTime: slot.endTime,
           isActive: slot.isActive,
         }));
 
@@ -278,8 +245,6 @@ export class BulkAvailabilityService {
   async deleteBulkAvailability(input: {
     providerId: string;
     daysOfWeek: DayOfWeek[];
-    startDate: Date;
-    endDate: Date;
   }): Promise<{ archived: number }> {
     // Archive all matching slots
     const result = await prisma.availabilitySlot.updateMany({
@@ -296,30 +261,6 @@ export class BulkAvailabilityService {
     return { archived: result.count };
   }
 
-  /**
-   * Generate all dates within range that match days of week
-   */
-  private generateDates(
-    startDate: Date,
-    endDate: Date,
-    daysOfWeek: DayOfWeek[]
-  ): Date[] {
-    const dates: Date[] = [];
-    const current = new Date(startDate);
-
-    // Convert DayOfWeek enum to day numbers
-    const dayNumbers = daysOfWeek.map((day) => this.dayOfWeekToNumber(day));
-
-    while (current <= endDate) {
-      const currentDay = current.getDay();
-      if (dayNumbers.includes(currentDay)) {
-        dates.push(new Date(current));
-      }
-      current.setDate(current.getDate() + 1);
-    }
-
-    return dates;
-  }
 
   /**
    * Generate all dates within range (for schedule export)
@@ -330,7 +271,7 @@ export class BulkAvailabilityService {
 
     while (current <= endDate) {
       dates.push(new Date(current));
-      current.setDate(current.getDate() + 1);
+      current.setUTCDate(current.getUTCDate() + 1);
     }
 
     return dates;
@@ -492,36 +433,10 @@ export class BulkAvailabilityService {
       "FRIDAY",
       "SATURDAY",
     ];
-    return days[date.getDay()];
+    return days[date.getUTCDay()];
   }
 
-  /**
-   * Convert DayOfWeek enum to number (0-6)
-   */
-  private dayOfWeekToNumber(day: DayOfWeek): number {
-    const map: Record<DayOfWeek, number> = {
-      SUNDAY: 0,
-      MONDAY: 1,
-      TUESDAY: 2,
-      WEDNESDAY: 3,
-      THURSDAY: 4,
-      FRIDAY: 5,
-      SATURDAY: 6,
-    };
-    return map[day];
-  }
 
-  /**
-   * Combine date and time
-   */
-  private combineDateAndTime(date: Date, time: Date): Date {
-    const combined = new Date(date);
-    combined.setHours(time.getHours());
-    combined.setMinutes(time.getMinutes());
-    combined.setSeconds(0);
-    combined.setMilliseconds(0);
-    return combined;
-  }
 
   /**
    * Format date for CSV/JSON (YYYY-MM-DD)
@@ -534,11 +449,8 @@ export class BulkAvailabilityService {
    * Format time for CSV/JSON (HH:MM AM/PM)
    */
   private formatTime(date: Date): string {
-    return date.toLocaleTimeString("en-US", {
-      hour: "numeric",
-      minute: "2-digit",
-      hour12: true,
-    });
+    // Slot times are wall-clock values; never format them through a timezone.
+    return formatSlotTime(date);
   }
 }
 

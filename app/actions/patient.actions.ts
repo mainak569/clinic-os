@@ -1,9 +1,11 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
+import { revalidateDashboard } from "@/lib/revalidate";
+import { actionErrorMessage } from "@/lib/action-error";
 import { headers } from "next/headers";
 import { requireAuth, requireRole, canAccessPatient } from "@/lib/auth-helpers";
 import { patientService } from "@/lib/services/patient.service";
+import { serializeAppointment } from "@/lib/serialize";
 import { auditService } from "@/lib/services/audit.service";
 import {
   createPatientSchema,
@@ -79,9 +81,7 @@ export async function createPatient(
       userAgent: headersList.get("user-agent") ?? null,
     });
 
-    // Revalidate relevant paths
-    revalidatePath("/dashboard/patients");
-    revalidatePath("/api/patients");
+    revalidateDashboard();
 
     return { success: true, data: { id: patient.id } };
   } catch (error) {
@@ -95,11 +95,7 @@ export async function createPatient(
       });
     }
 
-    if (error instanceof Error) {
-      return { success: false, error: error.message };
-    }
-
-    return { success: false, error: "Failed to create patient" };
+    return { success: false, error: actionErrorMessage(error, "Failed to create patient") };
   }
 }
 
@@ -150,20 +146,13 @@ export async function updatePatient(
       userAgent: headersList.get("user-agent") ?? null,
     });
 
-    // Revalidate relevant paths
-    revalidatePath("/dashboard/patients");
-    revalidatePath(`/dashboard/patients/${validatedInput.id}`);
-    revalidatePath("/api/patients");
+    revalidateDashboard();
 
     return { success: true, data: { id: updated.id } };
   } catch (error) {
     console.error("updatePatient error:", error);
 
-    if (error instanceof Error) {
-      return { success: false, error: error.message };
-    }
-
-    return { success: false, error: "Failed to update patient" };
+    return { success: false, error: actionErrorMessage(error, "Failed to update patient") };
   }
 }
 
@@ -198,19 +187,13 @@ export async function deletePatient(
       userAgent: headersList.get("user-agent") ?? null,
     });
 
-    // Revalidate relevant paths
-    revalidatePath("/dashboard/patients");
-    revalidatePath("/api/patients");
+    revalidateDashboard();
 
     return { success: true, data: { id: deleted.id } };
   } catch (error) {
     console.error("deletePatient error:", error);
 
-    if (error instanceof Error) {
-      return { success: false, error: error.message };
-    }
-
-    return { success: false, error: "Failed to delete patient" };
+    return { success: false, error: actionErrorMessage(error, "Failed to delete patient") };
   }
 }
 
@@ -235,47 +218,30 @@ export async function searchPatients(
     // Validate input
     const validatedInput = searchPatientsSchema.parse(input || {});
 
-    // Business logic
+    // Providers only see patients they have appointments with. The filter runs
+    // in the database so pagination and totals stay correct.
+    if (session.user.role === "PROVIDER" && !session.user.providerId) {
+      return {
+        success: true,
+        data: { patients: [], total: 0, page: validatedInput.page, pageSize: validatedInput.pageSize, totalPages: 0 },
+      };
+    }
+
     const result = await patientService.searchPatients({
       query: validatedInput.query,
       page: validatedInput.page,
       pageSize: validatedInput.pageSize,
       includeInactive: validatedInput.includeInactive,
+      ...(session.user.role === "PROVIDER" && session.user.providerId
+        ? { providerId: session.user.providerId }
+        : {}),
     });
-
-    // Filter patients based on role
-    if (session.user.role === "PROVIDER" && session.user.providerId) {
-      // Providers only see patients they have appointments with
-      const { prisma } = await import("@/lib/prisma");
-      
-      const patientIds = await prisma.appointment.findMany({
-        where: {
-          providerId: session.user.providerId,
-        },
-        select: {
-          patientId: true,
-        },
-        distinct: ["patientId"],
-      });
-
-      const accessiblePatientIds = new Set(patientIds.map((a) => a.patientId));
-      
-      result.patients = result.patients.filter((p) =>
-        accessiblePatientIds.has(p.id)
-      );
-      result.total = result.patients.length;
-      result.totalPages = Math.ceil(result.total / result.pageSize);
-    }
 
     return { success: true, data: result };
   } catch (error) {
     console.error("searchPatients error:", error);
 
-    if (error instanceof Error) {
-      return { success: false, error: error.message };
-    }
-
-    return { success: false, error: "Failed to search patients" };
+    return { success: false, error: actionErrorMessage(error, "Failed to search patients") };
   }
 }
 
@@ -324,15 +290,18 @@ export async function getPatientById(
       userAgent: headersList.get("user-agent") ?? null,
     });
 
-    return { success: true, data: patient };
+    // Appointment cost is a Decimal; flatten it for the client component.
+    return {
+      success: true,
+      data: {
+        ...patient,
+        appointments: patient.appointments.map((apt) => serializeAppointment(apt)),
+      },
+    };
   } catch (error) {
     console.error("getPatientById error:", error);
 
-    if (error instanceof Error) {
-      return { success: false, error: error.message };
-    }
-
-    return { success: false, error: "Failed to get patient" };
+    return { success: false, error: actionErrorMessage(error, "Failed to get patient") };
   }
 }
 
@@ -361,10 +330,6 @@ export async function getPatientAppointmentCount(
   } catch (error) {
     console.error("getPatientAppointmentCount error:", error);
 
-    if (error instanceof Error) {
-      return { success: false, error: error.message };
-    }
-
-    return { success: false, error: "Failed to get appointment count" };
+    return { success: false, error: actionErrorMessage(error, "Failed to get appointment count") };
   }
 }

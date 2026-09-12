@@ -11,6 +11,7 @@ import {
   LayoutDashboard,
   LogOut,
   Menu,
+  Stethoscope,
   Users,
   X,
 } from "lucide-react";
@@ -19,13 +20,20 @@ import type { LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { AlertsDropdown } from "@/components/layout/alerts-dropdown";
 
-type NavItem = { href: string; label: string; icon: LucideIcon };
+type NavItem = {
+  href: string;
+  label: string;
+  icon: LucideIcon;
+  /** Roles that see this item; omitted means everyone. */
+  roles?: string[];
+};
 
 const NAV: NavItem[] = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/dashboard/appointments", label: "Appointments", icon: Calendar },
   { href: "/dashboard/patients", label: "Patients", icon: Users },
   { href: "/dashboard/schedule", label: "Schedule", icon: Clock },
+  { href: "/dashboard/providers", label: "Providers", icon: Stethoscope, roles: ["FRONT_DESK"] },
 ];
 
 function isActive(pathname: string, href: string) {
@@ -51,6 +59,7 @@ export function DashboardHeader({
 }) {
   const pathname = usePathname();
   const [open, setOpen] = React.useState(false);
+  const visibleNav = NAV.filter((item) => !item.roles || item.roles.includes(role));
 
   React.useEffect(() => setOpen(false), [pathname]);
 
@@ -74,7 +83,7 @@ export function DashboardHeader({
 
           {/* Desktop nav */}
           <nav className="hidden lg:flex items-center gap-1">
-            {NAV.map((item) => {
+            {visibleNav.map((item) => {
               const active = isActive(pathname, item.href);
               return (
                 <Link
@@ -136,7 +145,7 @@ export function DashboardHeader({
         {open && (
           <div className="lg:hidden mt-3 overflow-hidden rounded-3xl bg-white/80 backdrop-blur-xl shadow-2xl animate-in slide-in-from-top-5">
             <div className="space-y-1 p-3">
-              {NAV.map((item) => {
+              {visibleNav.map((item) => {
                 const active = isActive(pathname, item.href);
                 return (
                   <Link

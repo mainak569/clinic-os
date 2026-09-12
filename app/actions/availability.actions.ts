@@ -1,6 +1,5 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
 import { requireAuth, canAccessProviderData } from "@/lib/auth-helpers";
 import { availabilityService } from "@/lib/services/availability.service";
 import { DayOfWeek } from "@prisma/client";
@@ -14,16 +13,18 @@ import {
   type ArchiveAvailabilitySlotInput,
   type RestoreAvailabilitySlotInput,
 } from "@/lib/validations/availability";
-import {
-  UnauthorizedAvailabilityAccessError,
-} from "@/lib/errors/appointment-errors";
+import { UnauthorizedAvailabilityAccessError } from "@/lib/errors/appointment-errors";
 import { prisma } from "@/lib/prisma";
+import { timeStringToSlotDate } from "@/lib/clinic-time";
+import { revalidateDashboard } from "@/lib/revalidate";
+import { actionErrorMessage } from "@/lib/action-error";
 
 /**
  * Availability Server Actions
- * 
- * Handles authorization and delegates business logic to service layer
- * Returns { success, data?, error? } for client consumption
+ *
+ * Handles authorization and delegates business logic to service layer.
+ * Slot times arrive as "HH:MM" strings and are converted to the canonical
+ * slot encoding here, so the browser's timezone never reaches the database.
  */
 
 type ActionResult<T> =
@@ -39,31 +40,29 @@ export async function createAvailabilitySlot(
   try {
     await requireAuth();
 
-    // Validate input
     const validatedInput = createAvailabilitySlotSchema.parse(input);
 
-    // Authorization: check if user can modify this provider's availability
     const canAccess = await canAccessProviderData(validatedInput.providerId);
     if (!canAccess) {
       throw new UnauthorizedAvailabilityAccessError();
     }
 
-    // Business logic
-    const slot = await availabilityService.createSlot(validatedInput);
+    const slot = await availabilityService.createSlot({
+      providerId: validatedInput.providerId,
+      dayOfWeek: validatedInput.dayOfWeek,
+      startTime: timeStringToSlotDate(validatedInput.startTime),
+      endTime: timeStringToSlotDate(validatedInput.endTime),
+    });
 
-    // Revalidate relevant paths
-    revalidatePath("/dashboard");
-    revalidatePath(`/providers/${validatedInput.providerId}`);
+    revalidateDashboard();
 
     return { success: true, data: { id: slot.id } };
   } catch (error) {
     console.error("createAvailabilitySlot error:", error);
-
-    if (error instanceof Error) {
-      return { success: false, error: error.message };
-    }
-
-    return { success: false, error: "Failed to create availability slot" };
+    return {
+      success: false,
+      error: actionErrorMessage(error, "Failed to create availability slot"),
+    };
   }
 }
 
@@ -76,66 +75,53 @@ export async function updateAvailabilitySlot(
   try {
     await requireAuth();
 
-    // Validate input
     const validatedInput = updateAvailabilitySlotSchema.parse(input);
 
-    // Get the slot to check provider ownership
-    const existingSlot = await availabilityService.getSlotById(
-      validatedInput.slotId
-    );
+    const existingSlot = await availabilityService.getSlotById(validatedInput.slotId);
     if (!existingSlot) {
       return { success: false, error: "Availability slot not found" };
     }
 
-    // Authorization: check if user can modify this provider's availability
     const canAccess = await canAccessProviderData(existingSlot.providerId);
     if (!canAccess) {
       throw new UnauthorizedAvailabilityAccessError();
     }
 
-    // Business logic
     const updateData: {
       dayOfWeek?: DayOfWeek;
       startTime?: Date;
       endTime?: Date;
     } = {};
-    
+
     if (validatedInput.dayOfWeek !== undefined) {
       updateData.dayOfWeek = validatedInput.dayOfWeek;
     }
     if (validatedInput.startTime !== undefined) {
-      updateData.startTime = validatedInput.startTime;
+      updateData.startTime = timeStringToSlotDate(validatedInput.startTime);
     }
     if (validatedInput.endTime !== undefined) {
-      updateData.endTime = validatedInput.endTime;
+      updateData.endTime = timeStringToSlotDate(validatedInput.endTime);
     }
 
-    const slot = await availabilityService.updateSlot(
-      validatedInput.slotId,
-      updateData
-    );
+    const slot = await availabilityService.updateSlot(validatedInput.slotId, updateData);
 
-    // Revalidate relevant paths
-    revalidatePath("/dashboard");
-    revalidatePath(`/providers/${existingSlot.providerId}`);
+    revalidateDashboard();
 
     return { success: true, data: { id: slot.id } };
   } catch (error) {
     console.error("updateAvailabilitySlot error:", error);
-
-    if (error instanceof Error) {
-      return { success: false, error: error.message };
-    }
-
-    return { success: false, error: "Failed to update availability slot" };
+    return {
+      success: false,
+      error: actionErrorMessage(error, "Failed to update availability slot"),
+    };
   }
 }
 
 /**
  * Delete (permanently remove) an availability slot
- * 
- * WARNING: This permanently deletes the slot from the database
- * Use archive instead for normal operations
+ *
+ * WARNING: This permanently deletes the slot from the database.
+ * Use archive instead for normal operations.
  */
 export async function deleteAvailabilitySlot(
   input: ArchiveAvailabilitySlotInput
@@ -143,41 +129,31 @@ export async function deleteAvailabilitySlot(
   try {
     await requireAuth();
 
-    // Validate input
     const validatedInput = archiveAvailabilitySlotSchema.parse(input);
 
-    // Get the slot to check provider ownership
-    const existingSlot = await availabilityService.getSlotById(
-      validatedInput.slotId
-    );
+    const existingSlot = await availabilityService.getSlotById(validatedInput.slotId);
     if (!existingSlot) {
       return { success: false, error: "Availability slot not found" };
     }
 
-    // Authorization: check if user can modify this provider's availability
     const canAccess = await canAccessProviderData(existingSlot.providerId);
     if (!canAccess) {
       throw new UnauthorizedAvailabilityAccessError();
     }
 
-    // Permanently delete the slot
     await prisma.availabilitySlot.delete({
       where: { id: validatedInput.slotId },
     });
 
-    // Revalidate relevant paths
-    revalidatePath("/dashboard");
-    revalidatePath(`/providers/${existingSlot.providerId}`);
+    revalidateDashboard();
 
     return { success: true, data: { id: validatedInput.slotId } };
   } catch (error) {
     console.error("deleteAvailabilitySlot error:", error);
-
-    if (error instanceof Error) {
-      return { success: false, error: error.message };
-    }
-
-    return { success: false, error: "Failed to delete availability slot" };
+    return {
+      success: false,
+      error: actionErrorMessage(error, "Failed to delete availability slot"),
+    };
   }
 }
 
@@ -190,39 +166,29 @@ export async function archiveAvailabilitySlot(
   try {
     await requireAuth();
 
-    // Validate input
     const validatedInput = archiveAvailabilitySlotSchema.parse(input);
 
-    // Get the slot to check provider ownership
-    const existingSlot = await availabilityService.getSlotById(
-      validatedInput.slotId
-    );
+    const existingSlot = await availabilityService.getSlotById(validatedInput.slotId);
     if (!existingSlot) {
       return { success: false, error: "Availability slot not found" };
     }
 
-    // Authorization: check if user can modify this provider's availability
     const canAccess = await canAccessProviderData(existingSlot.providerId);
     if (!canAccess) {
       throw new UnauthorizedAvailabilityAccessError();
     }
 
-    // Business logic
     const slot = await availabilityService.archiveSlot(validatedInput.slotId);
 
-    // Revalidate relevant paths
-    revalidatePath("/dashboard");
-    revalidatePath(`/providers/${existingSlot.providerId}`);
+    revalidateDashboard();
 
     return { success: true, data: { id: slot.id } };
   } catch (error) {
     console.error("archiveAvailabilitySlot error:", error);
-
-    if (error instanceof Error) {
-      return { success: false, error: error.message };
-    }
-
-    return { success: false, error: "Failed to archive availability slot" };
+    return {
+      success: false,
+      error: actionErrorMessage(error, "Failed to archive availability slot"),
+    };
   }
 }
 
@@ -235,39 +201,29 @@ export async function restoreAvailabilitySlot(
   try {
     await requireAuth();
 
-    // Validate input
     const validatedInput = restoreAvailabilitySlotSchema.parse(input);
 
-    // Get the slot to check provider ownership
-    const existingSlot = await availabilityService.getSlotById(
-      validatedInput.slotId
-    );
+    const existingSlot = await availabilityService.getSlotById(validatedInput.slotId);
     if (!existingSlot) {
       return { success: false, error: "Availability slot not found" };
     }
 
-    // Authorization: check if user can modify this provider's availability
     const canAccess = await canAccessProviderData(existingSlot.providerId);
     if (!canAccess) {
       throw new UnauthorizedAvailabilityAccessError();
     }
 
-    // Business logic
     const slot = await availabilityService.restoreSlot(validatedInput.slotId);
 
-    // Revalidate relevant paths
-    revalidatePath("/dashboard");
-    revalidatePath(`/providers/${existingSlot.providerId}`);
+    revalidateDashboard();
 
     return { success: true, data: { id: slot.id } };
   } catch (error) {
     console.error("restoreAvailabilitySlot error:", error);
-
-    if (error instanceof Error) {
-      return { success: false, error: error.message };
-    }
-
-    return { success: false, error: "Failed to restore availability slot" };
+    return {
+      success: false,
+      error: actionErrorMessage(error, "Failed to restore availability slot"),
+    };
   }
 }
 
@@ -281,7 +237,6 @@ export async function getProviderAvailability(
   try {
     await requireAuth();
 
-    // Authorization: check if user can view this provider's availability
     const canAccess = await canAccessProviderData(providerId);
     if (!canAccess) {
       throw new UnauthorizedAvailabilityAccessError(
@@ -289,20 +244,14 @@ export async function getProviderAvailability(
       );
     }
 
-    // Business logic
-    const slots = await availabilityService.getProviderSlots(
-      providerId,
-      includeInactive
-    );
+    const slots = await availabilityService.getProviderSlots(providerId, includeInactive);
 
     return { success: true, data: slots };
   } catch (error) {
     console.error("getProviderAvailability error:", error);
-
-    if (error instanceof Error) {
-      return { success: false, error: error.message };
-    }
-
-    return { success: false, error: "Failed to get provider availability" };
+    return {
+      success: false,
+      error: actionErrorMessage(error, "Failed to get provider availability"),
+    };
   }
 }
