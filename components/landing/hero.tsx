@@ -10,7 +10,7 @@ export function Hero() {
           {/* Badge */}
           <div className="mb-8 inline-flex items-center rounded-full bg-white/50 backdrop-blur-sm px-4 py-1.5 text-sm shadow-lg animate-in fade-in slide-in-from-top-3 duration-700">
             <CheckCircle className="mr-2 h-4 w-4 text-[#A855F7]" />
-            Trusted by 500+ healthcare providers
+            Healthcare practice management prototype
           </div>
 
           {/* Headline */}
@@ -25,7 +25,7 @@ export function Hero() {
           <p className="mx-auto mb-8 max-w-2xl text-lg text-muted-foreground md:text-xl leading-relaxed animate-in fade-in slide-in-from-bottom-4 duration-700 delay-200">
             Streamline your healthcare practice with our comprehensive platform.
             Manage patients, appointments, billing, and records all in one
-            secure, HIPAA-compliant solution.
+            secure, HIPAA-oriented platform.
           </p>
 
           {/* CTA Buttons */}
@@ -53,15 +53,15 @@ export function Hero() {
           <div className="mt-12 flex flex-wrap items-center justify-center gap-6 animate-in fade-in slide-in-from-bottom-4 duration-700 delay-500">
             <div className="flex items-center gap-2 bg-white/50 backdrop-blur-sm px-4 py-2.5 rounded-full shadow-md hover:shadow-lg hover:scale-105 transition-all cursor-default">
               <CheckCircle className="h-5 w-5 text-[#A855F7]" />
-              <span className="text-sm font-medium">HIPAA Compliant</span>
+              <span className="text-sm font-medium">HIPAA-Oriented</span>
             </div>
             <div className="flex items-center gap-2 bg-white/50 backdrop-blur-sm px-4 py-2.5 rounded-full shadow-md hover:shadow-lg hover:scale-105 transition-all cursor-default">
               <CheckCircle className="h-5 w-5 text-[#A855F7]" />
-              <span className="text-sm font-medium">SOC 2 Certified</span>
+              <span className="text-sm font-medium">Full Audit Trail</span>
             </div>
             <div className="flex items-center gap-2 bg-white/50 backdrop-blur-sm px-4 py-2.5 rounded-full shadow-md hover:shadow-lg hover:scale-105 transition-all cursor-default">
               <CheckCircle className="h-5 w-5 text-[#A855F7]" />
-              <span className="text-sm font-medium">99.9% Uptime</span>
+              <span className="text-sm font-medium">Provider Data Isolation</span>
             </div>
           </div>
         </div>

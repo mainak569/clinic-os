@@ -93,7 +93,7 @@
 - Healthcare requires direct password control
 - No dependency on external OAuth providers
 - Can implement custom password policies
-- Better for HIPAA compliance (all auth data in our database)
+- Keeps all auth data in our own database, which would simplify a future HIPAA compliance effort (the app itself is not compliance-certified)
 
 ---
 
@@ -117,20 +117,22 @@
 ```typescript
 // Service handles business logic
 class AppointmentService {
-  async createAppointment(data) {
-    // 1. Validate business rules
+  async createAppointment(data, performedBy) {
+    // 1. Business rules (not in the past, patient/provider bookable)
     // 2. Check availability
-    // 3. Detect conflicts
-    // 4. Create appointment
-    // 5. Create audit log
-    // 6. Return result
+    // 3. Under a per-provider lock: detect conflicts, create appointment
+    // 4. Record appointment history
+    // 5. Return result
   }
 }
 
-// Action is thin wrapper
-export async function createAppointment(data) {
+// Action owns auth, validation and audit, then delegates
+export async function createAppointment(input) {
   const session = await requireAuth();
-  return appointmentService.createAppointment(data);
+  const data = createAppointmentSchema.parse(input);
+  const appointment = await appointmentService.createAppointment(data, session.user.id);
+  await auditService.log({ /* ... */ });
+  return { success: true, data: { id: appointment.id } };
 }
 ```
 
@@ -138,6 +140,10 @@ export async function createAppointment(data) {
 - More files and folders
 - Indirection (action -> service -> database)
 - Can be overkill for simple CRUD
+
+**In practice**: The API route `POST /api/appointments` originally wrote directly
+to the database and skipped availability, conflict and audit checks. It now
+calls the same service, which is the point of the pattern: one path per write.
 
 ---
 
@@ -329,31 +335,27 @@ type AppointmentInput = z.infer<typeof appointmentSchema>;
 
 ## Decision 11: Environment Variable Strategy
 
-**Chose**: Multiple environment files with clear naming
+**Chose**: A committed `.env.example` template plus one local, gitignored `.env`
 
 **Rejected**:
-- Single .env file for all environments
+- Committing a `.env` with defaults (it ends up holding real connection strings)
 - Hardcoded configuration
 - Config files (JSON, YAML)
 - Environment variables only (no files)
 
 **Why**:
-- **Clear Separation**: Different files for dev, test, prod
-- **Next.js Support**: Next.js loads .env files automatically
-- **Security**: Sensitive values not in code
-- **Type Safety**: Can validate env vars at startup
-- **Git Ignore**: .env.local ignored, .env.example committed
+- **One file for local setup**: Next.js, Prisma's CLI and the seed script all read `.env` (Prisma doesn't read `.env.local`)
+- **Security**: Real values are never committed; production values live in Vercel's environment settings
+- **Discoverability**: `.env.example` lists every variable the code reads
 
 **Files**:
-- `.env` - Defaults, safe to commit
-- `.env.local` - Local overrides, gitignored
-- `.env.example` - Template for developers
-- `.env.example.production` - Production template
+- `.env` - Local values, gitignored
+- `.env.example` - Committed template listing every variable
+- Vercel project settings - Production values, including `CLINIC_TIMEZONE` and `CRON_SECRET`
 
 **Trade-offs**:
-- Need to manage multiple files
-- Easy to forget to update .env.example
-- Can be confusing which file takes precedence
+- Easy to forget to update `.env.example` when adding a variable
+- No startup validation: a missing variable fails at first use
 
 ---
 
@@ -387,14 +389,105 @@ type AppointmentInput = z.infer<typeof appointmentSchema>;
 
 ---
 
+## Decision 13: Slot Times as Clinic Wall-Clock Time
+
+**Chose**: Store availability times as wall-clock values on a fixed date
+(`1970-01-01`, UTC fields) and compare appointments on the clinic's clock via
+`CLINIC_TIMEZONE`
+
+**Rejected**:
+- Storing browser-local instants and reading them with server-local `getHours()` (the original approach)
+- Postgres `TIME` columns (a schema migration for a problem the encoding already solves)
+- Storing minutes-after-midnight integers (also a schema change)
+
+**Why**:
+- A slot like "Mondays 09:00" is not an instant; it has no date or zone of its own
+- The original approach gave two encodings in one table and shifted every slot
+  by the server's offset. In live data, an 8 AM–12 PM slot displayed as 1:30–5:30 PM
+- A fixed date makes the unique index and overlap checks meaningful
+- No schema change: existing rows were converted by a one-off data migration
+
+**Trade-offs**:
+- One timezone per deployment; multi-location clinics would need a zone per provider or location
+- Anyone reading the raw column must know the encoding (documented in `lib/clinic-time.ts` and `schema.md`)
+
+---
+
+## Decision 14: Per-Provider Advisory Lock for Booking
+
+**Chose**: Run the conflict check and the insert in one transaction that takes
+`pg_advisory_xact_lock(hashtext(providerId))`
+
+**Rejected**:
+- Check-then-insert without a lock (the original; two simultaneous requests could both pass)
+- A database exclusion constraint on time ranges (needs a range column and a schema change)
+- SERIALIZABLE isolation with retries (more moving parts, retry logic in every caller)
+- An in-process mutex (useless across serverless instances)
+
+**Why**:
+- Bookings for one provider take turns; other providers are unaffected
+- A transaction-scoped lock is released automatically, which works through
+  Supabase's pooler in transaction mode
+- Verified both on the local test database and through the Supabase pooler:
+  two simultaneous bookings for the same slot, exactly one succeeds
+
+**Trade-offs**:
+- Requests for the same provider queue briefly under contention
+- Postgres-specific
+
+---
+
+## Decision 15: Soft Delete That Restores on Re-Registration
+
+**Chose**: Keep soft-deleted patients' email and phone, and restore the archived
+record when the same person is registered again
+
+**Rejected**:
+- Clearing email/phone on delete (loses contact history)
+- Partial unique indexes that ignore inactive rows (schema change; and would
+  allow a second record for the same person)
+- Hard delete (breaks appointment history)
+
+**Why**:
+- Email and phone are unique, so a second row for a deleted patient failed at the database
+- Restoring keeps one record per person with their full appointment history
+
+**Trade-offs**:
+- "Create" can return an existing (restored) record
+- If the email and phone belong to two different archived records, the user must pick different details
+
+---
+
+## Decision 16: Server Action Result Contract
+
+**Chose**: Every Server Action returns `{ success: true, data }` or
+`{ success: false, error }`, where `error` is a readable message, and the client
+never retries a `success: false` result
+
+**Rejected**:
+- Returning `error.message` for everything (a ZodError message is a JSON dump of issues)
+- Retrying any failure by default (the original mutation hook did this, up to 3 times)
+
+**Why**:
+- Users see the first validation issue in plain language
+- A rejected write is a decision, not a glitch; retrying it can only repeat the
+  rejection, or duplicate a write whose response was lost
+- Only transport failures (network, timeout) and 5xx server errors are retried
+
+**Trade-offs**:
+- Only the first validation issue is surfaced; forms show the rest inline
+
+---
+
 ## Summary
 
 These decisions prioritize:
 1. **Developer Experience**: TypeScript, Prisma, React Query
 2. **Type Safety**: Zod, Prisma, TypeScript strict mode
 3. **Simplicity**: Single codebase, standard architecture
-4. **Modern Stack**: Next.js 15, React 18, latest libraries
+4. **Modern Stack**: Next.js 15.5, React 18, latest libraries
 5. **Security**: bcrypt, NextAuth, audit logging
 6. **Scalability**: Service layer, Supabase, connection pooling
+7. **Data Integrity**: One write path per operation, clinic-time slots, serialized booking
 
 Most decisions can be changed if requirements evolve, but these provide a solid foundation for the MVP.

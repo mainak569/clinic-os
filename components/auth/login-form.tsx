@@ -162,7 +162,9 @@ export function LoginForm() {
               className="flex w-full items-center gap-2 rounded-xl px-2 py-1.5 text-left text-muted-foreground transition-colors hover:bg-white/70 hover:text-[#A855F7] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#A855F7]/50 disabled:opacity-50"
             >
               <strong className="shrink-0 text-foreground">{label}:</strong>
-              <span className="truncate">{user}</span>
+              <span className="min-w-0 truncate">{user}</span>
+              <span className="shrink-0 text-muted-foreground/60">/</span>
+              <code className="shrink-0 font-mono text-foreground/80">{pass}</code>
             </button>
           ))}
         </div>

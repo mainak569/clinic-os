@@ -50,9 +50,9 @@ const features = [
     bgGradient: "from-orange-50 to-amber-50",
   },
   {
-    name: "HIPAA Compliance",
+    name: "HIPAA-Oriented Security",
     description:
-      "End-to-end encryption, audit trails, and compliance monitoring to protect patient data.",
+      "Role-based access, provider data isolation, and an immutable audit trail for patient data.",
     icon: Shield,
     color: "red",
     gradient: "from-red-500 to-rose-500",
@@ -77,9 +77,9 @@ const features = [
     bgGradient: "from-teal-50 to-cyan-50",
   },
   {
-    name: "24/7 Support",
+    name: "Appointment Reminders",
     description:
-      "Round-the-clock technical support with healthcare IT specialists and training resources.",
+      "Alerts for unconfirmed appointments 24 hours and 1 hour before they start.",
     icon: Clock,
     color: "violet",
     gradient: "from-violet-500 to-purple-500",
@@ -163,10 +163,10 @@ export function Features() {
           <div className="inline-flex flex-col items-center gap-4 rounded-3xl bg-white/50 backdrop-blur-sm p-8 shadow-lg">
             <div className="flex items-center gap-2 text-sm font-semibold text-muted-foreground">
               <Heart className="h-4 w-4 text-red-500 animate-pulse" />
-              Trusted by 500+ healthcare providers
+              Built for modern practices
             </div>
             <p className="max-w-md text-lg font-medium">
-              Join practices across the country improving patient care with ClinicOS
+              Scheduling, documentation and follow-up in one place
             </p>
           </div>
         </div>

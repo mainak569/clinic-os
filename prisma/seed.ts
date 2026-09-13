@@ -16,7 +16,7 @@ async function main() {
   await prisma.user.create({
     data: {
       email: 'frontdesk@clinicos.com',
-      passwordHash: await bcrypt.hash('FrontDesk123!', 12),
+      passwordHash: await bcrypt.hash('FrontDesk123!', 10),
       role: Role.FRONT_DESK,
       lastLogin: new Date(),
     },
@@ -26,7 +26,7 @@ async function main() {
   const drSmithUser = await prisma.user.create({
     data: {
       email: 'dr.smith@clinicos.com',
-      passwordHash: await bcrypt.hash('DrSmith123!', 12),
+      passwordHash: await bcrypt.hash('DrSmith123!', 10),
       role: Role.PROVIDER,
       lastLogin: new Date(),
     },
@@ -35,7 +35,7 @@ async function main() {
   const drJohnsonUser = await prisma.user.create({
     data: {
       email: 'dr.johnson@clinicos.com',
-      passwordHash: await bcrypt.hash('DrJohnson123!', 12),
+      passwordHash: await bcrypt.hash('DrJohnson123!', 10),
       role: Role.PROVIDER,
       lastLogin: new Date(),
     },

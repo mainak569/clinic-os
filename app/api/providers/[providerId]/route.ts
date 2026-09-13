@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { ZodError } from "zod";
 
-import { requireAuth, canAccessProviderData } from "@/lib/auth-helpers";
+import { getApiSession, canAccessProviderData } from "@/lib/auth-helpers";
 import { providerService } from "@/lib/services/provider.service";
 import { prisma } from "@/lib/prisma";
 import { updateProviderSchema } from "@/lib/validations/provider";
@@ -18,7 +18,9 @@ export async function GET(
   { params }: { params: Promise<{ providerId: string }> }
 ) {
   try {
-    await requireAuth();
+    if (!(await getApiSession())) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
     const { providerId } = await params;
 
     if (!(await canAccessProviderData(providerId))) {
@@ -68,7 +70,9 @@ export async function PATCH(
   { params }: { params: Promise<{ providerId: string }> }
 ) {
   try {
-    await requireAuth();
+    if (!(await getApiSession())) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
     const { providerId } = await params;
 
     if (!(await canAccessProviderData(providerId))) {

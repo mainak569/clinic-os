@@ -2,7 +2,21 @@
 
 ## Overview
 
-ClinicOS uses PostgreSQL (via Supabase) with Prisma ORM. The schema includes 9 core models designed for healthcare practice management with audit trail support.
+ClinicOS uses PostgreSQL (via Supabase) with Prisma ORM. The schema includes 11 models designed for healthcare practice management with audit trail support.
+
+The models, numbered as in [Core Models](#core-models) below:
+
+1. **User** - Authentication and user accounts
+2. **Provider** - Healthcare provider profiles
+3. **ProviderProfile** - Specialization, licence and scheduling defaults for a provider
+4. **Patient** - Patient records and demographics
+5. **AvailabilitySlot** - Weekly provider availability
+6. **Appointment** - Appointment scheduling and tracking
+7. **VisitNote** - Clinical documentation for an appointment
+8. **VisitNoteHistory** - Immutable history of visit note changes
+9. **AppointmentHistory** - Immutable log of appointment changes
+10. **Alert** - System notifications
+11. **AuditLog** - Audit trail for compliance
 
 ## Technology
 
@@ -70,7 +84,7 @@ Healthcare provider profiles.
 | deletedAt | DateTime | Nullable | Soft delete |
 
 **Relationships**:
-- many:1 → User
+- 1:1 → User
 - 1:1 → ProviderProfile
 - 1:many → AvailabilitySlot
 - 1:many → Appointment
@@ -81,6 +95,12 @@ Healthcare provider profiles.
 - `firstName, lastName` (composite)
 
 **Cascade**: Deleting User deletes Provider
+
+**Active status**: Providers are created and managed from the Providers page
+(front desk). Deactivating a provider sets `isActive = false` and `deletedAt` on
+both the Provider and its User, which blocks sign-in and new bookings. It is
+refused while the provider has REQUESTED, CONFIRMED or CHECKED_IN appointments.
+User, Provider and ProviderProfile are always written in one transaction.
 
 ### 3. ProviderProfile
 
@@ -101,7 +121,7 @@ Extended provider information.
 | updatedAt | DateTime | Auto | Last update |
 
 **Relationships**:
-- many:1 → Provider
+- 1:1 → Provider
 
 **Cascade**: Deleting Provider deletes Profile
 
@@ -142,18 +162,27 @@ Patient records and demographics.
 - `firstName, lastName` (composite)
 - `dateOfBirth`
 
+**Uniqueness and soft delete**:
+- Email is stored trimmed and lower-cased, so uniqueness is effectively case-insensitive.
+- Deleting a patient is a soft delete (`isActive = false`, `deletedAt` set) and
+  keeps email and phone. Because those columns are unique, registering the same
+  person again restores the archived record with the new details rather than
+  creating a second row.
+- A patient can't be deleted while they have any open appointment
+  (REQUESTED, CONFIRMED or CHECKED_IN), and archived patients can't be booked.
+
 ### 5. AvailabilitySlot
 
-Provider availability schedule.
+Provider availability: recurring weekly opening hours such as "Mondays 09:00–12:00".
 
 | Column | Type | Constraints | Description |
 |--------|------|-------------|-------------|
 | id | String | PK, CUID | Unique identifier |
 | providerId | String | FK, Indexed | Link to Provider |
-| dayOfWeek | DayOfWeek | Enum | MONDAY-SUNDAY |
-| startTime | DateTime | Required | Start time (time only) |
-| endTime | DateTime | Required | End time (time only) |
-| isActive | Boolean | Default: true | Slot active status |
+| dayOfWeek | DayOfWeek | Enum | MONDAY-SUNDAY, on the clinic's calendar |
+| startTime | DateTime | Required | Wall-clock start time, stored on `1970-01-01` (see below) |
+| endTime | DateTime | Required | Wall-clock end time, stored on `1970-01-01` (see below) |
+| isActive | Boolean | Default: true | Slot active status (archived slots are `false`) |
 | createdAt | DateTime | Auto | Record creation |
 | updatedAt | DateTime | Auto | Last update |
 
@@ -167,7 +196,112 @@ Provider availability schedule.
 
 **Cascade**: Deleting Provider deletes AvailabilitySlots
 
-**Note**: startTime and endTime store time only. The date portion is ignored.
+#### Time encoding: wall-clock time on a fixed date
+
+A slot is a recurring time of day, not a moment in time, but Postgres stores
+`startTime` and `endTime` as timestamps. They therefore use one fixed date,
+`1970-01-01`, and the wall-clock time goes in the **UTC** fields:
+
+| Clinic time | Stored value |
+|-------------|--------------|
+| 09:00 | `1970-01-01T09:00:00.000Z` |
+| 13:30 | `1970-01-01T13:30:00.000Z` |
+| 17:45 | `1970-01-01T17:45:00.000Z` |
+
+The value means "09:00 on the clinic's clock", **not** 09:00 UTC. All
+conversions live in `lib/clinic-time.ts`:
+
+- `timeStringToSlotDate("09:30")` builds the stored value from an `"HH:MM"` string.
+- `slotMinutes(value)` reads it back as minutes after midnight, using the UTC fields.
+- `slotDateToTimeString(value)` (form inputs) and `formatSlotTime(value)`
+  (display, e.g. "9:30 AM") format it without applying any timezone.
+
+Slot times travel between the browser and the server as 24-hour, zero-padded
+`"HH:MM"` strings (validated by `isTimeString`). The browser never builds a
+`Date` for a slot, so its timezone can't reach the database.
+
+#### Why the fixed date exists
+
+Slots used to be stored as whatever `new Date()` produced in the browser, then
+read with the server's local `getHours()`. That broke three ways, all visible in
+live data:
+
+1. **Two encodings in one table.** Seeded rows kept the wall time in the UTC
+   fields on `2024-01-01`, while UI-created rows stored a browser-local instant
+   (9:00 AM in Asia/Kolkata became `2026-09-12T03:30:00Z`). The same "09:00"
+   was two different values.
+2. **Availability depended on the server's timezone.** It was correct on a
+   laptop in IST and shifted by 5h30 on a UTC host such as Vercel. The schedule
+   showed an 8 AM–12 PM slot as 1:30–5:30 PM.
+3. **Meaningless date parts.** Slots carried whatever date they were created
+   on, so the overlap check and the unique constraint compared dates that had
+   nothing to do with the schedule.
+
+With every slot on `1970-01-01`, comparing two `startTime` values in the
+database compares times of day. The overlap check and the unique constraint are
+correct again, with no schema change.
+
+#### How `CLINIC_TIMEZONE` is used at comparison time
+
+Appointments stay real instants (`Appointment.scheduledAt`). Before an
+appointment is compared with slots, it is converted to the clinic's wall clock.
+
+The zone is resolved once, in this order:
+
+1. `NEXT_PUBLIC_CLINIC_TIMEZONE`
+2. `CLINIC_TIMEZONE`
+3. `"Asia/Kolkata"` (default)
+
+`clinicWallClock(instant)` uses `Intl.DateTimeFormat` with that zone to return
+the appointment's **weekday** and **minutes after midnight** in clinic time.
+`AvailabilityService.isProviderAvailable()` then:
+
+1. Takes the clinic weekday and start minute from `clinicWallClock(scheduledAt)`,
+   and computes the end minute as start + `duration`.
+2. Returns unavailable if the visit would run past midnight (end > 1440).
+3. Loads that provider's **active** slots for that weekday.
+4. Returns available if any slot satisfies
+   `start >= slotMinutes(slot.startTime)` and `end <= slotMinutes(slot.endTime)`.
+
+The weekday also comes from the clinic's clock, so an appointment at 01:30 on
+Monday in Kolkata (Sunday 20:00 UTC) is checked against Monday's slots. The
+server's own timezone plays no part in any of this. One deployment supports one
+clinic timezone; set `CLINIC_TIMEZONE` explicitly on any host that doesn't run
+in the clinic's zone.
+
+#### Migrating existing data: `scripts/migrate-slot-times.ts`
+
+A one-off, idempotent data migration that rewrites legacy slots into the
+canonical encoding. It changes data only; the schema is unchanged.
+
+```bash
+npx tsx scripts/migrate-slot-times.ts           # dry run (default): prints the plan
+npx tsx scripts/migrate-slot-times.ts --apply   # writes all changes in one transaction
+```
+
+For each slot it recovers the intended wall-clock time from how the row was stored:
+
+| Stored date part | Treated as | Wall time taken from |
+|------------------|------------|----------------------|
+| `1970-01-01` | Already canonical | UTC fields (row is skipped) |
+| `2024-01-01` | Seed encoding | UTC fields; only the date changes |
+| Anything else | Browser-local instant from the UI | The instant read in `CLINIC_TIMEZONE` |
+
+The dry run prints the clinic timezone, then each slot's current value and its
+new `HH:MM–HH:MM`. Before writing anything, the script refuses to continue if:
+
+- any slot would end at or before its start, or
+- two slots would become identical and violate
+  `[providerId, dayOfWeek, startTime, endTime]`.
+
+With `--apply`, every pending update runs in a single transaction, so a failure
+leaves the table untouched. Re-running is safe: rows already on `1970-01-01` are
+left alone.
+
+> **Run it with `CLINIC_TIMEZONE` set to the zone the slots were created in.**
+> UI-created rows are interpreted as instants in that zone. A wrong zone would
+> shift those slots by the difference, and the dry run's clinic-timezone line is
+> there so you can check it first. Back up the table before `--apply`.
 
 ### 6. Appointment
 
@@ -208,6 +342,8 @@ Appointment scheduling and tracking.
 **Enums**:
 - **AppointmentStatus**: REQUESTED, CONFIRMED, CHECKED_IN, COMPLETED, NO_SHOW, CANCELLED
 - **AppointmentType**: NEW_PATIENT, FOLLOW_UP, CONSULTATION, PROCEDURE, EMERGENCY
+
+**Note**: `cost` is a Decimal and is converted to a number before being sent to the client. `deletedAt` exists but appointments are never soft-deleted; cancellation is a status.
 
 ### 7. VisitNote
 
@@ -253,6 +389,11 @@ Clinical documentation for appointments.
 - `createdAt`
 
 **Cascade**: Deleting Appointment deletes VisitNote
+
+**Vital sign ranges** (enforced by validation, sized to fit the columns):
+heart rate 20–300, temperature 80–115 °F, respiratory rate 4–80, oxygen
+saturation 0–100, weight and height 0.1–999.99. Blood pressure must look like
+`120/80`. On edit, sending `null` clears a field.
 
 ### 8. VisitNoteHistory
 
@@ -345,9 +486,13 @@ System notifications and alerts.
 - **AlertType**: APPOINTMENT_REMINDER, FOLLOW_UP_DUE, LAB_RESULTS, PRESCRIPTION_RENEWAL, SYSTEM_MESSAGE, EMERGENCY
 - **AlertPriority**: LOW, MEDIUM, HIGH, CRITICAL
 
+**Known gap**: Alert has no `appointmentId` column. The generator embeds
+`[ID: <appointmentId>]` in the message and the reader parses it back. It works,
+but it isn't enforced by a foreign key. Alert de-duplication matches on that embedded id.
+
 ### 11. AuditLog
 
-HIPAA-compliant audit trail.
+HIPAA-oriented audit trail (demonstration; not compliance-certified).
 
 | Column | Type | Constraints | Description |
 |--------|------|-------------|-------------|
@@ -403,7 +548,7 @@ HIPAA-compliant audit trail.
    - Patient.phone
    - Provider.userId
    - AvailabilitySlot: `[providerId, dayOfWeek, startTime, endTime]`
-   - Appointment.appointmentId in VisitNote
+   - VisitNote.appointmentId
 3. **Default Values**: Most timestamps, boolean flags, and enums have defaults
 4. **Cascade Deletes**:
    - User → Provider → ProviderProfile, AvailabilitySlot, Appointment
@@ -413,9 +558,10 @@ HIPAA-compliant audit trail.
 ### Application-Level Constraints
 1. **State Machine**: Appointment status transitions enforced in code
 2. **Provider Isolation**: Providers can only access their own data
-3. **Time Validation**: Appointments must be in provider's availability
-4. **Conflict Detection**: Overlapping appointments prevented
-5. **Audit Logging**: All PHI access must create audit log entry
+3. **Time Validation**: Appointments must fall inside a slot on the clinic's wall clock, and can't start in the past
+4. **Conflict Detection**: Two visits conflict when each starts before the other ends. The check and the insert run under a per-provider advisory lock (`pg_advisory_xact_lock`) so concurrent bookings can't both succeed
+5. **Bookability**: Archived patients and inactive providers can't be booked
+6. **Audit Logging**: Patient, appointment, visit-note and provider changes create audit log entries
 
 ## Denormalization
 
@@ -492,9 +638,24 @@ npx prisma generate
 ### Migration Files
 Located in `prisma/migrations/` with timestamp-based naming:
 ```
+20260910105738_initial_schema/
+20260910133332_add_visit_note_and_audit_history/
 20260910155607_add_hipaa_audit_logging/
-  migration.sql
 ```
+
+### Data Migrations
+Changes to how existing data is *encoded* (not to the schema) live in `scripts/`:
+
+```bash
+# Dry run: prints each row's current and new value
+npx tsx scripts/migrate-slot-times.ts
+
+# Apply in a single transaction
+npx tsx scripts/migrate-slot-times.ts --apply
+```
+
+`migrate-slot-times.ts` is idempotent and refuses to write if any slot would end
+before it starts or collide with another under the unique index.
 
 ## Backup & Recovery
 

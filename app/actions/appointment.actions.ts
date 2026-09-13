@@ -2,7 +2,6 @@
 
 import { revalidateDashboard } from "@/lib/revalidate";
 import { actionErrorMessage } from "@/lib/action-error";
-import { serializeAppointment } from "@/lib/serialize";
 import { headers } from "next/headers";
 import { requireAuth, canAccessProviderData } from "@/lib/auth-helpers";
 import { appointmentService } from "@/lib/services/appointment.service";
@@ -455,44 +454,5 @@ export async function rescheduleAppointment(
     console.error("rescheduleAppointment error:", error);
 
     return { success: false, error: actionErrorMessage(error, "Failed to reschedule appointment") };
-  }
-}
-
-/**
- * Get appointments for current user's provider
- */
-export async function getMyAppointments(filters?: {
-  status?: string;
-  startDate?: Date;
-  endDate?: Date;
-}): Promise<ActionResult<any[]>> {
-  try {
-    const session = await requireAuth();
-
-    if (!session.user.providerId && session.user.role !== "FRONT_DESK") {
-      return { success: false, error: "User is not associated with a provider" };
-    }
-
-    // Get appointments based on role
-    let appointments;
-    if (session.user.role === "FRONT_DESK") {
-      // Front desk sees all appointments - would need a different service method
-      // For now, return error to keep scope limited
-      return { success: false, error: "Front desk view not implemented yet" };
-    } else {
-      appointments = await appointmentService.getProviderAppointments(
-        session.user.providerId!,
-        filters as any
-      );
-    }
-
-    // Serialize Decimal fields for client components
-    const serializedAppointments = appointments.map((apt: any) => serializeAppointment(apt));
-
-    return { success: true, data: serializedAppointments };
-  } catch (error) {
-    console.error("getMyAppointments error:", error);
-
-    return { success: false, error: actionErrorMessage(error, "Failed to get appointments") };
   }
 }

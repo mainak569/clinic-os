@@ -29,6 +29,18 @@ export async function requireAuth() {
 }
 
 /**
+ * Session for API routes, or null when not signed in.
+ *
+ * API routes can't use requireAuth: its redirect() throws, and a route's
+ * try/catch turned that into a 500 (or a 409 "NEXT_REDIRECT"). Middleware
+ * doesn't cover /api, so routes must answer 401 themselves.
+ */
+export async function getApiSession() {
+  const session = await auth();
+  return session?.user ? session : null;
+}
+
+/**
  * Requires user to have specific role(s)
  * 
  * @param allowedRoles - Single role or array of allowed roles

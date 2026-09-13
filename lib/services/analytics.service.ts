@@ -109,9 +109,11 @@ export class AnalyticsService {
    */
   async getAppointmentsByStatus(
     startDate?: Date,
-    endDate?: Date
+    endDate?: Date,
+    providerId?: string
   ): Promise<AppointmentsByStatus[]> {
-    const whereClause: any = {};
+    // Without providerId this counts the whole clinic; providers must pass it.
+    const whereClause: any = providerId ? { providerId } : {};
 
     if (startDate || endDate) {
       whereClause.scheduledAt = {};
@@ -147,13 +149,14 @@ export class AnalyticsService {
    * 
    * Optimized: Single query with date filtering and grouping
    */
-  async getNoShowRateLast8Weeks(): Promise<NoShowRateByWeek[]> {
+  async getNoShowRateLast8Weeks(providerId?: string): Promise<NoShowRateByWeek[]> {
     const now = new Date();
     const eightWeeksAgo = subWeeks(now, 8);
 
     // Get all appointments from last 8 weeks
     const appointments = await prisma.appointment.findMany({
       where: {
+        ...(providerId ? { providerId } : {}),
         scheduledAt: {
           gte: eightWeeksAgo,
           lte: now,
@@ -297,8 +300,9 @@ export class AnalyticsService {
       cancelledCount,
       noShowCount,
     ] = await Promise.all([
-      this.getAppointmentsByStatus(startDate, endDate),
-      this.getNoShowRateLast8Weeks(),
+      // Both charts are scoped too; they previously showed the whole clinic.
+      this.getAppointmentsByStatus(startDate, endDate, providerId),
+      this.getNoShowRateLast8Weeks(providerId),
       prisma.appointment.count({ where: whereClause }),
       prisma.appointment.count({
         where: { ...whereClause, status: "CONFIRMED" },
@@ -337,7 +341,7 @@ export class AnalyticsService {
    * 
    * Useful for quick dashboard overview
    */
-  async getRecentTrends(days = 30): Promise<{
+  async getRecentTrends(days = 30, providerId?: string): Promise<{
     appointments: number;
     confirmed: number;
     completed: number;
@@ -345,23 +349,24 @@ export class AnalyticsService {
     cancellations: number;
   }> {
     const startDate = subWeeks(new Date(), Math.ceil(days / 7));
+    const scope = providerId ? { providerId } : {};
 
     const [total, confirmed, completed, noShows, cancellations] =
       await Promise.all([
         prisma.appointment.count({
-          where: { createdAt: { gte: startDate } },
+          where: { ...scope, createdAt: { gte: startDate } },
         }),
         prisma.appointment.count({
-          where: { createdAt: { gte: startDate }, status: "CONFIRMED" },
+          where: { ...scope, createdAt: { gte: startDate }, status: "CONFIRMED" },
         }),
         prisma.appointment.count({
-          where: { createdAt: { gte: startDate }, status: "COMPLETED" },
+          where: { ...scope, createdAt: { gte: startDate }, status: "COMPLETED" },
         }),
         prisma.appointment.count({
-          where: { createdAt: { gte: startDate }, status: "NO_SHOW" },
+          where: { ...scope, createdAt: { gte: startDate }, status: "NO_SHOW" },
         }),
         prisma.appointment.count({
-          where: { createdAt: { gte: startDate }, status: "CANCELLED" },
+          where: { ...scope, createdAt: { gte: startDate }, status: "CANCELLED" },
         }),
       ]);
 

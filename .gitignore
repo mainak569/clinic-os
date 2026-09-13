@@ -223,4 +223,14 @@ pids/
 storybook-static/
 
 # Sentry
-.sentryclirc.db-backups/
+.sentryclirc
+
+# =======================
+# Local-only files
+# =======================
+# Database snapshots taken before data migrations
+.db-backups/
+# AI assistant tooling
+.agents/
+skills-lock.json
+

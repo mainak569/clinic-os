@@ -26,17 +26,22 @@ import { Separator } from "@/components/ui/separator";
 
 import { getAppointmentById } from "@/app/actions/queries.actions";
 import { VisitNoteView } from "./visit-note-view";
+import { canWriteVisitNote } from "@/lib/visit-note-permissions";
 
 interface AppointmentDetailsDialogProps {
   appointmentId: string;
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  userRole: string;
+  providerId?: string;
 }
 
 export function AppointmentDetailsDialog({
   appointmentId,
   open,
   onOpenChange,
+  userRole,
+  providerId,
 }: AppointmentDetailsDialogProps) {
   const [appointment, setAppointment] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -242,7 +247,7 @@ export function AppointmentDetailsDialog({
               appointmentId={appointment.id}
               patientName={`${appointment.patient.firstName} ${appointment.patient.lastName}`}
               appointmentDate={new Date(appointment.scheduledAt)}
-              canEdit={false} // Will be determined by backend authorization
+              canEdit={canWriteVisitNote(userRole, providerId, appointment.providerId)}
             />
           </TabsContent>
 

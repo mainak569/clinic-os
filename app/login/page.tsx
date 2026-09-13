@@ -61,7 +61,7 @@ export default function LoginPage() {
         {/* Footer */}
         <p className="mx-auto mt-4 flex w-fit items-center gap-2 rounded-full bg-white/50 backdrop-blur-sm px-4 py-2 text-sm text-muted-foreground">
           <ShieldCheck className="h-4 w-4 text-[#A855F7]" />
-          Protected by enterprise-grade security
+          Role-based access with a full audit trail
         </p>
       </div>
     </div>

@@ -1,8 +1,11 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { z } from "zod";
 import { requireAuth } from "@/lib/auth-helpers";
 import { alertService } from "@/lib/services/alert.service";
+
+const alertIdSchema = z.string().min(1).max(100);
 
 /**
  * Alert Server Actions
@@ -64,9 +67,16 @@ export async function getUnreadAlertCount(): Promise<ActionResult<number>> {
  */
 export async function markAlertRead(alertId: string): Promise<ActionResult<{ id: string }>> {
   try {
-    await requireAuth();
+    const session = await requireAuth();
 
-    const alert = await alertService.markAlertAsRead(alertId);
+    if (!session.user.providerId) {
+      return { success: false, error: "Provider ID not found" };
+    }
+
+    const alert = await alertService.markAlertAsRead(
+      alertIdSchema.parse(alertId),
+      session.user.providerId
+    );
 
     revalidatePath("/dashboard");
 
@@ -106,9 +116,16 @@ export async function markAllAlertsRead(): Promise<ActionResult<{ count: number 
  */
 export async function dismissAlert(alertId: string): Promise<ActionResult<{ id: string }>> {
   try {
-    await requireAuth();
+    const session = await requireAuth();
 
-    const alert = await alertService.dismissAlert(alertId);
+    if (!session.user.providerId) {
+      return { success: false, error: "Provider ID not found" };
+    }
+
+    const alert = await alertService.dismissAlert(
+      alertIdSchema.parse(alertId),
+      session.user.providerId
+    );
 
     revalidatePath("/dashboard");
 

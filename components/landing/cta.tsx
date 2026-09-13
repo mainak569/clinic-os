@@ -26,9 +26,8 @@ export function CTA() {
 
               {/* Subheadline */}
               <p className="mx-auto mb-8 max-w-2xl text-lg text-white/90 md:text-xl">
-                Join thousands of healthcare providers who trust ClinicOS to
-                streamline their operations and improve patient care. Start your
-                free trial today.
+                See how ClinicOS can streamline your operations and improve
+                patient care. Sign in with a demo account to explore.
               </p>
 
               {/* CTA Buttons */}
@@ -59,7 +58,7 @@ export function CTA() {
                 <div>- No setup fees</div>
                 <div>- 30-day free trial</div>
                 <div>- Cancel anytime</div>
-                <div>- HIPAA compliant</div>
+                <div>- HIPAA-oriented design</div>
               </div>
             </div>
           </div>

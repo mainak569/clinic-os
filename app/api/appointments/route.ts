@@ -2,7 +2,7 @@ import { headers } from "next/headers";
 import { NextResponse } from "next/server";
 import { ZodError } from "zod";
 
-import { requireAuth, canAccessProviderData } from "@/lib/auth-helpers";
+import { getApiSession, canAccessProviderData } from "@/lib/auth-helpers";
 import { prisma } from "@/lib/prisma";
 import { appointmentService } from "@/lib/services/appointment.service";
 import { auditService } from "@/lib/services/audit.service";
@@ -18,7 +18,10 @@ import { serializeAppointment } from "@/lib/serialize";
  */
 export async function GET() {
   try {
-    const session = await requireAuth();
+    const session = await getApiSession();
+    if (!session) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
 
     if (session.user.role === "PROVIDER" && !session.user.providerId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
@@ -61,7 +64,10 @@ export async function GET() {
  */
 export async function POST(request: Request) {
   try {
-    const session = await requireAuth();
+    const session = await getApiSession();
+    if (!session) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
     const input = createAppointmentSchema.parse(await request.json());
 
     const canAccess = await canAccessProviderData(input.providerId);

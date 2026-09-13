@@ -7,17 +7,17 @@ ClinicOS is a healthcare practice management application built with modern web t
 ## Tech Stack
 
 ### Frontend
-- **Framework**: Next.js 15.0.3 with App Router
+- **Framework**: Next.js 15.5 with App Router
 - **Language**: TypeScript 5 (strict mode)
-- **UI Library**: React 18.2
+- **UI Library**: React 18
 - **Styling**: Tailwind CSS 3.4 + shadcn/ui (Radix UI)
 - **Forms**: React Hook Form + Zod validation
 - **State Management**: TanStack React Query 5.102 (server state)
 - **Charts**: Recharts 3.10
-- **Calendar**: FullCalendar 6.1
+- **Calendar**: Custom week, month and list views
 
 ### Backend
-- **Runtime**: Node.js 18+
+- **Runtime**: Node.js 18.18+
 - **API**: Next.js App Router (Server Actions + API Routes)
 - **Database**: PostgreSQL via Supabase
 - **ORM**: Prisma 5.22
@@ -27,8 +27,8 @@ ClinicOS is a healthcare practice management application built with modern web t
 ### Infrastructure
 - **Hosting**: Vercel-ready (or self-hosted)
 - **Database Hosting**: Supabase (PostgreSQL with connection pooling)
-- **Error Tracking**: Sentry (configured, not required)
-- **Cron Jobs**: Vercel Cron (alert generation every 15 minutes)
+- **Error Tracking**: Sentry config files included, not initialised yet
+- **Cron Jobs**: Vercel Cron (alert generation, daily on the Hobby plan)
 
 ## Application Architecture
 
@@ -65,36 +65,94 @@ ClinicOS is a healthcare practice management application built with modern web t
 
 ```
 app/
-├── actions/              # Server Actions (business logic entry points)
-├── api/                  # API Routes (REST endpoints)
-├── dashboard/            # Protected dashboard page
+├── layout.tsx            # Root layout: fonts, session and query providers, toaster
+├── page.tsx              # Public landing page
+├── actions/              # Server Actions: auth, validation, audit, then a service call
+│   ├── appointment.actions.ts
+│   ├── availability.actions.ts
+│   ├── bulk-availability.actions.ts
+│   ├── patient.actions.ts
+│   ├── provider.actions.ts
+│   ├── visit-note.actions.ts
+│   ├── alert.actions.ts
+│   ├── analytics.actions.ts
+│   └── queries.actions.ts   # Read-only dashboard and table queries
+├── api/                  # API Routes (same services as the UI)
+│   ├── appointments/route.ts
+│   ├── patients/route.ts
+│   ├── providers/[providerId]/route.ts
+│   ├── auth/[...nextauth]/route.ts
+│   └── cron/generate-alerts/route.ts   # Called by the Vercel cron
+├── dashboard/            # Protected app
+│   ├── layout.tsx        # Shared header and navigation
+│   ├── page.tsx          # Dashboard: quick actions, alerts, analytics
+│   ├── appointments/
+│   ├── patients/
+│   ├── schedule/
+│   └── providers/        # Front desk only
 ├── login/                # Authentication page
-└── (other pages)
+└── unauthorized/         # Access denied page
 
 components/
 ├── ui/                   # shadcn/ui primitives
-├── appointments/         # Appointment-specific components
-├── availability/         # Scheduling components
-├── dashboard/            # Dashboard widgets
-└── ...
+├── auth/                 # Login form
+├── landing/              # Landing page sections (hero, features, CTA)
+├── layout/               # Dashboard header, navbar, shared background
+├── providers/            # React context providers (session, React Query)
+├── appointments/         # Appointment table, dialogs, visit notes
+├── availability/         # Bulk availability, schedule export
+├── patients/             # Patient table and dialogs
+├── provider-management/  # Providers table and dialog
+├── schedule/             # Week / month / list views
+└── dashboard/            # Analytics charts, alert panel
 
 lib/
-├── services/            # Business logic layer
+├── services/             # Business logic layer
 │   ├── appointment.service.ts
 │   ├── availability.service.ts
+│   ├── bulk-availability.service.ts
+│   ├── patient.service.ts
+│   ├── provider.service.ts
+│   ├── visit-note.service.ts
 │   ├── alert.service.ts
 │   ├── analytics.service.ts
 │   └── audit.service.ts
-├── validations/         # Zod schemas
-├── errors/              # Custom error classes
-├── auth-helpers.ts      # Authorization utilities
-├── rate-limit.ts        # Rate limiting
-└── prisma.ts            # Prisma client singleton
+├── validations/          # Zod schemas (shared by forms and actions)
+├── errors/               # Custom error classes
+├── hooks/
+│   └── use-mutation.ts   # Mutation state, toasts; retries network and 5xx failures, never rejected writes
+├── clinic-time.ts        # Slot time encoding and clinic timezone
+├── appointment-status.ts # Status labels and colours
+├── serialize.ts          # Decimal -> number before data reaches the client
+├── action-error.ts       # Readable action error messages
+├── revalidate.ts         # Dashboard-wide revalidation
+├── auth-helpers.ts       # Authorization utilities (requireAuth, getApiSession, ...)
+├── visit-note-permissions.ts # Who may write a visit note (mirrors the server rule)
+├── rate-limit.ts         # Global rate limit and failed sign-in lockout
+├── query-client.ts       # React Query client defaults
+├── utils.ts              # cn() class-name helper
+└── prisma.ts             # Prisma client (re-exports prisma.config.ts)
 
 prisma/
-├── schema.prisma        # Database schema (9 models)
-├── migrations/          # Database migrations
-└── seed.ts              # Seed data
+├── schema.prisma         # Database schema (11 models)
+├── migrations/           # Database migrations
+└── seed.ts               # Seed data
+
+scripts/
+├── migrate-slot-times.ts # Data migration to canonical slot times (dry run by default)
+├── fix-foreign-keys.ts   # Check (--check) or repair (--fix) broken foreign keys
+├── quick-check.mjs       # Quick row counts for foreign-key sanity checks
+└── clear-availability.ts # DELETES ALL availability slots (npm run delete-availability)
+
+Root configuration
+├── middleware.ts         # Route protection and global rate limiting
+├── auth.ts               # NextAuth setup (credentials provider)
+├── auth.config.ts        # Session and callback configuration
+├── prisma.config.ts      # Prisma client singleton
+├── next.config.js        # Security headers
+├── vercel.json           # Cron schedule (daily)
+├── jest.config.js        # Test configuration
+└── sentry.*.config.ts    # Error tracking (client, server, edge)
 ```
 
 ## Request Flow
@@ -102,37 +160,42 @@ prisma/
 ### Example: Creating an Appointment
 
 ```
-1. User fills form in React component
-   (components/appointments/create-appointment-form.tsx)
-   
-2. Form submits to Server Action
+1. User fills the form
+   (components/appointments/create-appointment-dialog.tsx)
+   Date and time are combined into one instant in the browser.
+
+2. Form calls the Server Action
    (app/actions/appointment.actions.ts::createAppointment)
-   
-3. Server Action validates input
-   - Zod schema validation
-   - Authentication check (requireAuth)
-   
-4. Server Action calls Service Layer
+
+3. Server Action
+   - requireAuth() and confirms the session user still exists
+   - Zod validation (createAppointmentSchema)
+   - canAccessProviderData(): providers may only book for themselves
+
+4. Service Layer enforces business rules
    (lib/services/appointment.service.ts::createAppointment)
-   
-5. Service Layer enforces business rules
-   - Check provider availability
-   - Verify no conflicting appointments
-   - Validate state machine rules
-   - Create audit log entry
-   
-6. Service Layer uses Prisma to save data
-   (prisma.appointment.create())
-   
-7. Response returns to client
-   - Success: appointment data
-   - Error: error message with details
-   
-8. UI updates
-   - React Query invalidates cache
-   - Component re-renders with new data
-   - Toast notification shown
+   - Not in the past (5-minute grace)
+   - Patient exists and isn't archived; provider exists and is active
+   - Provider is available: the instant is converted to the clinic's wall
+     clock (weekday + minutes) and compared with that day's slots
+   - Inside one transaction holding a per-provider advisory lock:
+       conflict check (each existing visit measured by its own length)
+       then insert, so concurrent requests can't both succeed
+   - Appointment history entry (CREATED)
+
+5. Server Action writes the audit log entry, then revalidates every
+   route under /dashboard
+
+6. Response returns { success, data } or { success: false, error }
+   - Validation failures return the first issue's message, not raw JSON
+   - Rejected writes are never retried by the client
+
+7. UI updates
+   - Toast notification
+   - The table reloads its data
 ```
+
+The same service backs `POST /api/appointments`, so API clients get identical rules.
 
 ## Authentication & Authorization
 
@@ -175,19 +238,28 @@ prisma/
 | Other appointments | None | Full |
 | Own patients | Full | Full |
 | All patients | None | Full |
-| Analytics | None | View |
-| User management | None | Full |
+| Analytics (dashboard) | Own data | View (all providers) |
+| Alerts | Own only | None (alerts are per provider) |
+| Provider management | Own details only | Full |
+
+**Provider analytics**: `/dashboard` shows the analytics charts to every role.
+For a PROVIDER, every analytics query (stat tiles, summary counts, the
+Appointments by Status chart and the 8-week no-show trend) is filtered by
+their `providerId`, and the cross-provider **Appointments by Provider** chart
+is front desk only. A provider account with no linked provider is refused
+rather than shown clinic-wide data.
 
 **Authorization Helpers** (`lib/auth-helpers.ts`):
 - `requireAuth()` - Require authentication
 - `requireRole(role)` - Require specific role
 - `canAccessProviderData(providerId)` - Check provider data access
 - `requireProviderAccess(providerId)` - Enforce provider access
+- `getApiSession()` - Session or null, for API routes that answer 401 themselves
 
-**Middleware Protection** (`middleware.ts`):
-- Edge-level route protection
-- Rate limiting enforcement
-- Automatic redirects for unauthorized access
+**Middleware** (`middleware.ts`):
+- Redirects signed-out users from dashboard pages to `/login`
+- Global rate limiting (100 requests/minute per IP) on pages and sign-in
+- Doesn't match other API routes: they, like every Server Action, check the session themselves
 
 ### Provider Isolation
 
@@ -211,25 +283,31 @@ const appointments = await prisma.appointment.findMany({
 
 ## Database Schema
 
-**9 Core Models**:
+**11 Models** (numbered as in [schema.md](./schema.md)):
 
 1. **User** - Authentication and user accounts
 2. **Provider** - Healthcare provider profiles
-3. **Patient** - Patient records
-4. **Appointment** - Appointment scheduling
-5. **AvailabilitySlot** - Provider availability
-6. **VisitNote** - Clinical documentation
-7. **Alert** - System notifications
-8. **AuditLog** - Audit trail for compliance
-9. **VisitNoteHistory** - Immutable visit note history
+3. **ProviderProfile** - Specialization, licence and scheduling defaults for a provider
+4. **Patient** - Patient records and demographics
+5. **AvailabilitySlot** - Weekly provider availability
+6. **Appointment** - Appointment scheduling and tracking
+7. **VisitNote** - Clinical documentation for an appointment
+8. **VisitNoteHistory** - Immutable history of visit note changes
+9. **AppointmentHistory** - Immutable log of appointment changes
+10. **Alert** - System notifications
+11. **AuditLog** - Audit trail for compliance
 
 **Key Relationships**:
 - User → Provider (1:1)
+- Provider → ProviderProfile (1:1)
+- Provider → AvailabilitySlots (1:many)
 - Provider → Appointments (1:many)
 - Patient → Appointments (1:many)
 - Appointment → VisitNote (1:1)
-- Provider → AvailabilitySlots (1:many)
+- Appointment → AppointmentHistory (1:many)
 - VisitNote → VisitNoteHistory (1:many)
+- Provider → Alerts (1:many)
+- User → AuditLogs (1:many)
 
 See [schema.md](./schema.md) for detailed schema documentation.
 
@@ -241,24 +319,48 @@ The service layer encapsulates business logic and enforces domain rules.
 
 ### AppointmentService (`lib/services/appointment.service.ts`)
 - State machine enforcement (REQUESTED → CONFIRMED → CHECKED_IN → COMPLETED)
-- Availability checking
-- Conflict detection
-- Business rule validation
+- Availability checking on the clinic wall clock
+- Overlap detection and a per-provider booking lock
+- Guards against past bookings, archived patients and inactive providers
+- Appointment history entries
+
+### PatientService (`lib/services/patient.service.ts`)
+- Normalized email (lower-case) and trimmed fields
+- Soft delete; re-registration restores the archived record
+- Provider-scoped search filtered in the database
+
+### ProviderService (`lib/services/provider.service.ts`)
+- Creates User + Provider + ProviderProfile in one transaction
+- Deactivation disables login and is refused with open appointments
+
+### VisitNoteService (`lib/services/visit-note.service.ts`)
+- History snapshot before every edit
+- `undefined` leaves a field unchanged, `null` clears it
 
 ### AvailabilityService (`lib/services/availability.service.ts`)
-- Slot management (create, update, archive)
+- Slot management (create, update, archive, restore)
 - Overlap detection
 - Provider availability checking
+
+## Clinic Time
+
+Availability slots are recurring wall-clock times, not instants. They are
+stored on `1970-01-01` in the UTC fields (09:00 → `1970-01-01T09:00:00.000Z`)
+and travel between the browser and server as `"HH:MM"` strings. Appointments
+remain real instants; before comparing, the server converts one to the clinic's
+weekday and minutes after midnight using `CLINIC_TIMEZONE`
+(`lib/clinic-time.ts`). The answer is therefore the same on a laptop in IST and
+on a UTC host.
 
 ### AlertService (`lib/services/alert.service.ts`)
 - Generate 24-hour alerts for requested appointments
 - Generate 1-hour urgent alerts
-- Smart deduplication
+- De-duplication by appointment id; times formatted in clinic time
 
 ### AuditService (`lib/services/audit.service.ts`)
-- Log all PHI access
-- Track user actions
-- Immutable audit trail
+- Log patient record views and all writes to patients, appointments, visit notes and providers
+- Capture user, IP address and user agent
+- Append-only (the app never updates or deletes entries)
 
 **Service Pattern**:
 ```typescript
@@ -277,13 +379,15 @@ export class AppointmentService {
 export const appointmentService = new AppointmentService();
 ```
 
+Server Actions own authorization, input validation and audit logging; services own business rules and database writes.
+
 ## State Management
 
 ### Server State
-- **TanStack React Query** for data fetching and caching
-- Automatic refetching on window focus
-- Optimistic updates for better UX
-- Cache invalidation on mutations
+- Tables and dialogs call Server Actions and reload after a successful mutation
+- Server Actions call `revalidateDashboard()`, which revalidates every route under `/dashboard`
+- TanStack React Query is configured app-wide
+- Prisma Decimal values are flattened to numbers (`lib/serialize.ts`) before reaching client components
 
 ### Form State
 - **React Hook Form** for form management
@@ -299,6 +403,7 @@ export const appointmentService = new AppointmentService();
 
 ### 1. Authentication Security
 - bcrypt password hashing
+- Failed sign-in lockout (5 attempts per email per 15 minutes) with one generic error message
 - JWT session encryption
 - HTTP-only cookies
 - CSRF protection (built into NextAuth)
@@ -310,14 +415,14 @@ export const appointmentService = new AppointmentService();
 - Explicit permission checks
 
 ### 3. Application Security
-- Security headers (X-Frame-Options, CSP, etc.)
-- Rate limiting (100 req/min global)
+- Security headers (HSTS, X-Frame-Options, X-Content-Type-Options, Referrer-Policy, Permissions-Policy; no CSP yet)
+- Rate limiting (100 req/min per IP on pages and sign-in)
 - Input validation (Zod schemas)
 - SQL injection prevention (Prisma parameterized queries)
 - XSS prevention (React escaping)
 
 ### 4. Audit Trail
-- All PHI access logged
+- Patient reads and writes, every appointment transition (including cancel, no-show and reschedule), visit-note create/edit, and provider changes are logged
 - User actions tracked
 - IP address and user agent captured
 - Immutable log entries
@@ -337,7 +442,7 @@ export const appointmentService = new AppointmentService();
 ### Bundle Size
 - Code splitting via Next.js dynamic imports
 - Tree shaking for unused code
-- First Load JS: ~257kB for dashboard
+- First Load JS: ~260kB for dashboard
 
 ## Deployment Architecture
 

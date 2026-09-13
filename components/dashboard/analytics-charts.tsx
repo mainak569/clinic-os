@@ -122,6 +122,10 @@ export function AnalyticsCharts() {
 
   const { summary } = analytics;
 
+  // Providers' analytics don't include the cross-provider chart (front desk
+  // only), so hide that card instead of showing a misleading "no data" state.
+  const showProviderChart = analytics.appointmentsByProvider !== undefined;
+
   // Real counts from the database, not estimates.
   const appointmentsToday = stats?.appointmentsToday ?? 0;
   const checkedInToday = stats?.checkedInToday ?? 0;
@@ -198,9 +202,9 @@ export function AnalyticsCharts() {
       </div>
 
       {/* Charts Grid */}
-      <div className="grid gap-6 md:grid-cols-2">
+      <div className={`grid gap-6 ${showProviderChart ? "md:grid-cols-2" : ""}`}>
         {/* Appointments by Provider */}
-        {analytics.appointmentsByProvider && analytics.appointmentsByProvider.length > 0 ? (
+        {!showProviderChart ? null : analytics.appointmentsByProvider.length > 0 ? (
           <Card>
             <CardHeader>
               <CardTitle className="text-gray-800">Appointments by Provider</CardTitle>

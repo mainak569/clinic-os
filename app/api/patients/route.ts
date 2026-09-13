@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { requireAuth } from "@/lib/auth-helpers";
+import { getApiSession } from "@/lib/auth-helpers";
 import { patientService } from "@/lib/services/patient.service";
 
 /**
@@ -14,7 +14,10 @@ import { patientService } from "@/lib/services/patient.service";
  */
 export async function GET(request: Request) {
   try {
-    const session = await requireAuth();
+    const session = await getApiSession();
+    if (!session) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
     const { searchParams } = new URL(request.url);
 
     const query = searchParams.get("query") || undefined;

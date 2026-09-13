@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import type { Alert, AlertType, AlertPriority } from "@prisma/client";
 import { addHours, subHours } from "date-fns";
+import { formatClinicDateTime } from "@/lib/clinic-time";
 
 /**
  * Alert Service Layer
@@ -74,8 +75,10 @@ export class AlertService {
         where: {
           providerId,
           type: "APPOINTMENT_REMINDER",
-          title: {
-            contains: appointment.id,
+          // The appointment id lives in the message, not the title. Matching on
+          // the title never found anything, so every run created duplicates.
+          message: {
+            contains: `[ID: ${appointment.id}]`,
           },
           createdAt: {
             gte: subHours(now, 25), // Look back 25 hours
@@ -90,7 +93,7 @@ export class AlertService {
             type: "APPOINTMENT_REMINDER",
             priority: "MEDIUM",
             title: `Unconfirmed: ${appointment.patient.firstName} ${appointment.patient.lastName}`,
-            message: `Appointment scheduled for ${appointment.scheduledAt.toLocaleString()} is still REQUESTED. Confirm or follow up with patient. [ID: ${appointment.id}]`,
+            message: `Appointment scheduled for ${formatClinicDateTime(appointment.scheduledAt)} is still REQUESTED. Confirm or follow up with patient. [ID: ${appointment.id}]`,
             expiresAt: appointment.scheduledAt,
           },
         });
@@ -143,8 +146,8 @@ export class AlertService {
           providerId,
           type: "APPOINTMENT_REMINDER",
           priority: "HIGH",
-          title: {
-            contains: appointment.id,
+          message: {
+            contains: `[ID: ${appointment.id}]`,
           },
           createdAt: {
             gte: subHours(now, 2),
@@ -159,7 +162,7 @@ export class AlertService {
             type: "APPOINTMENT_REMINDER",
             priority: "HIGH",
             title: `URGENT: ${appointment.patient.firstName} ${appointment.patient.lastName}`,
-            message: `Appointment in 1 hour (${appointment.scheduledAt.toLocaleString()}) is STILL UNCONFIRMED! Take immediate action. [ID: ${appointment.id}]`,
+            message: `Appointment in 1 hour (${formatClinicDateTime(appointment.scheduledAt)}) is STILL UNCONFIRMED! Take immediate action. [ID: ${appointment.id}]`,
             expiresAt: appointment.scheduledAt,
           },
         });
@@ -254,11 +257,16 @@ export class AlertService {
   /**
    * Mark alert as read
    */
-  async markAlertAsRead(alertId: string): Promise<Alert> {
-    return prisma.alert.update({
-      where: { id: alertId },
+  async markAlertAsRead(alertId: string, providerId: string): Promise<{ id: string }> {
+    // Scoped to the provider, so nobody can change another provider's alerts by id.
+    const result = await prisma.alert.updateMany({
+      where: { id: alertId, providerId },
       data: { isRead: true },
     });
+    if (result.count === 0) {
+      throw new Error("Alert not found");
+    }
+    return { id: alertId };
   }
 
   /**
@@ -281,11 +289,15 @@ export class AlertService {
   /**
    * Dismiss alert
    */
-  async dismissAlert(alertId: string): Promise<Alert> {
-    return prisma.alert.update({
-      where: { id: alertId },
+  async dismissAlert(alertId: string, providerId: string): Promise<{ id: string }> {
+    const result = await prisma.alert.updateMany({
+      where: { id: alertId, providerId },
       data: { isDismissed: true },
     });
+    if (result.count === 0) {
+      throw new Error("Alert not found");
+    }
+    return { id: alertId };
   }
 
   /**

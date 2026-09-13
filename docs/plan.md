@@ -7,7 +7,7 @@ This document tracks how the work was broken down and executed.
 ## Sessions & Work Breakdown
 
 ### Session 1: Foundation & Setup
-- **Duration**: ~4 hours
+- **Duration**: ~3 hours
 - **Work**:
   - Next.js 15 project initialization
   - TypeScript strict mode configuration
@@ -16,7 +16,7 @@ This document tracks how the work was broken down and executed.
   - Project structure planning
 
 ### Session 2: Database & Authentication
-- **Duration**: ~6 hours
+- **Duration**: ~5 hours
 - **Work**:
   - Prisma schema design (User, Provider, Patient models)
   - Supabase connection setup
@@ -26,7 +26,7 @@ This document tracks how the work was broken down and executed.
   - Middleware for route protection
 
 ### Session 3: Core Domain - Appointments
-- **Duration**: ~8 hours
+- **Duration**: ~6 hours
 - **Work**:
   - Appointment model and relationships
   - Service layer architecture
@@ -36,16 +36,16 @@ This document tracks how the work was broken down and executed.
   - Business logic (availability checking, conflict detection)
 
 ### Session 4: Scheduling & Availability
-- **Duration**: ~6 hours
+- **Duration**: ~5 hours
 - **Work**:
   - AvailabilitySlot model
   - Bulk availability creation
   - Provider schedule management
-  - Calendar integration (FullCalendar)
+  - Calendar views (week, month and list)
   - Collision detection logic
 
 ### Session 5: Visit Notes & Documentation
-- **Duration**: ~5 hours
+- **Duration**: ~4 hours
 - **Work**:
   - VisitNote model with history tracking
   - SOAP format implementation
@@ -54,7 +54,7 @@ This document tracks how the work was broken down and executed.
   - Edit tracking and audit trail
 
 ### Session 6: Alerts & Notifications
-- **Duration**: ~4 hours
+- **Duration**: ~3 hours
 - **Work**:
   - Alert model and service
   - 24-hour appointment reminders
@@ -64,7 +64,7 @@ This document tracks how the work was broken down and executed.
   - Auto-refresh functionality
 
 ### Session 7: Analytics Dashboard
-- **Duration**: ~5 hours
+- **Duration**: ~4 hours
 - **Work**:
   - Analytics service with aggregation queries
   - Recharts integration
@@ -74,29 +74,41 @@ This document tracks how the work was broken down and executed.
   - Dashboard layout
 
 ### Session 8: Testing Suite
-- **Duration**: ~8 hours
+- **Duration**: ~6 hours
 - **Work**:
   - Jest + ts-jest configuration
   - Test database setup documentation
-  - Appointment state machine tests (13 tests)
-  - Authorization tests (12 tests)
-  - Duplicate booking tests (11 tests)
-  - Security tests (12 tests)
   - Test utilities and helpers
+  - Integration tests (55):
+    - Security and unauthorized access (15 tests, `security-tests.test.ts`)
+    - Appointment state machine (12 tests, `appointment-state-machine.test.ts`)
+    - Authorization and access control (12 tests, `authorization.test.ts`)
+    - Duplicate booking prevention (10 tests, `duplicate-bookings.test.ts`)
+    - Appointment workflow (6 tests, `appointment-workflow.test.ts`)
+  - Unit tests (102):
+    - Appointment service (25 tests, `appointment-service.test.ts`)
+    - Validation schemas (13 tests, `validation.test.ts`)
+    - Authorization helpers (13 tests, `auth-helpers.test.ts`)
+    - Clinic time conversion (9 tests, `clinic-time.test.ts`, added in Session 11)
+    - Analytics provider isolation (12 tests, `analytics-scope.test.ts`, added in Session 11)
+    - Appointment details view (10 tests, `appointment-details.test.ts`, added in Session 11)
+    - API route and cron authentication (11 tests, `api-auth.test.ts`, added in Session 11)
+    - Alerts and hardening (9 tests, `alerts-and-hardening.test.ts`, added in Session 11)
+  - Counts reflect the current suite (157 tests) as reported by `npm test`
 
 ### Session 9: Security & Audit
-- **Duration**: ~6 hours
+- **Duration**: ~5 hours
 - **Work**:
   - HIPAA audit logging (AuditLog model)
   - Audit service implementation
   - Security headers configuration
   - Rate limiting (memory-based)
-  - Sentry integration (error tracking)
+  - Sentry configuration files (not yet initialised)
   - PHI sanitization in error reports
   - Authorization helpers enhancement
 
 ### Session 10: Polish & Documentation
-- **Duration**: ~4 hours
+- **Duration**: ~3 hours
 - **Work**:
   - Code cleanup and refactoring
   - Documentation writing
@@ -105,7 +117,24 @@ This document tracks how the work was broken down and executed.
   - Environment variable templates
   - Bug fixes and edge cases
 
-**Total Time**: ~56 hours
+### Session 11: UI Consistency & Data Integrity Audit
+- **Duration**: not tracked
+- **Work**:
+  - Shared dashboard layout and navigation for every protected route
+  - One glass design system and one appointment status palette across the app
+  - Fixed the production build (zod v4 and react-day-picker v9 API changes)
+  - Replaced estimated dashboard numbers with real database counts
+  - Audited database, backend and frontend for inconsistencies (see Phase 6)
+  - Provider management (add, edit, deactivate/reactivate)
+  - Canonical slot time encoding and a data migration for existing slots
+  - Per-provider booking lock and corrected overlap detection
+  - Scoped every analytics query to the signed-in provider
+  - Fixed the appointment details dialog: visit notes can be written again, the History tab loads, and other providers' appointments are refused
+  - API routes return 401 without a session instead of a 500 or a 409 "NEXT_REDIRECT"
+  - Final review: alert de-duplication and ownership, cron secret, sign-in lockout, and removal of stray scripts and invented landing-page figures
+  - Test suite grown from 99 to 157 tests
+
+**Total Time**: ~40–44 hours (Sessions 1–10)
 
 ## Build Order & Rationale
 
@@ -131,7 +160,8 @@ This document tracks how the work was broken down and executed.
 
 **Challenges**:
 - State machine complexity (many edge cases)
-- Availability checking across time zones
+- Availability checking across time zones (the first implementation depended on
+  the server's timezone; resolved in Session 11 with wall-clock slot times)
 - Conflict detection performance
 
 ### Phase 3: Value-Add Features (Sessions 6-7)
@@ -159,6 +189,23 @@ This document tracks how the work was broken down and executed.
 - Test database configuration
 - Sentry PHI sanitization
 - Rate limiting implementation
+
+### Phase 6: Consistency Audit (Session 11)
+**Order**: UI consistency → database/backend/frontend audit → fixes → live verification
+
+**What the audit found**:
+1. Availability slots stored in two encodings and read in the server's timezone
+2. A short visit could be booked inside a longer one; concurrent requests could double-book
+3. Deleted patients couldn't be re-registered (unique email/phone kept by soft delete)
+4. Provider patient lists paginated in memory
+5. No way to add a provider outside the seed script
+6. `POST /api/appointments` bypassed the service layer
+7. Visit-note vitals unbounded, uncleareable, and returned as Decimal objects
+8. Raw JSON validation errors, automatic retries of rejected writes, revalidation of non-existent routes
+9. A provider's dashboard showed the whole clinic's status breakdown and no-show trend, and standalone analytics actions returned clinic-wide data
+
+**How it was verified**: 157 automated tests, plus scripted checks against the
+live Supabase database using temporary QA records that were removed afterwards.
 
 ### Phase 5: Documentation (Session 10)
 **Order**: Code cleanup → Documentation → Deployment guides
@@ -190,15 +237,17 @@ This document tracks how the work was broken down and executed.
 
 5. **Bulk Availability** (Estimated: 2 hours, Actual: 4 hours)
    - **Why**: Collision detection and date handling complexity
-   - **Lesson**: Date/time logic is always tricky
+   - **Lesson**: Date/time logic is always tricky. It stayed tricky: the date-range
+     loop created one attempt per calendar date for what are weekly slots, and was
+     simplified to one slot per weekday in Session 11
 
 ### What Took Less Time Than Expected
 
-1. **Analytics Dashboard** (Estimated: 8 hours, Actual: 5 hours)
+1. **Analytics Dashboard** (Estimated: 8 hours, Actual: 4 hours)
    - **Why**: Recharts is well-designed, Prisma groupBy is powerful
    - **Lesson**: Good libraries accelerate development
 
-2. **Audit Logging** (Estimated: 8 hours, Actual: 6 hours)
+2. **Audit Logging** (Estimated: 8 hours, Actual: 5 hours)
    - **Why**: Simple model, clear requirements
    - **Lesson**: Well-defined requirements speed up implementation
 
@@ -234,9 +283,9 @@ This document tracks how the work was broken down and executed.
    - **Impact**: Won't work with multiple servers
    - **Mitigation**: Document as future improvement
 
-5. **Pagination**
-   - **Why Cut**: Not needed with small datasets
-   - **Impact**: Performance issues with 10,000+ records
+5. **Cursor Pagination**
+   - **Why Cut**: Offset pagination is enough for small datasets
+   - **Impact**: Performance issues with 1,000+ records
    - **Mitigation**: Add when needed
 
 ### P2 Features (Not Planned for MVP)
@@ -312,7 +361,12 @@ This document tracks how the work was broken down and executed.
    - Documentation is the code
    - Easy to add validation
 
-5. **Testing requires upfront investment**
+5. **Consistency needs one source of truth per concept**
+   - Status colours, slot time encoding and write paths had each drifted into several copies
+   - Every copy became a place for the frontend, backend and database to disagree
+   - A shared module per concept (and a single service per write) prevents it
+
+6. **Testing requires upfront investment**
    - Setup takes time
    - Pays off in confidence
    - Catches edge cases early
@@ -346,74 +400,11 @@ This document tracks how the work was broken down and executed.
 
 ## If I Had 12 More Hours
 
-Priority order for additional development time:
-
-### 1. Input Sanitization (2 hours)
-- Add DOMPurify
-- Sanitize user-generated content
-- Prevent XSS vulnerabilities
-
-### 2. Session Timeout (2 hours)
-- Implement 30-minute inactivity timeout
-- Warn before auto-logout
-- Save form state
-
-### 3. Password Requirements (2 hours)
-- Add validation (length, complexity)
-- Password strength meter
-- Block common passwords
-
-### 4. Enhanced Testing (3 hours)
-- Add unit tests for services
-- Increase coverage to 90%+
-- Add edge case tests
-
-### 5. Performance Optimization (2 hours)
-- Add database indexes
-- Optimize expensive queries
-- Reduce bundle size
-
-### 6. Error Handling Improvements (1 hour)
-- Better error messages
-- Error recovery UX
-- Structured logging
+See [What Would You Do Next, With Another 12 Hours?](../SUBMISSION.md#what-would-you-do-next-with-another-12-hours) in SUBMISSION.md, which is the canonical answer.
 
 ## What I'm Least Happy With
 
-### 1. Test Database Setup
-**Problem**: Tests require manual database configuration
-
-**Why It Bothers Me**: Testing should be frictionless
-
-**What I'd Do**: Auto-create test database or use in-memory SQLite for tests
-
-### 2. Memory-Based Rate Limiting
-**Problem**: Won't work with multiple servers
-
-**Why It Bothers Me**: Doesn't scale
-
-**What I'd Do**: Implement Redis-based rate limiting from the start
-
-### 3. Lack of Email Notifications
-**Problem**: Users don't get automatic confirmation emails
-
-**Why It Bothers Me**: Major UX gap
-
-**What I'd Do**: Integrate email service (SendGrid/Postmark) and send transactional emails
-
-### 4. No Real-Time Updates
-**Problem**: Dashboard doesn't update without refresh
-
-**Why It Bothers Me**: Feels outdated
-
-**What I'd Do**: Add WebSocket or polling for live updates
-
-### 5. Generic Error Messages
-**Problem**: Some errors just say "Something went wrong"
-
-**Why It Bothers Me**: Unhelpful for users
-
-**What I'd Do**: Implement error codes and user-friendly messages
+See [What Are You Least Happy With in This Codebase, and Why?](../SUBMISSION.md#what-are-you-least-happy-with-in-this-codebase-and-why) in SUBMISSION.md, which is the canonical answer.
 
 ## Success Metrics
 
@@ -421,7 +412,7 @@ Priority order for additional development time:
 
 1. **Core functionality complete**: All essential features work
 2. **Type-safe codebase**: TypeScript + Prisma catch errors early
-3. **Comprehensive tests**: 48 tests covering critical paths
+3. **Comprehensive tests**: 157 tests (102 unit + 55 integration) across 13 files covering critical paths, including concurrency and timezone handling
 4. **Clean architecture**: Service layer keeps code organized
 5. **Security conscious**: Audit logging, rate limiting, headers
 6. **Well-documented**: Architecture, decisions, and setup guides
@@ -432,12 +423,15 @@ Priority order for additional development time:
 2. **Scaling limitations**: Memory-based rate limiting
 3. **Missing features**: Password requirements, session timeout
 4. **Test setup friction**: Requires manual database configuration
-5. **Limited search**: Basic name-based search only
+5. **Limited search**: Substring search on name, email and phone only
+6. **Single timezone**: One clinic timezone per deployment
 
 ### Overall Assessment
 
-**MVP Status**: **Complete and functional**
+**Prototype Status**: **Feature-complete as a demonstration**
 
-The system successfully implements core appointment management features with security and audit capabilities. While there are opportunities for improvement (P1/P2 features), the foundation is solid and ready for real-world use.
+The system implements the core appointment management workflows end to end, with role-based access, audit logging, and data integrity safeguards (state machine, double-booking protection, timezone-independent availability). It demonstrates healthcare application architecture and HIPAA-oriented design, and is backed by 157 automated tests.
 
-**Production Readiness**: Suitable for small to medium clinics with manual processes supplementing automated workflows. Recommended to implement P1 security enhancements before handling sensitive patient data at scale.
+**Production Readiness**: **Not production-ready, and not for use with real patient data.** This is a student/prototype project for educational purposes. It has not undergone HIPAA compliance validation, and it lacks what a clinic would need before handling PHI: session inactivity timeouts, password complexity and MFA, encryption at rest, distributed rate limiting, audit log retention, backup and recovery procedures, and email notifications.
+
+**Appropriate Uses**: A portfolio or learning project, or a starting point for a production application that would first require the security hardening, compliance validation and operational infrastructure listed in [README.md](../README.md#security-considerations) and [SUBMISSION.md](../SUBMISSION.md#known-limitations).

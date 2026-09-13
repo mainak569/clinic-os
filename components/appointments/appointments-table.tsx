@@ -504,6 +504,8 @@ export function AppointmentsTable({ userRole, providerId }: AppointmentsTablePro
             appointmentId={selectedAppointmentId}
             open={detailsDialogOpen}
             onOpenChange={setDetailsDialogOpen}
+            userRole={userRole}
+            providerId={providerId}
           />
 
           <CancelAppointmentDialog

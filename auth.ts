@@ -3,13 +3,14 @@ import Credentials from "next-auth/providers/credentials";
 import bcrypt from "bcryptjs";
 import { authConfig } from "./auth.config";
 import { prisma } from "@/lib/prisma";
+import { clearFailedLogins, isLoginBlocked, recordFailedLogin } from "@/lib/rate-limit";
 
 /**
  * NextAuth.js v5 Configuration
- * 
+ *
  * The Credentials provider is added here (Node.js runtime) to use Prisma.
  * Edge-compatible config is in auth.config.ts
- * 
+ *
  * Exports:
  * - auth: Middleware and route handler
  * - signIn: Sign in function
@@ -31,10 +32,15 @@ export const { auth, signIn, signOut, handlers } = NextAuth({
           throw new Error("Missing email or password");
         }
 
-        const email = credentials.email as string;
-        const password = credentials.password as string;
+        // Emails are stored lower-case, so match that regardless of how they're typed.
+        const email = String(credentials.email).trim().toLowerCase();
+        const password = String(credentials.password);
 
-        // Find user by email
+        // 5 failed attempts lock this email for 15 minutes (lib/rate-limit.ts).
+        if (isLoginBlocked(email)) {
+          throw new Error("Too many failed sign-in attempts. Try again later.");
+        }
+
         const user = await prisma.user.findUnique({
           where: { email },
           include: {
@@ -42,24 +48,19 @@ export const { auth, signIn, signOut, handlers } = NextAuth({
           },
         });
 
-        if (!user) {
+        // Check the password before the account status, and give every failure
+        // the same answer, so a response never reveals which emails exist or
+        // belong to a deactivated account.
+        const isPasswordValid = user
+          ? await bcrypt.compare(password, user.passwordHash)
+          : false;
+
+        if (!user || !isPasswordValid || !user.isActive) {
+          recordFailedLogin(email);
           throw new Error("Invalid email or password");
         }
 
-        // Check if user is active
-        if (!user.isActive) {
-          throw new Error("Account is inactive. Please contact support.");
-        }
-
-        // Verify password using bcrypt
-        const isPasswordValid = await bcrypt.compare(
-          password,
-          user.passwordHash
-        );
-
-        if (!isPasswordValid) {
-          throw new Error("Invalid email or password");
-        }
+        clearFailedLogins(email);
 
         // Update last login timestamp
         await prisma.user.update({

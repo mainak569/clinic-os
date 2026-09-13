@@ -103,3 +103,16 @@ export function clinicWallClock(
     minutes: Number(get("hour")) * 60 + Number(get("minute")),
   };
 }
+
+/**
+ * Format an instant (such as `Appointment.scheduledAt`) on the clinic's clock,
+ * e.g. "Sep 17, 2026, 11:00 AM". Server code must use this rather than
+ * `toLocaleString()`, which formats in the server's timezone (UTC on Vercel).
+ */
+export function formatClinicDateTime(instant: Date | string): string {
+  return new Intl.DateTimeFormat("en-US", {
+    timeZone: CLINIC_TIME_ZONE,
+    dateStyle: "medium",
+    timeStyle: "short",
+  }).format(new Date(instant));
+}

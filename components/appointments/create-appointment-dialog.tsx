@@ -446,10 +446,14 @@ export function CreateAppointmentDialog({
                           maxLength={5}
                           {...field}
                           onChange={(e) => {
-                            let value = e.target.value.replace(/[^0-9:]/g, '');
-                            
-                            // Auto-format as user types
-                            if (value.length === 2 && !value.includes(':')) {
+                            // Keep digits and a single colon, so typing "11:15" by hand
+                            // doesn't become "11::1" once the colon is auto-inserted
+                            let value = e.target.value.replace(/[^0-9:]/g, '').replace(/:+/g, ':');
+
+                            // Auto-insert the colon after the hour, but only while typing
+                            // forward, so backspacing past it still works
+                            const typingForward = value.length > (field.value?.length ?? 0);
+                            if (typingForward && value.length === 2 && !value.includes(':')) {
                               value = value + ':';
                             }
                             

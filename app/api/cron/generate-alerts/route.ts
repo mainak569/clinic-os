@@ -4,56 +4,47 @@ import { alertService } from "@/lib/services/alert.service";
 
 /**
  * Cron Job: Generate Alerts
- * 
- * This endpoint should be called periodically (e.g., every 15 minutes) by a cron service.
- * It generates alerts for all providers with REQUESTED appointments.
- * 
- * Usage with Vercel Cron:
- * Add to vercel.json with schedule: every 15 minutes
- * 
- * Or call manually for testing:
- * curl http://localhost:3000/api/cron/generate-alerts
+ *
+ * Called once a day by the Vercel cron in vercel.json (the Hobby plan limit).
+ * For every active provider it creates alerts for REQUESTED appointments in
+ * the next 24 hours, and urgent alerts for those starting in 1–2 hours, then
+ * removes expired alerts.
+ *
+ * Vercel sends `Authorization: Bearer <CRON_SECRET>` when CRON_SECRET is set.
+ * In production the secret is required; without it every request is refused.
+ * Locally it can be left unset and the endpoint called directly:
+ *   curl http://localhost:3000/api/cron/generate-alerts
  */
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
 export async function GET(request: Request) {
-  try {
-    // Optional: Verify request is from cron service
-    const authHeader = request.headers.get("authorization");
-    if (process.env.CRON_SECRET && authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+  const secret = process.env.CRON_SECRET;
 
-    // Get all active providers
+  if (!secret && process.env.NODE_ENV === "production") {
+    console.error("Generate alerts cron: CRON_SECRET is not set; refusing request");
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+  if (secret && request.headers.get("authorization") !== `Bearer ${secret}`) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  try {
     const providers = await prisma.provider.findMany({
       where: { isActive: true },
-      select: { id: true, firstName: true, lastName: true },
+      select: { id: true },
     });
 
     let totalUpcoming = 0;
     let totalUrgent = 0;
-    const results: Array<{ providerId: string; providerName: string; upcoming: number; urgent: number }> = [];
 
-    // Generate alerts for each provider
     for (const provider of providers) {
       const { upcoming, urgent } = await alertService.generateAllAlerts(provider.id);
-
       totalUpcoming += upcoming.length;
       totalUrgent += urgent.length;
-
-      if (upcoming.length > 0 || urgent.length > 0) {
-        results.push({
-          providerId: provider.id,
-          providerName: `${provider.firstName} ${provider.lastName}`,
-          upcoming: upcoming.length,
-          urgent: urgent.length,
-        });
-      }
     }
 
-    // Clean up expired alerts
     const cleanupResult = await alertService.cleanupExpiredAlerts();
 
     return NextResponse.json({
@@ -66,15 +57,11 @@ export async function GET(request: Request) {
         total: totalUpcoming + totalUrgent,
       },
       expiredAlertsCleaned: cleanupResult.count,
-      details: results,
     });
   } catch (error) {
     console.error("Generate alerts cron error:", error);
     return NextResponse.json(
-      {
-        success: false,
-        error: error instanceof Error ? error.message : "Failed to generate alerts",
-      },
+      { success: false, error: "Failed to generate alerts" },
       { status: 500 }
     );
   }

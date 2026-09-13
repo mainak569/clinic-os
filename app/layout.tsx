@@ -8,18 +8,19 @@ import { Toaster } from "@/components/ui/sonner";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
+  // Resolves relative social-card URLs; AUTH_URL is the app's own URL.
+  metadataBase: new URL(process.env.AUTH_URL || "http://localhost:3000"),
   title: "ClinicOS - Modern Healthcare Practice Management",
   description:
-    "Streamline your healthcare practice with our comprehensive platform. Manage patients, appointments, billing, and records all in one secure, HIPAA-compliant solution.",
+    "Streamline your healthcare practice. Manage patients, appointments, provider schedules and visit notes in one HIPAA-oriented platform.",
   keywords: [
     "healthcare",
     "practice management",
-    "electronic health records",
-    "EHR",
+    "appointment scheduling",
+    "visit notes",
     "medical software",
-    "HIPAA compliant",
+    "HIPAA-oriented",
     "patient management",
-    "medical billing",
   ],
   authors: [{ name: "ClinicOS Team" }],
   icons: {
@@ -32,26 +33,16 @@ export const metadata: Metadata = {
   openGraph: {
     type: "website",
     locale: "en_US",
-    url: "https://clinicos.com",
     siteName: "ClinicOS",
     title: "ClinicOS - Modern Healthcare Practice Management",
     description:
-      "Comprehensive healthcare practice management platform trusted by 500+ providers.",
-    images: [
-      {
-        url: "/og-image.png",
-        width: 1200,
-        height: 630,
-        alt: "ClinicOS - Healthcare Practice Management",
-      },
-    ],
+      "Healthcare practice management prototype: scheduling, patient records and visit notes.",
   },
   twitter: {
-    card: "summary_large_image",
+    card: "summary",
     title: "ClinicOS - Modern Healthcare Practice Management",
     description:
-      "Comprehensive healthcare practice management platform trusted by 500+ providers.",
-    images: ["/og-image.png"],
+      "Healthcare practice management prototype: scheduling, patient records and visit notes.",
   },
   robots: {
     index: true,

@@ -6,7 +6,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { Loader2, User, Calendar as CalendarIcon, AlertCircle } from "lucide-react";
 import { format } from "date-fns";
 import { useMutation } from "@/lib/hooks/use-mutation";
-import { useToast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 
 import {
   Dialog,
@@ -55,7 +55,6 @@ export function CreateEditPatientDialog({
   isEditMode,
   onSuccess,
 }: CreateEditPatientDialogProps) {
-  const { toast } = useToast();
   const [activeTab, setActiveTab] = useState("basic");
 
   const createMutation = useMutation(
@@ -135,9 +134,7 @@ export function CreateEditPatientDialog({
         const errorMessage = errors[firstErrorField]?.message as string;
 
         // Show toast notification
-        toast({
-          variant: "destructive",
-          title: "Validation Error",
+        toast.error("Validation Error", {
           description: errorMessage || `Please check the ${errorTab.charAt(0).toUpperCase() + errorTab.slice(1)} tab for required fields.`,
         });
 

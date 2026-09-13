@@ -1,6 +1,6 @@
 "use server";
 
-import { requireAuth } from "@/lib/auth-helpers";
+import { canAccessProviderData, requireAuth } from "@/lib/auth-helpers";
 import { appointmentService } from "@/lib/services/appointment.service";
 import { prisma } from "@/lib/prisma";
 import { AppointmentStatus } from "@prisma/client";
@@ -31,6 +31,9 @@ export async function getDashboardStats(): Promise<
 > {
   try {
     const session = await requireAuth();
+    if (session.user.role === "PROVIDER" && !session.user.providerId) {
+      return { success: false, error: "Provider ID not found" };
+    }
 
     const now = new Date();
     const todayStart = startOfDay(now);
@@ -136,6 +139,9 @@ export async function getAppointments(params: {
 > {
   try {
     const session = await requireAuth();
+    if (session.user.role === "PROVIDER" && !session.user.providerId) {
+      return { success: false, error: "Provider ID not found" };
+    }
 
     const page = params.page || 1;
     const pageSize = params.pageSize || 10;
@@ -275,6 +281,9 @@ export async function getCalendarAppointments(params: {
 }): Promise<ActionResult<any[]>> {
   try {
     const session = await requireAuth();
+    if (session.user.role === "PROVIDER" && !session.user.providerId) {
+      return { success: false, error: "Provider ID not found" };
+    }
 
     const whereClause: any = {
       scheduledAt: {
@@ -335,9 +344,15 @@ export async function getAppointmentById(
   try {
     await requireAuth();
 
-    const appointment = await appointmentService.getAppointmentById(appointmentId);
+    const appointment = await appointmentService.getAppointmentDetails(appointmentId);
 
     if (!appointment) {
+      return { success: false, error: "Appointment not found" };
+    }
+
+    // Provider isolation: a provider can only open their own appointments.
+    // Reported as not found so other providers' appointment IDs aren't confirmed.
+    if (!(await canAccessProviderData(appointment.providerId))) {
       return { success: false, error: "Appointment not found" };
     }
 

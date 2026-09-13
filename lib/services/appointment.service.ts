@@ -425,6 +425,37 @@ export class AppointmentService {
   }
 
   /**
+   * Get appointment by ID with its status history, for the details view.
+   * Kept separate from getAppointmentById, which authorization checks call
+   * and which doesn't need the extra join. The performer is selected field
+   * by field so no user record (password hash included) reaches the client.
+   */
+  async getAppointmentDetails(appointmentId: string) {
+    return prisma.appointment.findUnique({
+      where: { id: appointmentId },
+      include: {
+        patient: true,
+        provider: true,
+        visitNote: true,
+        appointmentHistory: {
+          orderBy: { performedAt: "asc" },
+          include: {
+            performer: {
+              select: {
+                id: true,
+                email: true,
+                provider: {
+                  select: { firstName: true, lastName: true, title: true },
+                },
+              },
+            },
+          },
+        },
+      },
+    });
+  }
+
+  /**
    * Get appointments for a provider
    */
   async getProviderAppointments(

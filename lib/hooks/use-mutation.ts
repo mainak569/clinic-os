@@ -197,8 +197,12 @@ export function useMutation<TData = unknown, TVariables = unknown>(
       try {
         await mutateAsync(variables);
       } catch (error) {
-        // Error already handled in mutateAsync
-        console.error("Mutation error:", error);
+        // Error already handled in mutateAsync. A rejection from the server
+        // (validation, a booking conflict) is expected and already shown to
+        // the user, so only unexpected failures are logged as errors.
+        if (!(error instanceof ActionRejectedError)) {
+          console.error("Mutation error:", error);
+        }
       }
     },
     [mutateAsync]

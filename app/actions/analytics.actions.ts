@@ -5,13 +5,35 @@ import { analyticsService } from "@/lib/services/analytics.service";
 
 /**
  * Analytics Server Actions
- * 
- * Provides optimized analytics data for dashboard
+ *
+ * Provider isolation applies to every action here: FRONT_DESK sees the whole
+ * clinic, a PROVIDER only ever sees their own appointments. Several actions
+ * used to run clinic-wide queries for any signed-in user, so a provider's
+ * status chart and no-show trend included every other provider's patients.
  */
 
 type ActionResult<T> =
   | { success: true; data: T }
   | { success: false; error: string };
+
+type Session = Awaited<ReturnType<typeof requireAuth>>;
+
+/**
+ * The provider filter for this user: `null` provider means the whole clinic
+ * (front desk). Returns an error result for a provider account that has no
+ * linked provider, rather than falling back to clinic-wide data.
+ */
+function analyticsScope(
+  session: Session
+): { providerId: string | undefined } | { error: string } {
+  if (session.user.role === "FRONT_DESK") {
+    return { providerId: undefined };
+  }
+  if (session.user.providerId) {
+    return { providerId: session.user.providerId };
+  }
+  return { error: "Provider ID not found" };
+}
 
 /**
  * Get comprehensive dashboard analytics
@@ -22,25 +44,14 @@ export async function getDashboardAnalytics(
 ): Promise<ActionResult<any>> {
   try {
     const session = await requireAuth();
-
-    // Front desk gets all analytics
-    // Providers get only their own data
-    let analytics;
-
-    if (session.user.role === "FRONT_DESK") {
-      analytics = await analyticsService.getDashboardAnalytics(
-        startDate,
-        endDate
-      );
-    } else if (session.user.providerId) {
-      analytics = await analyticsService.getProviderAnalytics(
-        session.user.providerId,
-        startDate,
-        endDate
-      );
-    } else {
-      return { success: false, error: "Provider ID not found" };
+    const scope = analyticsScope(session);
+    if ("error" in scope) {
+      return { success: false, error: scope.error };
     }
+
+    const analytics = scope.providerId
+      ? await analyticsService.getProviderAnalytics(scope.providerId, startDate, endDate)
+      : await analyticsService.getDashboardAnalytics(startDate, endDate);
 
     return { success: true, data: analytics };
   } catch (error) {
@@ -51,8 +62,8 @@ export async function getDashboardAnalytics(
 
 /**
  * Get appointments by provider
- * 
- * SECURITY: Only FRONT_DESK role can access cross-provider analytics
+ *
+ * SECURITY: Cross-provider by definition, so FRONT_DESK only.
  */
 export async function getAppointmentsByProvider(
   startDate?: Date,
@@ -61,7 +72,6 @@ export async function getAppointmentsByProvider(
   try {
     const session = await requireAuth();
 
-    // Authorization check at top of function
     if (session.user.role !== "FRONT_DESK") {
       return {
         success: false,
@@ -69,10 +79,7 @@ export async function getAppointmentsByProvider(
       };
     }
 
-    const data = await analyticsService.getAppointmentsByProvider(
-      startDate,
-      endDate
-    );
+    const data = await analyticsService.getAppointmentsByProvider(startDate, endDate);
 
     return { success: true, data };
   } catch (error) {
@@ -83,20 +90,24 @@ export async function getAppointmentsByProvider(
 
 /**
  * Get appointments by status
- * 
- * SECURITY: Authenticated users only (both roles allowed)
+ *
+ * SECURITY: Providers see only their own appointments.
  */
 export async function getAppointmentsByStatus(
   startDate?: Date,
   endDate?: Date
 ): Promise<ActionResult<any[]>> {
   try {
-    // Explicit authentication check
-    await requireAuth();
+    const session = await requireAuth();
+    const scope = analyticsScope(session);
+    if ("error" in scope) {
+      return { success: false, error: scope.error };
+    }
 
     const data = await analyticsService.getAppointmentsByStatus(
       startDate,
-      endDate
+      endDate,
+      scope.providerId
     );
 
     return { success: true, data };
@@ -108,15 +119,18 @@ export async function getAppointmentsByStatus(
 
 /**
  * Get no-show rate for last 8 weeks
- * 
- * SECURITY: Authenticated users only (both roles allowed)
+ *
+ * SECURITY: Providers see only their own appointments.
  */
 export async function getNoShowRateLast8Weeks(): Promise<ActionResult<any[]>> {
   try {
-    // Explicit authentication check
-    await requireAuth();
+    const session = await requireAuth();
+    const scope = analyticsScope(session);
+    if ("error" in scope) {
+      return { success: false, error: scope.error };
+    }
 
-    const data = await analyticsService.getNoShowRateLast8Weeks();
+    const data = await analyticsService.getNoShowRateLast8Weeks(scope.providerId);
 
     return { success: true, data };
   } catch (error) {
@@ -127,17 +141,18 @@ export async function getNoShowRateLast8Weeks(): Promise<ActionResult<any[]>> {
 
 /**
  * Get recent trends
- * 
- * SECURITY: Authenticated users only (both roles allowed)
+ *
+ * SECURITY: Providers see only their own appointments.
  */
-export async function getRecentTrends(
-  days = 30
-): Promise<ActionResult<any>> {
+export async function getRecentTrends(days = 30): Promise<ActionResult<any>> {
   try {
-    // Explicit authentication check
-    await requireAuth();
+    const session = await requireAuth();
+    const scope = analyticsScope(session);
+    if ("error" in scope) {
+      return { success: false, error: scope.error };
+    }
 
-    const data = await analyticsService.getRecentTrends(days);
+    const data = await analyticsService.getRecentTrends(days, scope.providerId);
 
     return { success: true, data };
   } catch (error) {

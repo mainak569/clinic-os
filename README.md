@@ -4,6 +4,8 @@ A healthcare practice management prototype built with Next.js 15, TypeScript, an
 
 **Note**: This is a student/prototype project for educational purposes. It demonstrates healthcare application architecture and security patterns but is not certified for production use with real patient data.
 
+**Start here:** [SUBMISSION.md](./SUBMISSION.md) has a 5-minute walkthrough of the core flow. The code most worth reading is the per-provider booking lock and duration-aware conflict check (`lib/services/appointment.service.ts`), clinic wall-clock availability (`lib/clinic-time.ts`), and server-side provider isolation with its tests (`__tests__/`).
+
 ## Features
 
 ### Core Functionality
@@ -15,16 +17,16 @@ A healthcare practice management prototype built with Next.js 15, TypeScript, an
 - **Patient Records**: Demographics, medical history, insurance and emergency contacts; deleted records are archived and restored if the same person is registered again
 - **Visit Notes**: SOAP documentation with range-checked vital signs and an immutable edit history
 - **Alerts**: Automated reminders for unconfirmed appointments (24-hour and 1-hour)
-- **Analytics**: Dashboard with appointments by provider, by status, and weekly no-show rates
-- **Audit Logging**: HIPAA-oriented audit trail for patient, appointment, visit note and provider changes (demonstration purposes)
+- **Analytics**: Appointments by status and weekly no-show rates, scoped to the signed-in provider; front desk also sees appointments by provider
+- **Audit Logging**: HIPAA-oriented audit trail of patient record views and of changes to patients, appointments, visit notes and providers (demonstration purposes)
 
 ### Security & Authorization
 
 - **Authentication**: NextAuth.js v5 with JWT sessions and bcrypt password hashing
 - **Role-Based Access**: Provider and Front Desk roles with different permissions
 - **Provider Isolation**: Providers can only access their own appointments and patients
-- **Security Headers**: XSS, clickjacking, and HTTPS enforcement configured
-- **Rate Limiting**: Basic protection against brute-force attacks (memory-based)
+- **Security Headers**: HSTS, clickjacking and MIME-sniffing protection, strict referrer policy
+- **Rate Limiting**: 100 requests/minute per IP on pages and sign-in, and 5 failed sign-ins lock an email for 15 minutes (memory-based)
 
 ## Tech Stack
 
@@ -42,7 +44,7 @@ A healthcare practice management prototype built with Next.js 15, TypeScript, an
 
 ### Prerequisites
 
-- Node.js 18+
+- Node.js 18.18+ (required by Next.js 15)
 - Supabase account (or local PostgreSQL)
 - For integration tests: a local PostgreSQL database (see [Testing](#testing))
 
@@ -50,8 +52,8 @@ A healthcare practice management prototype built with Next.js 15, TypeScript, an
 
 1. **Clone the repository**
    ```bash
-   git clone <repository-url>
-   cd clinicos
+   git clone https://github.com/mainak569/clinic-os.git
+   cd clinic-os
    ```
 
 2. **Install dependencies**
@@ -61,10 +63,10 @@ A healthcare practice management prototype built with Next.js 15, TypeScript, an
 
 3. **Set up environment variables**
    ```bash
-   cp .env.example .env.local
+   cp .env.example .env
    ```
 
-   Edit `.env.local` and add your values:
+   Edit `.env` and add your values. Use `.env`, not `.env.local`: Prisma's CLI and the seed script only read `.env`.
    ```env
    # Supabase connection strings
    DATABASE_URL="postgresql://...@...pooler.supabase.com:6543/postgres?pgbouncer=true"
@@ -79,15 +81,12 @@ A healthcare practice management prototype built with Next.js 15, TypeScript, an
    CLINIC_TIMEZONE="Asia/Kolkata"
    ```
 
-   > **Deploying to Vercel?** Set `CLINIC_TIMEZONE` in the project's environment variables. Availability is compared on the clinic's wall clock, so a missing or wrong value makes every slot appear shifted.
+   > **Deploying to Vercel?** Set `CLINIC_TIMEZONE` and `CRON_SECRET` in the project's environment variables. Availability is compared on the clinic's wall clock, so a missing or wrong timezone makes every slot appear shifted, and the alert cron refuses every request without the secret.
 
 4. **Set up database**
    ```bash
-   # Apply migrations
+   # Apply migrations (npm install has already generated the Prisma client)
    npx prisma migrate deploy
-
-   # Generate Prisma client
-   npx prisma generate
 
    # Seed database with demo data
    npm run db:seed
@@ -167,7 +166,7 @@ scripts/
   migrate-slot-times.ts # One-off data migration for availability slot times
 
 __tests__/
-  unit/                 # Unit tests (60)
+  unit/                 # Unit tests (102)
   integration/          # Integration tests (55)
 ```
 
@@ -202,9 +201,9 @@ npm run type-check       # TypeScript type check
 
 ## Testing
 
-The project includes **115 passing tests**:
+The project includes **157 passing tests**:
 
-- **Unit Tests (60)**: Validation schemas, appointment service rules (state machine, double-booking, archived patients, past bookings, per-provider locking), authorization helpers, and clinic-time conversions
+- **Unit Tests (102)**: Validation schemas, appointment service rules (state machine, double-booking, archived patients, past bookings, per-provider locking), authorization helpers, clinic-time conversions, analytics provider isolation, the appointment details view (visit-note permission, history loading, provider isolation), API routes answering 401 without a session, alert de-duplication and ownership, the cron secret, and the failed sign-in lockout
 - **Integration Tests (55)**: State machine transitions, authorization boundaries, security controls, duplicate and concurrent booking prevention, end-to-end appointment workflows
 
 Run with `npm test`.
@@ -237,17 +236,20 @@ The script is safe to re-run and refuses to write if a conversion would produce 
 This is a prototype/demonstration project with the following limitations:
 
 1. **Not HIPAA Certified**: While security patterns follow HIPAA principles, this has not undergone formal compliance validation
-2. **Rate Limiting**: Memory-based (single server only). Production would require Redis for distributed systems
+2. **Rate Limiting**: Memory-based and per server instance, so it resets on restart and isn't shared between instances (production would need Redis). API routes other than sign-in aren't rate limited
 3. **Email Notifications**: Not implemented. Alerts are shown in the dashboard only
-4. **Password Requirements**: Minimum length only for new provider accounts (no complexity rules), though all passwords are bcrypt-hashed
+4. **Password Requirements**: Minimum 8 characters for new provider accounts (no complexity rules), though all passwords are bcrypt-hashed
 5. **Session Management**: No inactivity timeout. Sessions last 30 days, and a provider's name change appears after they sign in again
 6. **Pagination**: Offset-based. May have performance issues with large datasets (>1000 records)
 7. **Search**: Patients by name, email or phone. No full-text search
 8. **Alert Linking**: Alerts reference their appointment through an ID embedded in the message text rather than a database foreign key
-9. **Single Timezone**: One clinic timezone per deployment
-10. **Audit Log Retention**: No automated retention policy or archival system
-11. **Multi-Tenancy**: Designed for single clinic use. Multi-clinic support not implemented
-12. **Backup/Recovery**: No automated backup system included beyond the hosting provider's
+9. **Single Timezone**: One clinic timezone per deployment. Dashboard "today" counts use the server's day boundaries (UTC on Vercel)
+10. **Alert Cadence**: The Vercel cron in `vercel.json` runs once a day (Hobby plan limit), so the 1-hour urgent alert only fires if the job happens to run inside that window
+11. **Audit Log Retention**: No automated retention policy or archival system
+12. **Multi-Tenancy**: Designed for single clinic use. Multi-clinic support not implemented
+13. **Backup/Recovery**: No automated backup system included beyond the hosting provider's
+14. **File Upload**: Not implemented for visit note attachments
+15. **Error Tracking**: Sentry config files are included, but Sentry isn't initialised
 
 ## Security Considerations
 
@@ -256,9 +258,10 @@ This prototype implements several security best practices:
 - Passwords hashed with bcrypt (cost factor 10)
 - JWT sessions with HTTP-only cookies
 - Role-based access control with provider isolation
-- Security headers configured (XSS, clickjacking protection)
-- Rate limiting active (memory-based)
-- Audit logging for data access and changes
+- Security headers configured (HSTS, clickjacking and MIME-sniffing protection)
+- Rate limiting and a failed sign-in lockout (memory-based)
+- Sign-in failures all return one generic message, so responses don't reveal which accounts exist
+- Audit logging for patient record views and data changes
 - Error messages sanitized to avoid information leakage; validation failures return a single readable message
 
 **Important**: This is a demonstration project. For production use with real patient data, additional requirements include:
@@ -284,7 +287,7 @@ This prototype implements several security best practices:
 
 ## License
 
-Copyright © 2026 ClinicOS. All rights reserved.
+No license is granted. This is a prototype submitted for evaluation, not for reuse or production use.
 
 ## Contributing
 

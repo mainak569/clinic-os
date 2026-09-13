@@ -32,7 +32,7 @@ export default function HomePage() {
               Simple, Transparent Pricing
             </h2>
             <p className="text-base sm:text-lg text-muted-foreground leading-relaxed px-4 sm:px-0">
-              Choose the plan that fits your practice size. All plans include HIPAA compliance and 24/7 support.
+              Choose the plan that fits your practice size. All plans include audit logging and role-based access. Pricing is illustrative for this prototype.
             </p>
           </div>
           
@@ -81,7 +81,7 @@ export default function HomePage() {
                   <svg className="w-5 h-5 mr-3 text-purple-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                   </svg>
-                  <span className="text-sm sm:text-base">HIPAA compliant</span>
+                  <span className="text-sm sm:text-base">Audit logging</span>
                 </li>
               </ul>
               
@@ -190,7 +190,7 @@ export default function HomePage() {
                   <svg className="w-5 h-5 mr-3 text-purple-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                   </svg>
-                  <span className="text-sm sm:text-base">24/7 phone support & SLA</span>
+                  <span className="text-sm sm:text-base">Priority support</span>
                 </li>
               </ul>
               
@@ -202,7 +202,7 @@ export default function HomePage() {
 
           {/* Trust Badges */}
           <div className="mt-12 sm:mt-16 text-center px-4">
-            <p className="text-xs sm:text-sm text-muted-foreground mb-4 sm:mb-6">Trusted by 500+ healthcare practices nationwide</p>
+            <p className="text-xs sm:text-sm text-muted-foreground mb-4 sm:mb-6">Built for small and mid-sized practices</p>
             <div className="flex flex-wrap items-center justify-center gap-4 sm:gap-6 lg:gap-8 opacity-60">
               <div className="flex items-center gap-2">
                 <svg className="w-4 h-4 sm:w-5 sm:h-5 text-purple-500" fill="currentColor" viewBox="0 0 20 20">
@@ -277,23 +277,23 @@ export default function HomePage() {
               <div className="space-y-6">
                 <div className="grid grid-cols-2 gap-4 sm:gap-6">
                   <div className="bg-white/70 backdrop-blur-xl rounded-2xl sm:rounded-3xl p-4 sm:p-6 shadow-lg hover:shadow-xl transition-all hover:scale-105">
-                    <div className="text-3xl sm:text-4xl font-bold text-purple-500 mb-2">500+</div>
-                    <p className="text-xs sm:text-sm text-muted-foreground">Healthcare Providers</p>
+                    <div className="text-3xl sm:text-4xl font-bold text-purple-500 mb-2">6</div>
+                    <p className="text-xs sm:text-sm text-muted-foreground">Appointment States</p>
                   </div>
                   
                   <div className="bg-white/70 backdrop-blur-xl rounded-2xl sm:rounded-3xl p-4 sm:p-6 shadow-lg hover:shadow-xl transition-all hover:scale-105">
-                    <div className="text-3xl sm:text-4xl font-bold text-purple-500 mb-2">2024</div>
-                    <p className="text-xs sm:text-sm text-muted-foreground">Year Founded</p>
+                    <div className="text-3xl sm:text-4xl font-bold text-purple-500 mb-2">2</div>
+                    <p className="text-xs sm:text-sm text-muted-foreground">User Roles</p>
                   </div>
                   
                   <div className="bg-white/70 backdrop-blur-xl rounded-2xl sm:rounded-3xl p-4 sm:p-6 shadow-lg hover:shadow-xl transition-all hover:scale-105">
-                    <div className="text-4xl font-bold text-purple-500 mb-2">1M+</div>
-                    <p className="text-sm text-muted-foreground">Appointments Managed</p>
+                    <div className="text-4xl font-bold text-purple-500 mb-2">11</div>
+                    <p className="text-sm text-muted-foreground">Data Models</p>
                   </div>
                   
                   <div className="bg-white/70 backdrop-blur-xl rounded-3xl p-6 shadow-lg  hover:shadow-xl transition-all hover:scale-105">
-                    <div className="text-4xl font-bold text-purple-500 mb-2">99.9%</div>
-                    <p className="text-sm text-muted-foreground">Uptime Guarantee</p>
+                    <div className="text-4xl font-bold text-purple-500 mb-2">SOAP</div>
+                    <p className="text-sm text-muted-foreground">Visit Notes</p>
                   </div>
                 </div>
 
@@ -341,8 +341,8 @@ export default function HomePage() {
                     </div>
                     <h4 className="text-xl font-bold mb-3">Security First</h4>
                     <p className="text-muted-foreground">
-                      Patient data security is our top priority. We maintain HIPAA compliance and use industry-leading 
-                      encryption to protect sensitive information.
+                      Patient data security is our top priority. Our design follows HIPAA-oriented practices and uses role-based access, 
+                      provider data isolation and an audit trail to protect sensitive information.
                     </p>
                   </div>
                 </div>
@@ -481,7 +481,7 @@ export default function HomePage() {
                 
                 <h3 className="text-2xl font-bold mb-3">Customer Support</h3>
                 <p className="text-muted-foreground mb-6">
-                  Need help with your account? Our support team is available 24/7 to assist you with any technical issues.
+                  Need help with your account? Get in touch and we&apos;ll help with any technical issues.
                 </p>
                 
                 <div className="space-y-4">

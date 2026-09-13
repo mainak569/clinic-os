@@ -4,7 +4,7 @@ const nextConfig = {
     tsconfigPath: "./tsconfig.json",
   },
   eslint: {
-    dirs: ["app", "components", "lib", "hooks", "utils"],
+    dirs: ["app", "components", "lib"],
   },
   // Security headers for production
   async headers() {
