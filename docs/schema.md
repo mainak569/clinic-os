@@ -659,9 +659,7 @@ before it starts or collide with another under the unique index.
 
 ## Backup & Recovery
 
-### Supabase Automatic Backups
-- Daily backups (last 7 days)
-- Point-in-time recovery (Pro plan)
+No automated backup system is configured by this project (see Scope & Future Work in SUBMISSION.md, and Known Limitations in README.md). Supabase's own plan-dependent backup features (daily backups, point-in-time recovery on paid tiers) are the hosting platform's, not something this codebase sets up or verifies.
 
 ### Manual Backups
 ```bash
@@ -673,7 +671,4 @@ psql $DATABASE_URL < backup.sql
 ```
 
 ### Audit Log Retention
-For HIPAA compliance, audit logs should be retained for 7 years:
-- Monthly export to secure storage
-- Never delete from production database
-- Implement archival strategy for old logs
+No retention or archival policy is implemented. For a real deployment handling PHI, this would need a defined retention period and an archival strategy for old logs rather than unbounded growth in the production table.

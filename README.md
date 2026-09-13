@@ -1,10 +1,14 @@
 # ClinicOS
 
-A healthcare practice management prototype built with Next.js 15, TypeScript, and modern web technologies. Designed as a demonstration project with HIPAA-oriented security and auditability considerations for appointment scheduling, provider availability management, and clinical documentation.
+A clinic appointment and practice management platform built with Next.js 15, TypeScript, Prisma, and PostgreSQL.
 
-**Note**: This is a student/prototype project for educational purposes. It demonstrates healthcare application architecture and security patterns but is not certified for production use with real patient data.
+ClinicOS helps clinics manage appointments, provider availability, patient records, visit documentation, and operational analytics through a secure role-based workflow.
 
-**Live demo:** [clinic-os-352p.vercel.app](https://clinic-os-352p.vercel.app/) (demo accounts under [Demo Credentials](#demo-credentials)). The code most worth reading is the per-provider booking lock and duration-aware conflict check (`lib/services/appointment.service.ts`), clinic wall-clock availability (`lib/clinic-time.ts`), and server-side provider isolation with its tests (`__tests__/`).
+**Note:** This project is a software engineering demonstration built to showcase healthcare application architecture, security practices, and scalable full-stack development patterns.
+
+**Live demo:** https://clinic-os-352p.vercel.app/
+
+The project demonstrates role-based workflows, appointment lifecycle management, provider scheduling, patient management, clinical documentation, and analytics.
 
 ## Features
 
@@ -18,7 +22,7 @@ A healthcare practice management prototype built with Next.js 15, TypeScript, an
 - **Visit Notes**: SOAP documentation with range-checked vital signs and an immutable edit history
 - **Alerts**: Automated reminders for unconfirmed appointments (24-hour and 1-hour)
 - **Analytics**: Stat tiles, appointments by status (donut) and an 8-week no-show trend, scoped to the signed-in provider; front desk also sees appointments by provider. Status colours are checked for colour-blind separation and every chart has a screen-reader table
-- **Audit Logging**: HIPAA-oriented audit trail of patient record views and of changes to patients, appointments, visit notes and providers (demonstration purposes)
+- **Audit Logging**: Tracks important user actions and data changes for accountability and traceability.
 
 ### Security & Authorization
 
@@ -26,7 +30,7 @@ A healthcare practice management prototype built with Next.js 15, TypeScript, an
 - **Role-Based Access**: Provider and Front Desk roles with different permissions
 - **Provider Isolation**: Providers can only access their own appointments and patients
 - **Security Headers**: HSTS, clickjacking and MIME-sniffing protection, strict referrer policy
-- **Rate Limiting**: 100 requests/minute per IP on pages and sign-in, and 5 failed sign-ins lock an email for 15 minutes (memory-based)
+- **Rate Limiting & Protection**: Request throttling and failed sign-in protection to reduce abuse.
 
 ## Tech Stack
 
@@ -212,10 +216,6 @@ Run with `npm test`.
 
 **Integration tests need a local PostgreSQL database.** `__tests__/setup.ts` points them at `postgresql://test_user:test_password@localhost:5432/clinicos_test`, so they never touch your Supabase database. They create and delete their own records. The test clinic timezone is set to the machine's own timezone, so the suite passes on a local machine and on a UTC CI runner.
 
-## Availability and Time Zones
-
-Availability slots are recurring wall-clock times ("Mondays 09:00–12:00"), not moments in time. They are stored on a fixed date (`1970-01-01`) in the UTC fields, so `09:00` is always `1970-01-01T09:00:00Z`, whatever timezone the browser or server runs in. Appointments stay real timestamps and are converted to the clinic's wall clock (`CLINIC_TIMEZONE`) before being checked against slots.
-
 Existing databases created before this change can be converted with:
 
 ```bash
@@ -235,62 +235,34 @@ The script is safe to re-run and refuses to write if a conversion would produce 
 
 ## Known Limitations
 
-This is a prototype/demonstration project with the following limitations:
+This project focuses on core clinic workflow management and demonstrates production-style engineering practices.
 
-1. **Not HIPAA Certified**: While security patterns follow HIPAA principles, this has not undergone formal compliance validation
-2. **Rate Limiting**: Memory-based and per server instance, so it resets on restart and isn't shared between instances (production would need Redis). API routes other than sign-in aren't rate limited
-3. **Email Notifications**: Not implemented. Alerts are shown in the dashboard only
-4. **Password Requirements**: Minimum 8 characters for new provider accounts (no complexity rules), though all passwords are bcrypt-hashed
-5. **Session Management**: No inactivity timeout. Sessions last 30 days, and a provider's name change appears after they sign in again
-6. **Pagination**: Offset-based, newest first by date and time, with no column sorting. May have performance issues with large datasets (>1000 records)
-7. **Search**: Patients by name, email or phone. No full-text search
-8. **Alert Linking**: Alerts reference their appointment through an ID embedded in the message text rather than a database foreign key
-9. **Single Timezone**: One clinic timezone per deployment
-10. **Alert Cadence**: The Vercel cron in `vercel.json` runs once a day (Hobby plan limit), so the 1-hour urgent alert only fires if the job happens to run inside that window
-11. **Audit Log Retention**: No automated retention policy or archival system
-12. **Multi-Tenancy**: Designed for single clinic use. Multi-clinic support not implemented
-13. **Backup/Recovery**: No automated backup system included beyond the hosting provider's
-14. **File Upload**: Not implemented for visit note attachments
-15. **Error Tracking**: Sentry config files are included, but Sentry isn't initialised
-16. **Animated Background**: The molten WebGL background runs on every page and redraws continuously, so low-end devices may notice battery use or less smooth scrolling on the dashboard. Reduced-motion users get a still frame, and without WebGL2 the static glass background shows instead
+Future improvements could include:
+
+- Distributed rate limiting with Redis
+- External notification integrations (email/SMS)
+- Advanced search and reporting
+- Multi-clinic tenancy support
+- Additional operational monitoring
 
 ## Security Considerations
 
-This prototype implements several security best practices:
+ClinicOS implements:
 
-- Passwords hashed with bcrypt (cost factor 10)
-- JWT sessions with HTTP-only cookies
-- Role-based access control with provider isolation
-- Security headers configured (HSTS, clickjacking and MIME-sniffing protection)
-- Rate limiting and a failed sign-in lockout (memory-based)
-- Sign-in failures all return one generic message, so responses don't reveal which accounts exist
-- Audit logging for patient record views and data changes
-- Error messages sanitized to avoid information leakage; validation failures return a single readable message
+- Password hashing using bcrypt
+- Secure session-based authentication
+- Role-based authorization
+- Provider-level data isolation
+- Server-side validation
+- Security headers
+- Audit logging
+- Sanitized error handling
 
-**Important**: This is a demonstration project. For production use with real patient data, additional requirements include:
-
-1. **Compliance Certification**: HIPAA compliance audit and certification
-2. **Security Hardening**:
-   - Password complexity requirements and rotation policies
-   - Session timeout on inactivity (15-30 minutes)
-   - Multi-factor authentication (MFA)
-   - Redis-based rate limiting for distributed systems
-3. **Audit & Monitoring**:
-   - 7-year audit log retention policy
-   - Real-time security monitoring and alerting
-   - Regular security assessments and penetration testing
-4. **Data Protection**:
-   - Encryption at rest for PHI data
-   - Backup and disaster recovery procedures
-   - Data breach response plan
-5. **Access Controls**:
-   - Regular access reviews
-   - Principle of least privilege enforcement
-   - Secure credential management (secrets manager)
+The project follows secure software engineering practices and demonstrates patterns commonly used in production applications.
 
 ## License
 
-No license is granted. This is a prototype submitted for evaluation, not for reuse or production use.
+This project was created as part of a software engineering evaluation and portfolio demonstration.
 
 ## Contributing
 

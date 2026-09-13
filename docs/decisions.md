@@ -10,19 +10,11 @@
 - SvelteKit
 - Traditional React SPA with separate API
 
-**Why**:
-- **Server Components**: Reduce client bundle size, better performance
-- **Server Actions**: Simplify data mutations without explicit API routes
-- **Streaming**: Built-in support for progressive UI loading
-- **Vercel Deployment**: Seamless deployment with zero config
-- **TypeScript Support**: First-class TypeScript integration
-- **Ecosystem**: Largest React framework ecosystem
-- **Modern**: App Router is the future of Next.js, Pages Router in maintenance mode
+**Why**: Server Actions let a form call server-side logic directly, without hand-writing an API route and a client-side fetch for every mutation — this app has around a dozen distinct write operations (appointments, patients, providers, visit notes, alerts), so that saved real boilerplate. Server Components keep data-fetching code (Prisma queries) out of the client bundle by default. Both are first-class in the App Router, not retrofitted.
 
 **Trade-offs**:
-- Learning curve for Server Components vs client components
-- Some libraries not yet compatible with React Server Components
-- App Router is newer, less Stack Overflow answers
+- Server vs. client component boundaries take some getting used to, and a few UI libraries needed the `"use client"` boundary drawn carefully
+- App Router is newer than Pages Router, so fewer existing answers to lean on when something doesn't work as documented
 
 ---
 
@@ -38,27 +30,12 @@
 - Firebase Firestore
 - Self-hosted PostgreSQL
 
-**Why**:
-
-**Prisma**:
-- **Type Safety**: Auto-generated TypeScript types from schema
-- **Developer Experience**: Intuitive API, great autocomplete
-- **Migrations**: Built-in migration system with version control
-- **Prisma Studio**: Visual database browser
-- **Active Development**: Well-maintained, frequent updates
-
-**Supabase**:
-- **Managed PostgreSQL**: No server management required
-- **Connection Pooling**: Built-in PgBouncer for connection management
-- **Automatic Backups**: Daily backups included
-- **Generous Free Tier**: Good for development and small deployments
-- **Real-time Subscriptions**: Available if needed later
-- **Auth Integration**: Can use Supabase Auth if we outgrow NextAuth
+**Why**: Prisma's generated types keep the schema, the query results and the TypeScript types in one place — a column rename is a compile error everywhere it's used, not a runtime surprise. Its migration history gives a reviewable, versioned record of schema changes (`prisma/migrations/`), which matters for an app with an append-only audit trail. Supabase gives managed Postgres with connection pooling (PgBouncer) out of the box, which the booking lock's advisory-lock pattern depends on behaving correctly under load.
 
 **Trade-offs**:
-- Vendor lock-in (Supabase-specific features)
-- Prisma can be slower than raw SQL for complex queries
-- Migrations require running separate command (not automatic)
+- Some Supabase-specific behavior (the pooler's transaction mode, in particular — see Decision 14) to work around rather than being purely portable SQL
+- Prisma's query builder is less flexible than raw SQL for a few of the more complex reporting queries (analytics), which fall back to `groupBy` or raw queries where needed
+- Migrations are a separate, explicit step (`prisma migrate deploy`), not automatic on deploy
 
 ---
 
@@ -74,20 +51,11 @@
 - Session-based auth with cookies only
 - Firebase Auth
 
-**Why**:
-- **Open Source**: No vendor lock-in, full control
-- **Flexible**: Supports many providers (can add OAuth later)
-- **Next.js Integration**: Built specifically for Next.js
-- **Edge Compatible**: Works with Edge Runtime
-- **JWT Sessions**: Stateless, scalable
-- **Security**: Built-in CSRF protection, secure cookies
-- **Active Development**: Version 5 is the modern rewrite
+**Why**: Auth stays in the app's own database rather than a third-party identity provider, which matters for a healthcare-adjacent app where user accounts are tied directly to provider records. NextAuth's middleware integration covers route protection for the whole `/dashboard` tree in one place, and its JWT sessions need no session store, which fits a serverless deployment.
 
 **Trade-offs**:
-- More complex than managed auth (Clerk, Auth0)
-- Need to handle password hashing ourselves
-- Email verification requires additional setup
-- No built-in user management UI
+- More setup than a managed auth provider (Clerk, Auth0) — password hashing, lockout logic and session handling are this app's own code, not a vendor's
+- No built-in user-management UI; provider accounts are created and deactivated through the app's own provider-management page
 
 **Why Credentials Provider**:
 - Healthcare requires direct password control
@@ -200,13 +168,7 @@ The timing rules live in `lib/appointment-rules.ts`, shared by the service (whic
 - Class-validator
 - Manual validation
 
-**Why**:
-- **TypeScript First**: Designed for TypeScript
-- **Type Inference**: Automatically infer types from schemas
-- **React Hook Form Integration**: Built-in resolver
-- **Composable**: Easy to build complex schemas
-- **Error Messages**: Clear, customizable error messages
-- **Runtime Safety**: Validates at runtime, not just compile time
+**Why**: TypeScript types are compile-time only — they don't stop a malformed request body from reaching a Server Action. Zod validates the same shape at runtime and infers the TypeScript type from the schema, so the validation rule and the type can't drift apart. Every write schema is shared between the form (via a resolver) and the Server Action, so client and server enforce the same rules from one definition.
 
 **Example**:
 ```typescript
@@ -238,18 +200,9 @@ type AppointmentInput = z.infer<typeof appointmentSchema>;
 - Custom fetch with useState
 - Apollo Client (for GraphQL)
 
-**Why**:
-- **Server State Focus**: Designed specifically for server data
-- **Caching**: Automatic caching and revalidation
-- **Optimistic Updates**: Built-in optimistic update support
-- **Devtools**: React Query Devtools for debugging
-- **Refetch Strategies**: Window focus, network reconnect, polling
-- **Small Bundle**: ~13KB minified
+**Why**: The dashboard's data — appointments, alerts, analytics — is server state, not client state: it doesn't originate in the browser and needs to stay in sync with what other users are doing. React Query's caching and refetch-on-focus behavior fit that better than managing loading/error/data state by hand with `useState`.
 
-**Trade-offs**:
-- Adds another library to learn
-- Overhead for simple GET requests
-- Can be complex to set up for mutations
+**Trade-offs**: Adds a library and a query-key convention to learn; overkill for the handful of one-off reads that don't need caching.
 
 ---
 
@@ -264,18 +217,9 @@ type AppointmentInput = z.infer<typeof appointmentSchema>;
 - Headless UI + custom styles
 - Building everything from scratch
 
-**Why**:
-- **Copy-Paste**: Own the code, modify as needed
-- **Tailwind-based**: Consistent with our styling approach
-- **Radix UI Primitives**: Accessible, unstyled components
-- **Modern**: Latest React patterns, Server Component compatible
-- **No Runtime**: Components copied to codebase (no library overhead)
-- **Customizable**: Full control over styling and behavior
+**Why**: shadcn/ui components are copied into the repository rather than imported from a package, built on Radix UI primitives — which handle keyboard navigation, focus trapping and ARIA roles for dialogs, dropdowns and popovers correctly by default, rather than needing to be built from scratch. Owning the component source made it straightforward to restyle every component into the app's glass/purple visual identity without fighting a component library's own theming API.
 
-**Trade-offs**:
-- Need to update components manually (no npm update)
-- More code in repository
-- No built-in theming system (need to build)
+**Trade-offs**: No `npm update` for these components — updates and any upstream fixes have to be applied by hand; more component code lives in the repository than with a package dependency.
 
 ---
 
@@ -290,12 +234,7 @@ type AppointmentInput = z.infer<typeof appointmentSchema>;
 - SHA-256 (insecure)
 - Plain text (extremely insecure)
 
-**Why**:
-- **Proven**: Battle-tested, used by major platforms
-- **Slow by Design**: Resistant to brute-force attacks
-- **Configurable Cost**: Can increase cost as hardware improves
-- **Salting Built-in**: Automatic per-password salts
-- **Node.js Library**: Mature, well-maintained library
+**Why**: bcrypt is deliberately slow, which is the property that matters for password storage — it makes brute-forcing a stolen hash expensive, and the cost factor can be raised later as hardware gets faster without changing the algorithm. Salting is automatic per password, so identical passwords don't produce identical hashes.
 
 **Cost Factor 10**:
 - ~100ms to hash (good UX, secure)
@@ -319,12 +258,7 @@ type AppointmentInput = z.infer<typeof appointmentSchema>;
 - Separate frontend/backend repos
 - Microservices architecture
 
-**Why**:
-- **Simplicity**: Easier to develop, deploy, and maintain
-- **Shared Types**: TypeScript types shared automatically
-- **Single Deploy**: One deployment process
-- **Small Team**: Monorepo overhead not justified
-- **Next.js Full-Stack**: Next.js handles both frontend and backend
+**Why**: Next.js is already full-stack (Server Actions and API routes live alongside the UI in one app), so there's no separate backend to coordinate with — one deploy, one set of TypeScript types shared automatically between server and client code. A monorepo's benefit is coordinating multiple deployable packages; there's only one here.
 
 **When to Split**:
 - Mobile app needs separate API
@@ -376,11 +310,7 @@ type AppointmentInput = z.infer<typeof appointmentSchema>;
 - Polling for real-time updates
 - Socket.io
 
-**Why**:
-- **Simpler**: HTTP is simpler than WebSockets
-- **Sufficient**: Appointment scheduling doesn't need real-time
-- **Scalability**: Easier to scale HTTP than WebSockets
-- **Can Add Later**: Can add real-time if needed
+**Why**: Front desk and providers work from the same dashboard but not typically the same appointment at the same instant, so stale data is a refresh away, not a correctness problem. Standard HTTP with revalidation after each mutation is simpler to reason about and deploy than a WebSocket connection, for a workflow that doesn't need sub-second updates.
 
 **When to Add Real-Time**:
 - Chat between staff and patients

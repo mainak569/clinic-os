@@ -64,97 +64,28 @@ ClinicOS is a healthcare practice management application built with modern web t
 
 ### Directory Structure
 
+Each layer lives in its own top-level directory, so a change to one concern (validation, business rules, presentation) stays contained. Full file-level detail is in [README.md](../README.md#project-structure); this is the shape that matters for understanding the design.
+
 ```
 app/
-├── layout.tsx            # Root layout: fonts, session and query providers, toaster
-├── page.tsx              # Public landing page
-├── actions/              # Server Actions: auth, validation, audit, then a service call
-│   ├── appointment.actions.ts
-│   ├── availability.actions.ts
-│   ├── bulk-availability.actions.ts
-│   ├── patient.actions.ts
-│   ├── provider.actions.ts
-│   ├── visit-note.actions.ts
-│   ├── alert.actions.ts
-│   ├── analytics.actions.ts
-│   └── queries.actions.ts   # Read-only dashboard and table queries
-├── api/                  # API Routes (same services as the UI)
-│   ├── appointments/route.ts
-│   ├── patients/route.ts
-│   ├── providers/[providerId]/route.ts
-│   ├── auth/[...nextauth]/route.ts
-│   └── cron/generate-alerts/route.ts   # Called by the Vercel cron
-├── dashboard/            # Protected app
-│   ├── layout.tsx        # Shared header and navigation
-│   ├── page.tsx          # Dashboard: quick actions, alerts, analytics
-│   ├── appointments/
-│   ├── patients/
-│   ├── schedule/
-│   └── providers/        # Front desk only
-├── login/                # Authentication page
-└── unauthorized/         # Access denied page
+├── actions/       # Server Actions — auth check, validation, audit log, then a service call
+├── api/           # REST routes for external/API clients; call the same services as the UI
+├── dashboard/     # Protected app (appointments, patients, schedule, provider management)
+└── login/         # Authentication page
 
-components/
-├── ui/                   # shadcn/ui primitives
-├── auth/                 # Login form
-├── landing/              # Landing page sections (hero, features, CTA)
-├── layout/               # Dashboard header, navbar, glass background, animated molten background
-├── providers/            # React context providers (session, React Query)
-├── appointments/         # Appointment table, dialogs, visit notes
-├── availability/         # Bulk availability, schedule export
-├── patients/             # Patient table and dialogs
-├── provider-management/  # Providers table and dialog
-├── schedule/             # Week / month / list views
-└── dashboard/            # Analytics charts, alert panel
+components/        # Presentation layer, grouped by feature area (ui/ holds shared primitives)
 
 lib/
-├── services/             # Business logic layer
-│   ├── appointment.service.ts
-│   ├── availability.service.ts
-│   ├── bulk-availability.service.ts
-│   ├── patient.service.ts
-│   ├── provider.service.ts
-│   ├── visit-note.service.ts
-│   ├── alert.service.ts
-│   ├── analytics.service.ts
-│   └── audit.service.ts
-├── validations/          # Zod schemas (shared by forms and actions)
-├── errors/               # Custom error classes
-├── hooks/
-│   └── use-mutation.ts   # Mutation state, toasts; retries network and 5xx failures, never rejected writes
-├── clinic-time.ts        # Slot time encoding and clinic timezone
-├── appointment-status.ts # Status labels and colours
-├── appointment-rules.ts  # When each appointment action is allowed (status and clock)
-├── serialize.ts          # Decimal -> number before data reaches the client
-├── action-error.ts       # Readable action error messages
-├── revalidate.ts         # Dashboard-wide revalidation
-├── auth-helpers.ts       # Authorization utilities (requireAuth, getApiSession, ...)
-├── visit-note-permissions.ts # Who may write a visit note (mirrors the server rule)
-├── rate-limit.ts         # Global rate limit and failed sign-in lockout
-├── query-client.ts       # React Query client defaults
-├── utils.ts              # cn() class-name helper
-└── prisma.ts             # Prisma client (re-exports prisma.config.ts)
+├── services/      # Business logic and database writes (one file per domain: appointment,
+│                    availability, patient, provider, visit-note, alert, analytics, audit)
+├── validations/   # Zod schemas, shared by forms and Server Actions
+├── auth-helpers.ts, rate-limit.ts, clinic-time.ts, appointment-rules.ts, serialize.ts
+│                    # Cross-cutting concerns: authorization, rate limiting, timezone
+│                    # handling, timing rules, and Decimal serialization for the client
+└── prisma.ts      # Database client
 
-prisma/
-├── schema.prisma         # Database schema (11 models)
-├── migrations/           # Database migrations
-└── seed.ts               # Seed data
-
-scripts/
-├── migrate-slot-times.ts # Data migration to canonical slot times (dry run by default)
-├── fix-foreign-keys.ts   # Check (--check) or repair (--fix) broken foreign keys
-├── quick-check.mjs       # Quick row counts for foreign-key sanity checks
-└── clear-availability.ts # DELETES ALL availability slots (npm run delete-availability)
-
-Root configuration
-├── middleware.ts         # Route protection and global rate limiting
-├── auth.ts               # NextAuth setup (credentials provider)
-├── auth.config.ts        # Session and callback configuration
-├── prisma.config.ts      # Prisma client singleton
-├── next.config.js        # Security headers
-├── vercel.json           # Cron schedule (daily)
-├── jest.config.js        # Test configuration
-└── sentry.*.config.ts    # Error tracking (client, server, edge)
+prisma/            # Schema, migrations, seed data
+scripts/           # One-off data migrations and integrity-check tooling, run manually
 ```
 
 ## Request Flow
