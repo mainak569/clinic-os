@@ -10,14 +10,14 @@ A healthcare practice management prototype built with Next.js 15, TypeScript, an
 
 ### Core Functionality
 
-- **Appointment Management**: Create, confirm, check-in, complete, cancel, mark no-show, and reschedule appointments with state machine validation
+- **Appointment Management**: Create, confirm, check-in, complete, cancel, mark no-show, and reschedule appointments, with state machine validation and time rules (confirm only before the start; check in from an hour before until the visit ends; complete and mark no-shows only after the start; a confirmed appointment can't be cancelled once it has started; no rescheduling after check-in)
 - **Double-Booking Protection**: Overlap detection that accounts for each visit's real duration, serialized per provider so simultaneous requests can't both book the same slot
 - **Provider Scheduling**: Recurring weekly availability slots with overlap detection and bulk creation
 - **Provider Management**: Front desk can add providers (login, profile and scheduling defaults in one step), edit them, and deactivate or reactivate them
 - **Patient Records**: Demographics, medical history, insurance and emergency contacts; deleted records are archived and restored if the same person is registered again
 - **Visit Notes**: SOAP documentation with range-checked vital signs and an immutable edit history
 - **Alerts**: Automated reminders for unconfirmed appointments (24-hour and 1-hour)
-- **Analytics**: Appointments by status and weekly no-show rates, scoped to the signed-in provider; front desk also sees appointments by provider
+- **Analytics**: Stat tiles, appointments by status (donut) and an 8-week no-show trend, scoped to the signed-in provider; front desk also sees appointments by provider. Status colours are checked for colour-blind separation and every chart has a screen-reader table
 - **Audit Logging**: HIPAA-oriented audit trail of patient record views and of changes to patients, appointments, visit notes and providers (demonstration purposes)
 
 ### Security & Authorization
@@ -34,7 +34,7 @@ A healthcare practice management prototype built with Next.js 15, TypeScript, an
 - **Language**: TypeScript 5 (strict mode)
 - **Database**: PostgreSQL via Supabase with Prisma ORM 5.22
 - **Authentication**: NextAuth.js v5
-- **UI**: Tailwind CSS + shadcn/ui (Radix UI components)
+- **UI**: Tailwind CSS + shadcn/ui (Radix UI components), with an animated WebGL background (ogl)
 - **Forms**: React Hook Form + Zod validation
 - **State**: TanStack React Query 5
 - **Charts**: Recharts 3
@@ -135,7 +135,7 @@ components/
   patients/             # Patient table and dialogs
   provider-management/  # Providers table and form
   dashboard/            # Dashboard widgets and charts
-  layout/               # Header, navigation, shared background
+  layout/               # Header, navigation, glass and animated molten backgrounds
 
 lib/
   services/             # Business logic layer
@@ -151,6 +151,7 @@ lib/
   validations/          # Zod schemas (shared by forms and server actions)
   clinic-time.ts        # Wall-clock time helpers for availability
   appointment-status.ts # Single source of appointment status labels and colours
+  appointment-rules.ts  # When each appointment action is allowed (status and clock)
   serialize.ts          # Converts Prisma Decimals before data reaches the client
   action-error.ts       # Readable error messages for server actions
   revalidate.ts         # Cache revalidation for dashboard routes
@@ -166,8 +167,8 @@ scripts/
   migrate-slot-times.ts # One-off data migration for availability slot times
 
 __tests__/
-  unit/                 # Unit tests (102)
-  integration/          # Integration tests (55)
+  unit/                 # Unit tests (117)
+  integration/          # Integration tests (62)
 ```
 
 ## Development Commands
@@ -201,10 +202,10 @@ npm run type-check       # TypeScript type check
 
 ## Testing
 
-The project includes **157 passing tests**:
+The project includes **179 passing tests**:
 
-- **Unit Tests (102)**: Validation schemas, appointment service rules (state machine, double-booking, archived patients, past bookings, per-provider locking), authorization helpers, clinic-time conversions, analytics provider isolation, the appointment details view (visit-note permission, history loading, provider isolation), API routes answering 401 without a session, alert de-duplication and ownership, the cron secret, and the failed sign-in lockout
-- **Integration Tests (55)**: State machine transitions, authorization boundaries, security controls, duplicate and concurrent booking prevention, end-to-end appointment workflows
+- **Unit Tests (117)**: Validation schemas, appointment service rules (state machine, double-booking, archived patients, past bookings, per-provider locking), authorization helpers, clinic-time conversions, analytics provider isolation, the appointment details view (visit-note permission, history loading, provider isolation), API routes answering 401 without a session, alert de-duplication and ownership, the cron secret, the failed sign-in lockout, and appointment timing rules
+- **Integration Tests (62)**: State machine transitions and timing rules, authorization boundaries, security controls, duplicate and concurrent booking prevention, end-to-end appointment workflows
 
 Run with `npm test`.
 
@@ -240,7 +241,7 @@ This is a prototype/demonstration project with the following limitations:
 3. **Email Notifications**: Not implemented. Alerts are shown in the dashboard only
 4. **Password Requirements**: Minimum 8 characters for new provider accounts (no complexity rules), though all passwords are bcrypt-hashed
 5. **Session Management**: No inactivity timeout. Sessions last 30 days, and a provider's name change appears after they sign in again
-6. **Pagination**: Offset-based. May have performance issues with large datasets (>1000 records)
+6. **Pagination**: Offset-based, newest first by date and time, with no column sorting. May have performance issues with large datasets (>1000 records)
 7. **Search**: Patients by name, email or phone. No full-text search
 8. **Alert Linking**: Alerts reference their appointment through an ID embedded in the message text rather than a database foreign key
 9. **Single Timezone**: One clinic timezone per deployment. Dashboard "today" counts use the server's day boundaries (UTC on Vercel)
@@ -250,6 +251,7 @@ This is a prototype/demonstration project with the following limitations:
 13. **Backup/Recovery**: No automated backup system included beyond the hosting provider's
 14. **File Upload**: Not implemented for visit note attachments
 15. **Error Tracking**: Sentry config files are included, but Sentry isn't initialised
+16. **Animated Background**: The molten WebGL background runs on every page and redraws continuously, so low-end devices may notice battery use or less smooth scrolling on the dashboard. Reduced-motion users get a still frame, and without WebGL2 the static glass background shows instead
 
 ## Security Considerations
 

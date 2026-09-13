@@ -1,5 +1,5 @@
 import { requireAuth } from "@/lib/auth-helpers";
-import { GlassBackground } from "@/components/layout/glass-background";
+import { MoltenBackground } from "@/components/layout/molten-background";
 import { DashboardHeader } from "@/components/layout/dashboard-header";
 
 /**
@@ -17,7 +17,7 @@ export default async function DashboardLayout({
 
   return (
     <div className="relative min-h-screen">
-      <GlassBackground />
+      <MoltenBackground />
       <DashboardHeader
         email={session.user.email ?? ""}
         role={session.user.role}

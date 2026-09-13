@@ -101,6 +101,13 @@ describe("Appointment Workflow Integration Tests", () => {
 
       expect(confirmed.status).toBe("CONFIRMED");
 
+      // The day of the visit arrives. Check-in and completion are only allowed
+      // around the appointment time, so the visit now started 5 minutes ago.
+      await prisma.appointment.update({
+        where: { id: created.id },
+        data: { scheduledAt: new Date(Date.now() - 5 * 60000) },
+      });
+
       // Step 3: Check in (CONFIRMED → CHECKED_IN)
       const checkedIn = await appointmentService.checkInAppointment(
         created.id,
@@ -154,12 +161,11 @@ describe("Appointment Workflow Integration Tests", () => {
           duration: 30,
           type: "FOLLOW_UP",
           reason: "Checkup",
-          status: "REQUESTED",
+          // Confirmed while it was still upcoming: a past appointment can no
+          // longer be confirmed.
+          status: "CONFIRMED",
         },
       });
-
-      // Confirm
-      await appointmentService.confirmAppointment(created.id, testUser.id);
 
       // Mark no-show
       const noShow = await appointmentService.markNoShow(
@@ -230,6 +236,11 @@ describe("Appointment Workflow Integration Tests", () => {
       );
 
       await appointmentService.confirmAppointment(created.id, testUser.id);
+      // Check-in opens an hour before the visit: the visit is now 10 minutes away.
+      await prisma.appointment.update({
+        where: { id: created.id },
+        data: { scheduledAt: new Date(Date.now() + 10 * 60000) },
+      });
       await appointmentService.checkInAppointment(created.id, testUser.id);
 
       await expect(

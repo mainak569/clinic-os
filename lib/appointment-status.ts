@@ -24,7 +24,11 @@ export interface StatusStyle {
   label: string;
   /** Tailwind classes for a soft badge on a glass surface. */
   badge: string;
-  /** Solid hex for chart marks and dots — matches the badge hue. */
+  /**
+   * Solid hex for chart marks and dots, in the badge's hue family. Checked with
+   * the dataviz palette validator for colour-blind separation in the status
+   * donut's slice order (see components/dashboard/analytics-charts.tsx).
+   */
   hex: string;
   /** Tailwind text colour for icons and emphasis. */
   text: string;
@@ -40,25 +44,25 @@ export const APPOINTMENT_STATUS: Record<AppointmentStatusKey, StatusStyle> = {
   CONFIRMED: {
     label: "Confirmed",
     badge: "bg-purple-100/80 text-purple-700 border-purple-200",
-    hex: "#A855F7",
+    hex: "#9333EA",
     text: "text-purple-600",
   },
   CHECKED_IN: {
     label: "Checked In",
     badge: "bg-violet-100/80 text-violet-700 border-violet-200",
-    hex: "#8B5CF6",
+    hex: "#4F46E5",
     text: "text-violet-600",
   },
   COMPLETED: {
     label: "Completed",
     badge: "bg-green-100/80 text-green-700 border-green-200",
-    hex: "#22C55E",
+    hex: "#16A34A",
     text: "text-green-600",
   },
   NO_SHOW: {
     label: "No Show",
     badge: "bg-red-100/80 text-red-700 border-red-200",
-    hex: "#F87171",
+    hex: "#DC2626",
     text: "text-red-600",
   },
   CANCELLED: {

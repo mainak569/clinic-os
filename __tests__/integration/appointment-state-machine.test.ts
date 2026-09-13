@@ -19,6 +19,11 @@ function getNextMonday(daysAhead: number = 7): Date {
   return date;
 }
 
+/** A time relative to now, for moving an appointment into the window an action needs. */
+function minutesFromNow(minutes: number): Date {
+  return new Date(Date.now() + minutes * 60000);
+}
+
 describe("Appointment State Machine", () => {
   let testPatient: any;
   let testProvider: any;
@@ -127,6 +132,11 @@ describe("Appointment State Machine", () => {
       );
 
       await appointmentService.confirmAppointment(appointment.id, testUser.id);
+      // Check-in opens an hour before the visit: the visit is now 10 minutes away.
+      await prisma.appointment.update({
+        where: { id: appointment.id },
+        data: { scheduledAt: minutesFromNow(10) },
+      });
 
       const checkedIn = await appointmentService.checkInAppointment(
         appointment.id,
@@ -158,6 +168,11 @@ describe("Appointment State Machine", () => {
       );
 
       await appointmentService.confirmAppointment(appointment.id, testUser.id);
+      // The visit started 5 minutes ago, so it can be checked in and completed.
+      await prisma.appointment.update({
+        where: { id: appointment.id },
+        data: { scheduledAt: minutesFromNow(-5) },
+      });
       await appointmentService.checkInAppointment(appointment.id, testUser.id);
 
       const completed = await appointmentService.completeAppointment(
@@ -377,6 +392,10 @@ describe("Appointment State Machine", () => {
       );
 
       await appointmentService.confirmAppointment(appointment.id, testUser.id);
+      await prisma.appointment.update({
+        where: { id: appointment.id },
+        data: { scheduledAt: minutesFromNow(10) },
+      });
       await appointmentService.checkInAppointment(appointment.id, testUser.id);
 
       await expect(
@@ -415,6 +434,78 @@ describe("Appointment State Machine", () => {
 
       // Cleanup
       await prisma.appointment.delete({ where: { id: appointment.id } });
+    });
+  });
+
+  describe("Timing Rules", () => {
+    const insert = (status: "REQUESTED" | "CONFIRMED" | "CHECKED_IN", scheduledAt: Date) =>
+      prisma.appointment.create({
+        data: {
+          patientId: testPatient.id,
+          providerId: testProvider.id,
+          scheduledAt,
+          duration: 30,
+          type: "FOLLOW_UP",
+          status,
+          reason: "Checkup",
+        },
+      });
+
+    it("should reject confirming an appointment whose start time has passed", async () => {
+      const appointment = await insert("REQUESTED", minutesFromNow(-60));
+      await expect(
+        appointmentService.confirmAppointment(appointment.id, testUser.id)
+      ).rejects.toThrow("can't be confirmed");
+    });
+
+    it("should reject check-in more than an hour before the visit", async () => {
+      const appointment = await insert("CONFIRMED", minutesFromNow(90));
+      await expect(
+        appointmentService.checkInAppointment(appointment.id, testUser.id)
+      ).rejects.toThrow("Check-in opens");
+    });
+
+    it("should reject check-in after the visit has ended", async () => {
+      const appointment = await insert("CONFIRMED", minutesFromNow(-45));
+      await expect(
+        appointmentService.checkInAppointment(appointment.id, testUser.id)
+      ).rejects.toThrow("already ended");
+    });
+
+    it("should reject completing a visit before its start time", async () => {
+      const appointment = await insert("CHECKED_IN", minutesFromNow(30));
+      await expect(
+        appointmentService.completeAppointment(appointment.id, testUser.id)
+      ).rejects.toThrow("before its scheduled start time");
+    });
+
+    it("should reject cancelling a confirmed appointment after its start time", async () => {
+      const appointment = await insert("CONFIRMED", minutesFromNow(-10));
+      await expect(
+        appointmentService.cancelAppointment(appointment.id, "Too late", testUser.id)
+      ).rejects.toThrow("can't be cancelled after its start time");
+    });
+
+    it("should still allow cancelling an unconfirmed request after its start time", async () => {
+      const appointment = await insert("REQUESTED", minutesFromNow(-10));
+      const cancelled = await appointmentService.cancelAppointment(
+        appointment.id,
+        "Request expired",
+        testUser.id
+      );
+      expect(cancelled.status).toBe("CANCELLED");
+    });
+
+    it("should reject rescheduling after the patient has checked in", async () => {
+      const appointment = await insert("CHECKED_IN", minutesFromNow(-5));
+      await expect(
+        appointmentService.rescheduleAppointment(
+          appointment.id,
+          minutesFromNow(24 * 60),
+          undefined,
+          testUser.id
+        )
+      ).rejects.toThrow("can't be rescheduled");
     });
   });
 });

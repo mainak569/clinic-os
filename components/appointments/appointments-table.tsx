@@ -59,6 +59,7 @@ import { CreateAppointmentDialog } from "./create-appointment-dialog";
 import { AppointmentDetailsDialog } from "./appointment-details-dialog";
 import { CancelAppointmentDialog } from "./cancel-appointment-dialog";
 import { NoShowDialog } from "./no-show-dialog";
+import { canPerform, type AppointmentAction } from "@/lib/appointment-rules";
 
 interface AppointmentsTableProps {
   userRole: string;
@@ -165,15 +166,12 @@ export function AppointmentsTable({ userRole, providerId }: AppointmentsTablePro
     }
   };
 
-  const canConfirm = (status: string) => status === "REQUESTED";
-  const canCheckIn = (status: string) => status === "CONFIRMED";
-  const canComplete = (status: string) => status === "CHECKED_IN";
-  const canMarkNoShow = (status: string, scheduledAt: Date) => {
-    return status === "CONFIRMED" && new Date() > new Date(scheduledAt);
-  };
-  const canCancel = (status: string) => {
-    return ["REQUESTED", "CONFIRMED"].includes(status);
-  };
+  // Offer only the actions the server will accept right now: the same status
+  // and clock rules the service enforces (lib/appointment-rules.ts).
+  const can = (
+    action: AppointmentAction,
+    appointment: { status: string; scheduledAt: Date | string; duration: number }
+  ) => canPerform(action, appointment);
 
   if (isLoading && appointments.length === 0) {
     return (
@@ -396,28 +394,28 @@ export function AppointmentsTable({ userRole, providerId }: AppointmentsTablePro
                         </DropdownMenuItem>
                         <DropdownMenuSeparator />
                         
-                        {canConfirm(appointment.status) && (
+                        {can("confirm", appointment) && (
                           <DropdownMenuItem onClick={() => handleConfirm(appointment.id)}>
                             <Check className="mr-2 h-4 w-4" />
                             Confirm
                           </DropdownMenuItem>
                         )}
                         
-                        {canCheckIn(appointment.status) && (
+                        {can("checkIn", appointment) && (
                           <DropdownMenuItem onClick={() => handleCheckIn(appointment.id)}>
                             <UserCheck className="mr-2 h-4 w-4" />
                             Check In
                           </DropdownMenuItem>
                         )}
                         
-                        {canComplete(appointment.status) && (
+                        {can("complete", appointment) && (
                           <DropdownMenuItem onClick={() => handleComplete(appointment.id)}>
                             <CheckCircle className="mr-2 h-4 w-4" />
                             Complete
                           </DropdownMenuItem>
                         )}
                         
-                        {canMarkNoShow(appointment.status, appointment.scheduledAt) && (
+                        {can("noShow", appointment) && (
                           <DropdownMenuItem
                             onClick={() => {
                               setSelectedAppointmentId(appointment.id);
@@ -429,7 +427,7 @@ export function AppointmentsTable({ userRole, providerId }: AppointmentsTablePro
                           </DropdownMenuItem>
                         )}
                         
-                        {canCancel(appointment.status) && (
+                        {can("cancel", appointment) && (
                           <>
                             <DropdownMenuSeparator />
                             <DropdownMenuItem

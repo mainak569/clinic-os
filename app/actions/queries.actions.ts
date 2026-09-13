@@ -38,8 +38,9 @@ export async function getDashboardStats(): Promise<
     const now = new Date();
     const todayStart = startOfDay(now);
     const todayEnd = endOfDay(now);
-    const weekStart = startOfWeek(now);
-    const weekEnd = endOfWeek(now);
+    // Monday-to-Sunday, the same weeks the no-show trend chart uses.
+    const weekStart = startOfWeek(now, { weekStartsOn: 1 });
+    const weekEnd = endOfWeek(now, { weekStartsOn: 1 });
 
     const whereClause =
       session.user.role === "PROVIDER" && session.user.providerId

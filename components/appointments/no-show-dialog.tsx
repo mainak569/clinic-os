@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
@@ -52,10 +52,19 @@ export function NoShowDialog({
     },
   });
 
+  // The table keeps this dialog mounted between rows, and defaultValues only
+  // apply on first mount: reset for the appointment being shown each time.
+  useEffect(() => {
+    if (open) {
+      form.reset({ appointmentId, notes: "" });
+    }
+  }, [open, appointmentId, form]);
+
   const onSubmit = async (data: MarkNoShowInput) => {
     setIsSubmitting(true);
     try {
-      const result = await markAppointmentNoShow(data);
+      // Always submit the appointment this dialog is showing.
+      const result = await markAppointmentNoShow({ ...data, appointmentId });
       if (result.success) {
         toast.success("Appointment marked as no-show");
         form.reset();

@@ -81,7 +81,8 @@ export function BulkAvailabilityForm({ providerId, providerName }: BulkAvailabil
     try {
       // Weekly recurring slots: days + wall-clock times, sent as HH:MM strings.
       const response = await bulkCreateAvailability({
-        providerId: values.providerId,
+        // The prop, not the form value: the form keeps its first provider when the selection changes.
+        providerId,
         daysOfWeek: values.daysOfWeek as any,
         startTime: values.startTime,
         endTime: values.endTime,

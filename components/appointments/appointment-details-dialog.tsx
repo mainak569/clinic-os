@@ -247,7 +247,7 @@ export function AppointmentDetailsDialog({
               appointmentId={appointment.id}
               patientName={`${appointment.patient.firstName} ${appointment.patient.lastName}`}
               appointmentDate={new Date(appointment.scheduledAt)}
-              canEdit={canWriteVisitNote(userRole, providerId, appointment.providerId)}
+              canEdit={canWriteVisitNote(userRole, providerId, appointment.providerId, appointment.status)}
             />
           </TabsContent>
 

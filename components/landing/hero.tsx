@@ -16,16 +16,16 @@ export function Hero() {
           {/* Headline */}
           <h1 className="mb-6 text-4xl font-bold tracking-tight md:text-6xl lg:text-7xl animate-in fade-in slide-in-from-bottom-4 duration-700 delay-100">
             Modern Healthcare
-            <span className="block bg-gradient-to-r from-purple-400 via-fuchsia-400 to-purple-300 bg-clip-text text-transparent animate-gradient">
+            <span className="block bg-gradient-to-r from-purple-700 via-fuchsia-600 to-purple-600 bg-clip-text text-transparent animate-gradient pb-[0.15em] -mb-[0.15em]">
               Practice Management
             </span>
           </h1>
 
           {/* Subheadline */}
           <p className="mx-auto mb-8 max-w-2xl text-lg text-muted-foreground md:text-xl leading-relaxed animate-in fade-in slide-in-from-bottom-4 duration-700 delay-200">
-            Streamline your healthcare practice with our comprehensive platform.
-            Manage patients, appointments, billing, and records all in one
-            secure, HIPAA-oriented platform.
+            Streamline your healthcare practice. Manage patients, appointments,
+            provider schedules and visit notes in one secure, HIPAA-oriented
+            platform.
           </p>
 
           {/* CTA Buttons */}

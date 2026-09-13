@@ -171,10 +171,16 @@ REQUESTED -> CONFIRMED -> CHECKED_IN -> COMPLETED
 ```
 
 **Rules Enforced**:
-- NO_SHOW only from CONFIRMED after scheduled time
-- CANCELLED only before CHECKED_IN, requires reason
-- COMPLETED only from CHECKED_IN
-- Can't reopen COMPLETED or CANCELLED appointments
+- CONFIRMED only from REQUESTED, and only before the start time
+- CHECKED_IN only from CONFIRMED, from an hour before the start until the visit ends
+- COMPLETED only from CHECKED_IN, after the start time
+- NO_SHOW only from CONFIRMED, after the start time
+- CANCELLED only before CHECKED_IN, with a reason; a CONFIRMED appointment can't be cancelled once it has started (an unconfirmed request can)
+- Rescheduling only while REQUESTED or CONFIRMED
+- Can't reopen COMPLETED, NO_SHOW or CANCELLED appointments
+- A change applies only if the status hasn't changed since it was read, so two people can't both move the same appointment
+
+The timing rules live in `lib/appointment-rules.ts`, shared by the service (which enforces them) and the appointments table (which only offers allowed actions).
 
 **Trade-offs**:
 - More complex than simple status field
@@ -476,6 +482,26 @@ never retries a `success: false` result
 
 **Trade-offs**:
 - Only the first validation issue is surfaced; forms show the rest inline
+
+---
+
+## Decision 17: Animated WebGL Background
+
+**Chose**: One animated "molten metal" background (ogl, WebGL2) on every route, over the existing glass background
+
+**Rejected**:
+- A background animation per page (inconsistent, and more GPU contexts)
+- CSS-only animated gradients (couldn't produce the effect)
+- Keeping the dashboard static (the product owner wanted one look across the app)
+
+**Why**:
+- Gives the product one recognisable look, from the landing page to the dashboard
+- The static glass background stays underneath as the fallback, so nothing breaks without WebGL2
+
+**Trade-offs**:
+- Continuous rendering costs battery and GPU, most noticeably on the dashboard where glass panels blur over it
+- Readability needs care: page headings got darker text with a soft halo, and cards became more opaque
+- Mitigations: pauses when the tab is hidden, renders at reduced resolution, and shows a single still frame for reduced motion
 
 ---
 

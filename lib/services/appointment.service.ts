@@ -1,15 +1,17 @@
 import { prisma } from "@/lib/prisma";
+import { Prisma } from "@prisma/client";
 import type {
   Appointment,
   AppointmentStatus,
   AppointmentType,
   HistoryAction,
-  Prisma,
 } from "@prisma/client";
 import {
+  AppointmentError,
   AppointmentNotFoundError,
   InvalidTransitionError,
 } from "@/lib/errors/appointment-errors";
+import { actionBlockedReason, type AppointmentAction } from "@/lib/appointment-rules";
 import { availabilityService } from "./availability.service";
 
 /** Longest visit the booking form allows (matches createAppointmentSchema). */
@@ -130,15 +132,9 @@ export class AppointmentService {
     const appointment = await this.getAppointmentOrThrow(appointmentId);
 
     this.validateTransition(appointment.status, "CONFIRMED");
+    this.assertTiming("confirm", appointment);
 
-    const updated = await prisma.appointment.update({
-      where: { id: appointmentId },
-      data: { status: "CONFIRMED" },
-      include: {
-        patient: true,
-        provider: true,
-      },
-    });
+    const updated = await this.updateIfUnchanged(appointment, { status: "CONFIRMED" });
 
     await this.createHistoryEntry(
       appointmentId,
@@ -162,17 +158,11 @@ export class AppointmentService {
     const appointment = await this.getAppointmentOrThrow(appointmentId);
 
     this.validateTransition(appointment.status, "CHECKED_IN");
+    this.assertTiming("checkIn", appointment);
 
-    const updated = await prisma.appointment.update({
-      where: { id: appointmentId },
-      data: {
-        status: "CHECKED_IN",
-        checkedInAt: new Date(),
-      },
-      include: {
-        patient: true,
-        provider: true,
-      },
+    const updated = await this.updateIfUnchanged(appointment, {
+      status: "CHECKED_IN",
+      checkedInAt: new Date(),
     });
 
     await this.createHistoryEntry(
@@ -197,17 +187,11 @@ export class AppointmentService {
     const appointment = await this.getAppointmentOrThrow(appointmentId);
 
     this.validateTransition(appointment.status, "COMPLETED");
+    this.assertTiming("complete", appointment);
 
-    const updated = await prisma.appointment.update({
-      where: { id: appointmentId },
-      data: {
-        status: "COMPLETED",
-        checkedOutAt: new Date(),
-      },
-      include: {
-        patient: true,
-        provider: true,
-      },
+    const updated = await this.updateIfUnchanged(appointment, {
+      status: "COMPLETED",
+      checkedOutAt: new Date(),
     });
 
     await this.createHistoryEntry(
@@ -236,28 +220,14 @@ export class AppointmentService {
   ): Promise<Appointment> {
     const appointment = await this.getAppointmentOrThrow(appointmentId);
 
-    // Validate status transition
     this.validateTransition(appointment.status, "NO_SHOW");
+    this.assertTiming("noShow", appointment);
 
-    // Validate timing: can only mark NO_SHOW after scheduled time
-    if (new Date() < appointment.scheduledAt) {
-      throw new Error(
-        "Cannot mark appointment as NO_SHOW before the scheduled time"
-      );
-    }
-
-    const updated = await prisma.appointment.update({
-      where: { id: appointmentId },
-      data: {
-        status: "NO_SHOW",
-        notes: notes
-          ? `${appointment.notes || ""}\nNO_SHOW: ${notes}`.trim()
-          : appointment.notes,
-      },
-      include: {
-        patient: true,
-        provider: true,
-      },
+    const updated = await this.updateIfUnchanged(appointment, {
+      status: "NO_SHOW",
+      notes: notes
+        ? `${appointment.notes || ""}\nNO_SHOW: ${notes}`.trim()
+        : appointment.notes,
     });
 
     await this.createHistoryEntry(
@@ -278,6 +248,7 @@ export class AppointmentService {
    * Rules:
    * - Cannot cancel after CHECKED_IN
    * - Cannot cancel if already in terminal state (COMPLETED, NO_SHOW, CANCELLED)
+   * - A CONFIRMED appointment can't be cancelled after its start time
    * - Requires cancellation reason
    */
   async cancelAppointment(
@@ -303,16 +274,11 @@ export class AppointmentService {
       );
     }
 
-    const updated = await prisma.appointment.update({
-      where: { id: appointmentId },
-      data: {
-        status: "CANCELLED",
-        notes: `${appointment.notes || ""}\nCANCELLED: ${cancellationReason}`.trim(),
-      },
-      include: {
-        patient: true,
-        provider: true,
-      },
+    this.assertTiming("cancel", appointment);
+
+    const updated = await this.updateIfUnchanged(appointment, {
+      status: "CANCELLED",
+      notes: `${appointment.notes || ""}\nCANCELLED: ${cancellationReason}`.trim(),
     });
 
     await this.createHistoryEntry(
@@ -331,7 +297,8 @@ export class AppointmentService {
    * Reschedule an appointment
    * 
    * Rules:
-   * - Cannot reschedule if COMPLETED, NO_SHOW, or CANCELLED
+   * - Cannot reschedule if COMPLETED, NO_SHOW, or CANCELLED, or once CHECKED_IN
+   * - The new time can't be in the past; patient and provider must still be bookable
    * - Creates history entry
    */
   async rescheduleAppointment(
@@ -353,7 +320,9 @@ export class AppointmentService {
       );
     }
 
+    this.assertTiming("reschedule", appointment);
     this.assertNotInPast(newScheduledAt);
+    await this.assertBookable(appointment.patientId, appointment.providerId);
 
     // Check provider availability at new time
     const isAvailable = await availabilityService.isProviderAvailable(
@@ -383,19 +352,16 @@ export class AppointmentService {
         );
       }
 
-      return tx.appointment.update({
-        where: { id: appointmentId },
-        data: {
+      return this.updateIfUnchanged(
+        appointment,
+        {
           scheduledAt: newScheduledAt,
           notes: reason
             ? `${appointment.notes || ""}\nRescheduled: ${reason}`.trim()
             : appointment.notes,
         },
-        include: {
-          patient: true,
-          provider: true,
-        },
-      });
+        tx
+      );
     });
 
     await this.createHistoryEntry(
@@ -530,6 +496,43 @@ export class AppointmentService {
 
     if (!validNextStates.includes(newStatus)) {
       throw new InvalidTransitionError(currentStatus, newStatus);
+    }
+  }
+
+  /** Enforce the clock rules in lib/appointment-rules.ts. */
+  private assertTiming(action: AppointmentAction, appointment: Appointment): void {
+    const reason = actionBlockedReason(action, appointment);
+    if (reason) {
+      throw new AppointmentError(reason);
+    }
+  }
+
+  /**
+   * Update only if the appointment is still in the status it was read in.
+   *
+   * Reading, checking and then writing leaves a window where two people act on
+   * the same appointment at once (one cancels while the other checks in).
+   * Filtering the update on the status that was checked closes it: the second
+   * write matches no row and fails instead of overwriting the first.
+   */
+  private async updateIfUnchanged(
+    appointment: Appointment,
+    data: Prisma.AppointmentUpdateInput,
+    client: Prisma.TransactionClient = prisma
+  ) {
+    try {
+      return await client.appointment.update({
+        where: { id: appointment.id, status: appointment.status },
+        data,
+        include: { patient: true, provider: true },
+      });
+    } catch (error) {
+      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2025") {
+        throw new AppointmentError(
+          "This appointment was just changed by someone else. Refresh and try again."
+        );
+      }
+      throw error;
     }
   }
 

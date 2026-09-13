@@ -102,7 +102,7 @@ export function Features() {
           
           <h2 className="mb-6 text-4xl font-bold tracking-tight md:text-5xl lg:text-6xl">
             Complete Healthcare
-            <span className="block bg-gradient-to-r from-purple-400 to-purple-500 bg-clip-text text-transparent">
+            <span className="block bg-gradient-to-r from-purple-700 to-fuchsia-600 bg-clip-text text-transparent">
               Practice Solution
             </span>
           </h2>

@@ -15,7 +15,7 @@ ClinicOS is a healthcare practice management prototype built with Next.js 15, Ty
 - Double-booking is prevented by a per-provider Postgres advisory lock around a duration-aware conflict check, verified with concurrent requests through the Supabase pooler
 - Availability is stored as clinic wall-clock time, so schedules stay correct on a UTC server
 - Provider isolation is enforced server-side in actions, queries and API routes, and covered by unit and integration tests
-- 157 automated tests (102 unit, 55 integration against PostgreSQL)
+- 179 automated tests (117 unit, 62 integration against PostgreSQL)
 
 ## Demo Credentials
 
@@ -40,20 +40,20 @@ A walkthrough of the core flow on freshly seeded data. Run `npm run db:seed` and
 
 2. **Create an appointment** (front desk).
    - URL: http://localhost:3000/dashboard/appointments, then click **New Appointment**.
-   - Patient **Emily Chen**, provider **Dr. Sarah Smith**, a weekday at least two days from today, time **11:00**, duration **30 minutes**, any type, and a reason.
+   - Patient **Emily Chen**, provider **Dr. Sarah Smith**, **today**, a start time **30–50 minutes from now**, duration **30 minutes**, any type, and a reason.
    - Click **Create Appointment**. It appears in the table as **Requested**.
-   - Dr. Smith's seeded availability is Monday–Friday, 9:00–12:00 and 13:00–17:00.
+   - Dr. Smith's seeded availability is Monday–Friday, 9:00–12:00 and 13:00–17:00 (clinic time). The time must be within the next hour because check-in (step 4) opens an hour before the start. If Dr. Smith has no hours in the next hour, add a slot for today on the Schedule page first.
 
 3. **Get blocked from double-booking** (front desk).
    - Same page: click **New Appointment** again.
-   - Patient **James Garcia**, **Dr. Sarah Smith**, the same date, time **11:15**, duration **30 minutes**.
+   - Patient **James Garcia**, **Dr. Sarah Smith**, the same date, **15 minutes after** the first appointment's start, duration **30 minutes**.
    - Click **Create Appointment**. The dialog shows: *"This time slot conflicts with an existing appointment. Please choose a different time."*
-   - 11:15 falls inside the 11:00 visit rather than matching its start time, so this exercises the duration-aware overlap check. Close the dialog.
+   - That start falls inside the first visit rather than matching its start time, so this exercises the duration-aware overlap check. Close the dialog.
 
 4. **Confirm and check in** (front desk).
    - In Emily Chen's row, open the actions menu (**⋯**) and click **Confirm**. The status becomes **Confirmed**.
    - Open **⋯** again and click **Check In**. The status becomes **Checked In**.
-   - Check-in is only offered from Confirmed. The state machine rejects Requested → Checked In.
+   - Check-in is only offered from Confirmed, and only from an hour before the start until the visit ends. The server enforces the same rules: Requested → Checked In is rejected, and so is checking in a day early. **Complete** appears once the start time has passed.
 
 5. **Write a visit note** (Dr. Smith).
    - Sign out, then sign in at http://localhost:3000/login as **Provider 1** (`dr.smith@clinicos.com` / `DrSmith123!`).
@@ -73,13 +73,13 @@ The same paths work on the live deployment, but step 5 needs the build that incl
 | Layer    | Technology | Why |
 | -------- | ---------- | --- |
 | **Frontend** | Next.js 15, React 18, TypeScript 5 | Server Components for performance, type safety, modern React patterns |
-| **UI** | Tailwind CSS, shadcn/ui, Radix UI | Responsive design, accessible components, glassmorphism effects |
+| **UI** | Tailwind CSS, shadcn/ui, Radix UI, ogl | Responsive design, accessible components, glassmorphism over an animated WebGL background |
 | **Backend** | Next.js App Router, Server Actions | Type-safe API, simplified data mutations, edge-ready |
 | **Database** | PostgreSQL (Supabase), Prisma ORM | Type-safe queries, managed hosting, connection pooling |
 | **Auth** | NextAuth.js v5, bcrypt | Flexible auth system, secure password hashing, JWT sessions |
 | **State** | TanStack React Query, React Hook Form | Query client configured app-wide, form validation |
 | **Validation** | Zod | Runtime type checking, schema validation |
-| **Charts** | Recharts | Healthcare analytics and reporting |
+| **Charts** | Recharts | Dashboard bars, donut and area charts, each with a screen-reader table |
 | **Testing** | Jest, ts-jest | Unit and integration testing |
 | **Hosting** | Vercel-ready | Zero-config deployment, daily cron job |
 
@@ -88,15 +88,15 @@ The same paths work on the live deployment, but step 5 needs the build that incl
 | #   | Goal | Status | Notes |
 | --- | ---- | ------ | ----- |
 | 1   | User Authentication & Authorization | Complete | NextAuth.js v5 with JWT sessions, bcrypt hashing, role-based access (PROVIDER, FRONT_DESK), provider data isolation |
-| 2   | Appointment Management System | Complete | State machine (6 states), duration-aware conflict detection, per-provider locking against concurrent double-booking, cancellation/no-show/reschedule tracking |
+| 2   | Appointment Management System | Complete | State machine (6 states), duration-aware conflict detection, per-provider locking against concurrent double-booking, cancellation/no-show/reschedule tracking, time rules for check-in, completion, no-shows and cancellation |
 | 3   | Provider Scheduling & Availability | Complete | Recurring weekly slots stored as clinic wall-clock time, bulk creation, overlap detection, availability checking before booking, provider management (add/edit/deactivate) |
 | 4   | Patient Record Management | Complete | Demographics, medical history, emergency contacts, search by name/email/phone, soft delete with restore on re-registration |
 | 5   | Clinical Documentation (Visit Notes) | Complete | SOAP format, range-checked vital signs, clearable fields, immutable history, amendment system with user attribution |
 | 6   | Alerts & Notifications System | Complete | 24-hour and 1-hour automated alerts, daily Vercel cron (Hobby plan limit), deduplication logic, dismissal tracking |
-| 7   | Analytics Dashboard | Complete | Charts for appointments by provider/status, weekly no-show rates, live counts for today's appointments and check-ins |
+| 7   | Analytics Dashboard | Complete | Appointments by provider (bars) and status (donut), 8-week no-show trend, live counts for today's appointments and check-ins; colour-blind-checked status colours and screen-reader tables |
 | 8   | HIPAA-Oriented Audit Logging | Complete | HIPAA-oriented audit trail (demonstration): patient record views and all changes to patients, appointments, visit notes and providers, with user, IP and user agent. No in-app audit viewer or retention automation |
 | 9   | Security Implementation | Complete | Rate limiting (100 req/min per IP on pages and sign-in), failed sign-in lockout, security headers, Zod validation before writes, server-side provider isolation, 401s from API routes without a session |
-| 10  | Responsive UI & Landing Page | Complete | Glassmorphism design, pricing/about/demo-account sections, sticky navigation, responsive layout |
+| 10  | Responsive UI & Landing Page | Complete | Glassmorphism design over an animated molten background (still frame for reduced motion, static fallback without WebGL2), pricing/about/demo-account sections, sticky navigation, responsive layout |
 
 **Overall Progress**: 10/10 goals completed (100%)
 
@@ -118,6 +118,9 @@ The same paths work on the live deployment, but step 5 needs the build that incl
 - Conflict detection that uses each existing visit's real duration
 - Per-provider database lock so two simultaneous requests can't book the same slot
 - Bookings rejected for past times, archived patients and inactive providers
+- Time rules: confirm only before the start; check in from an hour before until the visit ends; complete and mark no-shows only after the start; a confirmed appointment can't be cancelled once it has started; no rescheduling after check-in
+- A status change only applies if nobody else changed the appointment in the meantime
+- Visit notes only once the patient has checked in
 - Back-to-back appointment support
 
 ### Provider Scheduling
@@ -160,10 +163,11 @@ The same paths work on the live deployment, but step 5 needs the build that incl
 - Appointment times in alerts shown in the clinic's timezone
 
 ### Analytics Dashboard
-- Appointments by provider (bar chart)
-- Appointments by status (pie chart)
-- No-show rate tracking (last 8 weeks)
-- Today's appointments, check-ins and weekly no-shows counted from the database
+- Appointments by provider: horizontal bars with values at the bar ends (front desk only)
+- Appointments by status: donut with a counted legend; hovering a slice or row shows that status in the centre
+- No-show rate over the last 8 weeks: area chart on Monday–Sunday weeks, with the change on the previous week
+- Stat tiles for today's appointments, check-ins, upcoming visits and this week's no-shows, counted from the database on the same Monday–Sunday weeks
+- Status colours checked with a colour-blindness validator; every chart has a screen-reader table
 
 ### Audit Logging
 - HIPAA-oriented audit trail (demonstration purposes)
@@ -183,7 +187,7 @@ The same paths work on the live deployment, but step 5 needs the build that incl
 - Clients get readable messages, never stack traces
 
 ### Responsive Landing Page
-- Modern glassmorphism design
+- Glassmorphism design over an animated WebGL molten background shared by every page
 - Fully responsive (mobile, tablet, desktop)
 - Pricing section with 3 tiers
 - About section with company info
@@ -212,7 +216,7 @@ clinic-os/
 │   ├── patients/          # Patient table and dialogs
 │   ├── provider-management/ # Providers table and form
 │   ├── schedule/          # Schedule views
-│   └── layout/            # Navigation, shared background
+│   └── layout/            # Navigation, glass and animated backgrounds
 ├── lib/
 │   ├── services/          # Business logic layer
 │   ├── validations/       # Zod schemas
@@ -227,8 +231,8 @@ clinic-os/
 ├── scripts/
 │   └── migrate-slot-times.ts # Data migration for availability slot times
 ├── __tests__/
-│   ├── unit/              # Unit tests (102 passing)
-│   └── integration/       # Integration tests (55 passing)
+│   ├── unit/              # Unit tests (117 passing)
+│   └── integration/       # Integration tests (62 passing)
 └── docs/                  # Architecture, decisions, schema
 ```
 
@@ -250,24 +254,25 @@ clinic-os/
 
 ## Testing Status
 
-- **Unit Tests**: 102/102 passing (100%)
+- **Unit Tests**: 117/117 passing (100%)
   - Validation schemas (13 tests)
-  - Appointment service business logic (25 tests)
+  - Appointment service business logic, including timing rules and concurrent changes (31 tests)
   - Authorization helpers (13 tests)
   - Clinic-time conversions (9 tests)
   - Analytics provider isolation (12 tests)
-  - Appointment details view: visit-note permission, history loading, provider isolation (10 tests)
+  - Appointment details view: visit-note permission, history loading, provider isolation (11 tests)
+  - Appointment timing rules shared by the service and the UI (8 tests)
   - API route and cron authentication (11 tests)
   - Alerts and hardening: de-duplication, alert ownership, provider accounts without a linked provider, sign-in lockout (9 tests)
 
-- **Integration Tests**: 55/55 passing (100%)
+- **Integration Tests**: 62/62 passing (100%)
   - Security and unauthorized access (15 tests)
-  - Appointment state machine (12 tests)
+  - Appointment state machine and timing rules (19 tests)
   - Authorization and access control (12 tests)
   - Duplicate booking prevention (10 tests)
   - Appointment workflow (6 tests)
 
-**Total: 157/157 tests passing**
+**Total: 179/179 tests passing**
 
 Unit tests mock the database. Integration tests run against a local PostgreSQL test database (`clinicos_test`) with mocked authentication, never against Supabase.
 
@@ -276,7 +281,7 @@ Unit tests mock the database. Integration tests run against a local PostgreSQL t
 - **Build**: Passes successfully (`npm run build`)
 - **Type checking**: No TypeScript errors (`npx tsc --noEmit`)
 - **Linting**: ESLint passes (`npm run lint`)
-- **Tests**: All 157 tests passing (`npm test`)
+- **Tests**: All 179 tests passing (`npm test`)
 - **Deployment**: Vercel-ready with environment variable template (set `CLINIC_TIMEZONE` and `CRON_SECRET`)
 - **Demo**: Live at [vercel](https://clinic-os-352p.vercel.app/)
 
@@ -301,7 +306,7 @@ Unit tests mock the database. Integration tests run against a local PostgreSQL t
 
 ### Data Integrity
 - No double-booking: overlap detection uses each visit's real duration, and bookings for one provider are serialized with a database lock
-- State machine prevents invalid transitions
+- State machine prevents invalid transitions, and time rules stop check-ins, completions, no-shows and cancellations at the wrong moment
 - Availability checked on the clinic's wall clock, independent of server timezone
 - No bookings in the past, for archived patients, or for inactive providers
 - Deleted patients can be re-registered without unique-constraint errors
@@ -317,7 +322,7 @@ This is a prototype/demonstration project with the following limitations:
 3. **Password Complexity**: Minimum 8 characters for new provider accounts; no complexity rules (bcrypt hashing throughout)
 4. **Session Timeout**: No inactivity timeout (30-day expiry only)
 5. **Rate Limiting**: Memory-based and per server instance (not Redis-backed); API routes other than sign-in aren't rate limited
-6. **Pagination**: Basic implementation, may have performance issues with large datasets (>1000 records)
+6. **Pagination**: Offset-based, newest first by date and time, with no column sorting; may have performance issues with large datasets (>1000 records)
 7. **Search**: Patient name, email or phone; no full-text search capabilities
 8. **File Upload**: Not implemented for visit notes attachments
 9. **Multi-Clinic**: Single clinic deployment only
@@ -327,6 +332,7 @@ This is a prototype/demonstration project with the following limitations:
 13. **Single Timezone**: One clinic timezone per deployment; dashboard "today" counts use the server's day boundaries (UTC on Vercel)
 14. **Alert Cadence**: The Vercel cron runs once a day (Hobby plan limit), so the 1-hour urgent alert only fires if the job runs inside that window
 15. **Error Tracking**: Sentry config files are included, but Sentry isn't initialised
+16. **Animated Background**: The molten WebGL background runs on every page and redraws continuously, so low-end devices may notice battery use or less smooth scrolling on the dashboard. Reduced-motion users get a still frame, and without WebGL2 the static glass background shows instead
 
 ## Time Spent
 
@@ -437,6 +443,7 @@ A full audit compared the Prisma schema, Zod validation, services, server action
 | Providers | No way to add or manage providers outside the seed script | Providers page, service and validated API |
 | Visit notes | No range limits (database overflow errors), fields couldn't be cleared, Decimal vitals couldn't reach the browser | Bounds, nullable updates, serialization |
 | Analytics | A provider's dashboard showed the whole clinic's status breakdown and no-show trend; standalone analytics actions returned clinic-wide data to any signed-in user | Every analytics query filtered by the provider's ID; cross-provider chart front-desk only; provider accounts without a linked provider refused |
+| Appointments | The only time rule was for no-shows: a visit could be checked in days early or completed before it started; two simultaneous status changes could both apply; the cancel and no-show dialogs could act on a previously opened appointment | Shared timing rules enforced by the service and reflected in the actions menu; status-conditional updates; dialogs always act on the selected row |
 | Visit notes | The details dialog hard-coded the note form hidden, so no provider could write a note; the History tab never loaded; any signed-in user could open any appointment's details by id | Form shown to the appointment's own provider; history loaded with safe user fields; provider isolation on the details query |
 | Alerts | De-duplication never matched, so repeat runs duplicated alerts; any user could mark or dismiss another provider's alert by id; times formatted in the server's timezone | De-duplicate on the appointment id; updates scoped to the owner; clinic-timezone formatting |
 | Auth & API | Signed-out API calls returned 500 or 409 "NEXT_REDIRECT"; sign-in revealed deactivated accounts and was never throttled; the cron endpoint was open without a secret | 401 from API routes; one generic sign-in error plus a failed-attempt lockout; `CRON_SECRET` required in production |
@@ -468,7 +475,7 @@ End-to-end TypeScript with Zod runtime validation and Prisma generated types.
 ## Notes for Reviewer
 
 - **Development**: Copy `.env.example` to `.env` and fill it in, then run `npm install`, `npx prisma migrate deploy`, `npm run db:seed` and `npm run dev`
-- **Testing**: All 157 tests passing (102 unit + 55 integration). Integration tests need a local PostgreSQL `clinicos_test` database
+- **Testing**: All 179 tests passing (117 unit + 62 integration). Integration tests need a local PostgreSQL `clinicos_test` database
 - **Build**: Passes successfully, ready for Vercel deployment
 - **Demo Data**: Seed creates 3 users, 2 providers, 5 patients, 5 appointments, 18 availability slots, 1 visit note and 3 alerts
 - **Documentation**: See `/docs` for architecture, decisions, schema details and the development plan

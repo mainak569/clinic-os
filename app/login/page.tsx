@@ -1,5 +1,5 @@
 import { LoginForm } from "@/components/auth/login-form";
-import { GlassBackground } from "@/components/layout/glass-background";
+import { MoltenBackground } from "@/components/layout/molten-background";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ArrowLeft, Heart, ShieldCheck } from "lucide-react";
 import Link from "next/link";
@@ -13,8 +13,8 @@ export const metadata = {
 export default function LoginPage() {
   return (
     <div className="relative flex min-h-screen flex-col items-center justify-center px-4 py-10">
-      {/* Same background as the home page, from one shared component */}
-      <GlassBackground />
+      {/* Same animated background as the home page */}
+      <MoltenBackground />
 
       <Link
         href="/"
@@ -59,7 +59,7 @@ export default function LoginPage() {
         </div>
 
         {/* Footer */}
-        <p className="mx-auto mt-4 flex w-fit items-center gap-2 rounded-full bg-white/50 backdrop-blur-sm px-4 py-2 text-sm text-muted-foreground">
+        <p className="mx-auto mt-4 flex w-fit items-center gap-2 rounded-full bg-white/75 backdrop-blur-sm px-4 py-2 text-sm font-medium text-gray-700 shadow-md">
           <ShieldCheck className="h-4 w-4 text-[#A855F7]" />
           Role-based access with a full audit trail
         </p>

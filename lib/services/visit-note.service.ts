@@ -44,6 +44,18 @@ export class VisitNoteService {
       nextVisitDate?: Date;
     }
   ): Promise<VisitNote> {
+    // A visit can only be documented once the patient has arrived.
+    const appointment = await prisma.appointment.findUnique({
+      where: { id: input.appointmentId },
+      select: { status: true },
+    });
+    if (!appointment) {
+      throw new Error("Appointment not found");
+    }
+    if (!["CHECKED_IN", "COMPLETED"].includes(appointment.status)) {
+      throw new Error("A visit note can be written once the patient has checked in.");
+    }
+
     // Check if visit note already exists for this appointment
     const existing = await prisma.visitNote.findUnique({
       where: { appointmentId: input.appointmentId },

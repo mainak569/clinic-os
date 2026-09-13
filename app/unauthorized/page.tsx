@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import { GlassBackground } from "@/components/layout/glass-background";
+import { MoltenBackground } from "@/components/layout/molten-background";
 import { ShieldAlert } from "lucide-react";
 import Link from "next/link";
 
@@ -11,7 +11,7 @@ export const metadata = {
 export default function UnauthorizedPage() {
   return (
     <div className="relative flex min-h-screen flex-col items-center justify-center px-4">
-      <GlassBackground />
+      <MoltenBackground />
 
       <div className="w-full max-w-md rounded-3xl bg-white/70 backdrop-blur-xl p-8 text-center shadow-2xl">
         <div className="mb-6 flex justify-center">

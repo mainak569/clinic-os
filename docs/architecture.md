@@ -14,6 +14,7 @@ ClinicOS is a healthcare practice management application built with modern web t
 - **Forms**: React Hook Form + Zod validation
 - **State Management**: TanStack React Query 5.102 (server state)
 - **Charts**: Recharts 3.10
+- **Graphics**: ogl (WebGL2) for the animated background
 - **Calendar**: Custom week, month and list views
 
 ### Backend
@@ -97,7 +98,7 @@ components/
 ├── ui/                   # shadcn/ui primitives
 ├── auth/                 # Login form
 ├── landing/              # Landing page sections (hero, features, CTA)
-├── layout/               # Dashboard header, navbar, shared background
+├── layout/               # Dashboard header, navbar, glass background, animated molten background
 ├── providers/            # React context providers (session, React Query)
 ├── appointments/         # Appointment table, dialogs, visit notes
 ├── availability/         # Bulk availability, schedule export
@@ -123,6 +124,7 @@ lib/
 │   └── use-mutation.ts   # Mutation state, toasts; retries network and 5xx failures, never rejected writes
 ├── clinic-time.ts        # Slot time encoding and clinic timezone
 ├── appointment-status.ts # Status labels and colours
+├── appointment-rules.ts  # When each appointment action is allowed (status and clock)
 ├── serialize.ts          # Decimal -> number before data reaches the client
 ├── action-error.ts       # Readable action error messages
 ├── revalidate.ts         # Dashboard-wide revalidation
@@ -319,6 +321,8 @@ The service layer encapsulates business logic and enforces domain rules.
 
 ### AppointmentService (`lib/services/appointment.service.ts`)
 - State machine enforcement (REQUESTED → CONFIRMED → CHECKED_IN → COMPLETED)
+- Time rules for each transition (`lib/appointment-rules.ts`), shared with the appointments table
+- Status-conditional updates, so two concurrent changes can't both apply
 - Availability checking on the clinic wall clock
 - Overlap detection and a per-provider booking lock
 - Guards against past bookings, archived patients and inactive providers
@@ -335,6 +339,7 @@ The service layer encapsulates business logic and enforces domain rules.
 
 ### VisitNoteService (`lib/services/visit-note.service.ts`)
 - History snapshot before every edit
+- Notes only once the appointment is checked in or completed
 - `undefined` leaves a field unchanged, `null` clears it
 
 ### AvailabilityService (`lib/services/availability.service.ts`)
@@ -442,7 +447,8 @@ Server Actions own authorization, input validation and audit logging; services o
 ### Bundle Size
 - Code splitting via Next.js dynamic imports
 - Tree shaking for unused code
-- First Load JS: ~260kB for dashboard
+- The dashboard is the largest route (charts); check the `npm run build` route table for current sizes
+- The animated background pauses while the tab is hidden, renders at reduced resolution, and draws a single frame for reduced motion
 
 ## Deployment Architecture
 

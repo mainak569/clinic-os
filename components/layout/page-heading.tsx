@@ -34,12 +34,12 @@ export function PageHeading({
               <Icon className="h-5 w-5 text-white" />
             </div>
           )}
-          <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">
+          <h1 className="text-2xl font-bold tracking-tight text-gray-950 sm:text-3xl [text-shadow:0_1px_14px_rgba(255,255,255,0.9)]">
             {title}
           </h1>
         </div>
         {description && (
-          <p className="mt-2 max-w-2xl text-sm text-muted-foreground sm:text-base">
+          <p className="mt-2 max-w-2xl text-sm font-medium text-gray-700 sm:text-base [text-shadow:0_1px_10px_rgba(255,255,255,0.95)]">
             {description}
           </p>
         )}

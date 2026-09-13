@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Loader2, AlertTriangle, AlertCircle } from "lucide-react";
@@ -75,13 +75,23 @@ export function CancelAppointmentDialog({
     },
   });
 
+  // defaultValues only apply on first mount, and the table keeps this dialog
+  // mounted between rows. Without resetting, the form kept the first
+  // appointment's id and cancelled (or tried to cancel) the wrong appointment.
+  useEffect(() => {
+    if (open) {
+      form.reset({ appointmentId, cancellationReason: "" });
+      setShowConfirm(false);
+    }
+  }, [open, appointmentId, form]);
+
   const onSubmit = async () => {
     setShowConfirm(true);
   };
 
   const handleConfirmedCancel = async () => {
-    const data = form.getValues();
-    await cancelMutation.mutate(data);
+    // Always submit the appointment this dialog is showing.
+    await cancelMutation.mutate({ ...form.getValues(), appointmentId });
   };
 
   return (

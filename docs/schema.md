@@ -556,7 +556,7 @@ HIPAA-oriented audit trail (demonstration; not compliance-certified).
    - Appointment → AppointmentHistory
 
 ### Application-Level Constraints
-1. **State Machine**: Appointment status transitions enforced in code
+1. **State Machine**: Appointment status transitions enforced in code, with time rules (check-in from an hour before the start until the visit ends; completion and no-shows only after the start)
 2. **Provider Isolation**: Providers can only access their own data
 3. **Time Validation**: Appointments must fall inside a slot on the clinic's wall clock, and can't start in the past
 4. **Conflict Detection**: Two visits conflict when each starts before the other ends. The check and the insert run under a per-provider advisory lock (`pg_advisory_xact_lock`) so concurrent bookings can't both succeed

@@ -79,22 +79,23 @@ This document tracks how the work was broken down and executed.
   - Jest + ts-jest configuration
   - Test database setup documentation
   - Test utilities and helpers
-  - Integration tests (55):
+  - Integration tests (62):
     - Security and unauthorized access (15 tests, `security-tests.test.ts`)
-    - Appointment state machine (12 tests, `appointment-state-machine.test.ts`)
+    - Appointment state machine and timing rules (19 tests, `appointment-state-machine.test.ts`)
     - Authorization and access control (12 tests, `authorization.test.ts`)
     - Duplicate booking prevention (10 tests, `duplicate-bookings.test.ts`)
     - Appointment workflow (6 tests, `appointment-workflow.test.ts`)
-  - Unit tests (102):
-    - Appointment service (25 tests, `appointment-service.test.ts`)
+  - Unit tests (117):
+    - Appointment service (31 tests, `appointment-service.test.ts`)
     - Validation schemas (13 tests, `validation.test.ts`)
     - Authorization helpers (13 tests, `auth-helpers.test.ts`)
     - Clinic time conversion (9 tests, `clinic-time.test.ts`, added in Session 11)
     - Analytics provider isolation (12 tests, `analytics-scope.test.ts`, added in Session 11)
-    - Appointment details view (10 tests, `appointment-details.test.ts`, added in Session 11)
+    - Appointment details view (11 tests, `appointment-details.test.ts`, added in Session 11)
     - API route and cron authentication (11 tests, `api-auth.test.ts`, added in Session 11)
     - Alerts and hardening (9 tests, `alerts-and-hardening.test.ts`, added in Session 11)
-  - Counts reflect the current suite (157 tests) as reported by `npm test`
+    - Appointment timing rules (8 tests, `appointment-rules.test.ts`, added in Session 11)
+  - Counts reflect the current suite (179 tests) as reported by `npm test`
 
 ### Session 9: Security & Audit
 - **Duration**: ~5 hours
@@ -132,7 +133,9 @@ This document tracks how the work was broken down and executed.
   - Fixed the appointment details dialog: visit notes can be written again, the History tab loads, and other providers' appointments are refused
   - API routes return 401 without a session instead of a 500 or a 409 "NEXT_REDIRECT"
   - Final review: alert de-duplication and ownership, cron secret, sign-in lockout, and removal of stray scripts and invented landing-page figures
-  - Test suite grown from 99 to 157 tests
+  - Appointment time rules (check-in window, completion and no-shows after the start, no cancelling a started confirmed visit), status-conditional updates, and dialogs fixed to act on the selected row
+  - Animated molten WebGL background on every route (static fallback), and redesigned dashboard charts with colour-blind-checked status colours
+  - Test suite grown from 99 to 179 tests
 
 **Total Time**: ~40–44 hours (Sessions 1–10)
 
@@ -204,7 +207,7 @@ This document tracks how the work was broken down and executed.
 8. Raw JSON validation errors, automatic retries of rejected writes, revalidation of non-existent routes
 9. A provider's dashboard showed the whole clinic's status breakdown and no-show trend, and standalone analytics actions returned clinic-wide data
 
-**How it was verified**: 157 automated tests, plus scripted checks against the
+**How it was verified**: 179 automated tests, plus scripted checks against the
 live Supabase database using temporary QA records that were removed afterwards.
 
 ### Phase 5: Documentation (Session 10)
@@ -412,7 +415,7 @@ See [What Are You Least Happy With in This Codebase, and Why?](../SUBMISSION.md#
 
 1. **Core functionality complete**: All essential features work
 2. **Type-safe codebase**: TypeScript + Prisma catch errors early
-3. **Comprehensive tests**: 157 tests (102 unit + 55 integration) across 13 files covering critical paths, including concurrency and timezone handling
+3. **Comprehensive tests**: 179 tests (117 unit + 62 integration) across 14 files covering critical paths, including concurrency and timezone handling
 4. **Clean architecture**: Service layer keeps code organized
 5. **Security conscious**: Audit logging, rate limiting, headers
 6. **Well-documented**: Architecture, decisions, and setup guides
@@ -430,7 +433,7 @@ See [What Are You Least Happy With in This Codebase, and Why?](../SUBMISSION.md#
 
 **Prototype Status**: **Feature-complete as a demonstration**
 
-The system implements the core appointment management workflows end to end, with role-based access, audit logging, and data integrity safeguards (state machine, double-booking protection, timezone-independent availability). It demonstrates healthcare application architecture and HIPAA-oriented design, and is backed by 157 automated tests.
+The system implements the core appointment management workflows end to end, with role-based access, audit logging, and data integrity safeguards (state machine, double-booking protection, timezone-independent availability). It demonstrates healthcare application architecture and HIPAA-oriented design, and is backed by 179 automated tests.
 
 **Production Readiness**: **Not production-ready, and not for use with real patient data.** This is a student/prototype project for educational purposes. It has not undergone HIPAA compliance validation, and it lacks what a clinic would need before handling PHI: session inactivity timeouts, password complexity and MFA, encryption at rest, distributed rate limiting, audit log retention, backup and recovery procedures, and email notifications.
 

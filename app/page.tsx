@@ -5,15 +5,15 @@ import { Button } from "@/components/ui/button";
 import { ArrowRight } from "lucide-react";
 import Link from "next/link";
 import { Navbar } from "@/components/layout/navbar";
-import { GlassBackground } from "@/components/layout/glass-background";
+import { MoltenBackground } from "@/components/layout/molten-background";
 
 export default function HomePage() {
   return (
     <>
       <Navbar />
       <div className="relative min-h-screen">
-      {/* Shared app background — same component every route uses */}
-      <GlassBackground />
+      {/* Animated molten background (landing and login pages only) */}
+      <MoltenBackground />
 
       <Hero />
       <Features />

@@ -68,6 +68,13 @@ describe("canWriteVisitNote", () => {
     expect(canWriteVisitNote("PROVIDER", null, "provider-a")).toBe(false);
     expect(canWriteVisitNote("PROVIDER", "", "")).toBe(false);
   });
+
+  it("only once the patient has checked in", () => {
+    expect(canWriteVisitNote("PROVIDER", "provider-a", "provider-a", "REQUESTED")).toBe(false);
+    expect(canWriteVisitNote("PROVIDER", "provider-a", "provider-a", "CONFIRMED")).toBe(false);
+    expect(canWriteVisitNote("PROVIDER", "provider-a", "provider-a", "CHECKED_IN")).toBe(true);
+    expect(canWriteVisitNote("PROVIDER", "provider-a", "provider-a", "COMPLETED")).toBe(true);
+  });
 });
 
 describe("AppointmentService.getAppointmentDetails", () => {
