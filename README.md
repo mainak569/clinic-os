@@ -4,7 +4,7 @@ A healthcare practice management prototype built with Next.js 15, TypeScript, an
 
 **Note**: This is a student/prototype project for educational purposes. It demonstrates healthcare application architecture and security patterns but is not certified for production use with real patient data.
 
-**Start here:** [SUBMISSION.md](./SUBMISSION.md) has a 5-minute walkthrough of the core flow. The code most worth reading is the per-provider booking lock and duration-aware conflict check (`lib/services/appointment.service.ts`), clinic wall-clock availability (`lib/clinic-time.ts`), and server-side provider isolation with its tests (`__tests__/`).
+**Live demo:** [clinic-os-352p.vercel.app](https://clinic-os-352p.vercel.app/) (demo accounts under [Demo Credentials](#demo-credentials)). The code most worth reading is the per-provider booking lock and duration-aware conflict check (`lib/services/appointment.service.ts`), clinic wall-clock availability (`lib/clinic-time.ts`), and server-side provider isolation with its tests (`__tests__/`).
 
 ## Features
 
@@ -74,6 +74,7 @@ A healthcare practice management prototype built with Next.js 15, TypeScript, an
 
    # Generate with: openssl rand -base64 32
    AUTH_SECRET="your-secret-key"
+   # The app's own URL: http://localhost:3000 locally, https://clinic-os-352p.vercel.app in production
    AUTH_URL="http://localhost:3000"
 
    # Timezone the clinic's opening hours are expressed in (IANA name).
@@ -99,11 +100,11 @@ A healthcare practice management prototype built with Next.js 15, TypeScript, an
 
 6. **Open application**
 
-   Navigate to [http://localhost:3000](http://localhost:3000)
+   Navigate to [http://localhost:3000](http://localhost:3000) for your local copy. The deployed app is at [https://clinic-os-352p.vercel.app](https://clinic-os-352p.vercel.app/).
 
 ### Demo Credentials
 
-After seeding the database, log in with:
+Use these on the [live demo](https://clinic-os-352p.vercel.app/login), or on a local copy after seeding the database:
 
 | Role       | Email                     | Password        |
 | ---------- | ------------------------- | --------------- |

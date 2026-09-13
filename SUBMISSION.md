@@ -19,54 +19,13 @@ ClinicOS is a healthcare practice management prototype built with Next.js 15, Ty
 
 ## Demo Credentials
 
-After running `npm run db:seed`, log in with:
+Sign in on the [live application](https://clinic-os-352p.vercel.app/login), or on a local copy after running `npm run db:seed`, with:
 
 | Role       | Email                   | Password      | Access Level |
 | ---------- | ----------------------- | ------------- | ------------ |
 | FRONT_DESK | frontdesk@clinicos.com  | FrontDesk123! | Full system access |
 | PROVIDER   | dr.smith@clinicos.com   | DrSmith123!   | Own appointments only |
 | PROVIDER   | dr.johnson@clinicos.com | DrJohnson123! | Own appointments only |
-
-## Review This in 5 Minutes
-
-A walkthrough of the core flow on freshly seeded data. Run `npm run db:seed` and `npm run dev`, then follow the steps at `http://localhost:3000`.
-
-> **Timezone:** the booking form reads the time you enter in your browser's timezone, and availability is checked in `CLINIC_TIMEZONE` (default `Asia/Kolkata`). Use a browser in the clinic's timezone, or set `CLINIC_TIMEZONE` to yours before starting the server.
-
-1. **Sign in as front desk.**
-   - URL: http://localhost:3000/login
-   - Account: **Front Desk** (`frontdesk@clinicos.com` / `FrontDesk123!`). Clicking the row under "Demo Credentials" fills the form.
-   - Click **Sign In**. You land on http://localhost:3000/dashboard.
-
-2. **Create an appointment** (front desk).
-   - URL: http://localhost:3000/dashboard/appointments, then click **New Appointment**.
-   - Patient **Emily Chen**, provider **Dr. Sarah Smith**, **today**, a start time **30–50 minutes from now**, duration **30 minutes**, any type, and a reason.
-   - Click **Create Appointment**. It appears in the table as **Requested**.
-   - Dr. Smith's seeded availability is Monday–Friday, 9:00–12:00 and 13:00–17:00 (clinic time). The time must be within the next hour because check-in (step 4) opens an hour before the start. If Dr. Smith has no hours in the next hour, add a slot for today on the Schedule page first.
-
-3. **Get blocked from double-booking** (front desk).
-   - Same page: click **New Appointment** again.
-   - Patient **James Garcia**, **Dr. Sarah Smith**, the same date, **15 minutes after** the first appointment's start, duration **30 minutes**.
-   - Click **Create Appointment**. The dialog shows: *"This time slot conflicts with an existing appointment. Please choose a different time."*
-   - That start falls inside the first visit rather than matching its start time, so this exercises the duration-aware overlap check. Close the dialog.
-
-4. **Confirm and check in** (front desk).
-   - In Emily Chen's row, open the actions menu (**⋯**) and click **Confirm**. The status becomes **Confirmed**.
-   - Open **⋯** again and click **Check In**. The status becomes **Checked In**.
-   - Check-in is only offered from Confirmed, and only from an hour before the start until the visit ends. The server enforces the same rules: Requested → Checked In is rejected, and so is checking in a day early. **Complete** appears once the start time has passed.
-
-5. **Write a visit note** (Dr. Smith).
-   - Sign out, then sign in at http://localhost:3000/login as **Provider 1** (`dr.smith@clinicos.com` / `DrSmith123!`).
-   - URL: http://localhost:3000/dashboard/appointments. On Emily Chen's appointment, open **⋯**, click **View Details**, then the **Visit Note** tab.
-   - Fill in a few SOAP fields (for example Assessment and Plan) and a vital such as Heart Rate, then click **Create Visit Note**.
-   - Only the appointment's own provider gets the form. Front desk sees the tab read-only, and the server refuses notes from anyone else.
-
-6. **View the audit trail** (Dr. Smith, or front desk).
-   - Same dialog, **History** tab: **CREATED**, **CONFIRMED** and **CHECKED IN**, each with a timestamp and who performed it (`frontdesk@clinicos.com`).
-   - **Visit Note** tab: **Edit Note**, then **Save Changes**. This records a version under the note's own **History** tab. Earlier versions are kept, not overwritten.
-   - The full security audit log (every create and update on appointments and visit notes, with user, IP address and user agent) is stored in the `AuditLog` table and has no screen in the app. Run `npm run db:studio` and open **AuditLog** to inspect it.
-
-The same paths work on the live deployment, but step 5 needs the build that includes the visit-note permission fix in `components/appointments/appointment-details-dialog.tsx`.
 
 ## Tech Stack
 
