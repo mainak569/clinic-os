@@ -3,10 +3,11 @@
 import { canAccessProviderData, requireAuth } from "@/lib/auth-helpers";
 import { appointmentService } from "@/lib/services/appointment.service";
 import { prisma } from "@/lib/prisma";
-import { AppointmentStatus } from "@prisma/client";
-import { startOfDay, endOfDay, startOfWeek, endOfWeek } from "date-fns";
+import { startOfClinicDay, endOfClinicDay, startOfClinicWeek, endOfClinicWeek } from "@/lib/clinic-time";
 import { serializeAppointment } from "@/lib/serialize";
 import { actionErrorMessage } from "@/lib/action-error";
+import { escapeLikeWildcards } from "@/lib/db-search";
+import { getAppointmentsSchema, type GetAppointmentsInput } from "@/lib/validations/appointment";
 
 /**
  * Query Actions for Dashboard
@@ -36,11 +37,16 @@ export async function getDashboardStats(): Promise<
     }
 
     const now = new Date();
-    const todayStart = startOfDay(now);
-    const todayEnd = endOfDay(now);
+    // Day/week boundaries on the clinic's clock, not the server's — date-fns'
+    // startOfDay/startOfWeek use the server's own timezone, which is
+    // Asia/Kolkata on a laptop but UTC on Vercel. Without this, "today" and
+    // "this week" silently shift by CLINIC_TIME_ZONE's UTC offset in
+    // production (see AUDIT.md Goal 8 / G8-1).
+    const todayStart = startOfClinicDay(now);
+    const todayEnd = endOfClinicDay(now);
     // Monday-to-Sunday, the same weeks the no-show trend chart uses.
-    const weekStart = startOfWeek(now, { weekStartsOn: 1 });
-    const weekEnd = endOfWeek(now, { weekStartsOn: 1 });
+    const weekStart = startOfClinicWeek(now);
+    const weekEnd = endOfClinicWeek(now);
 
     const whereClause =
       session.user.role === "PROVIDER" && session.user.providerId
@@ -121,15 +127,9 @@ export async function getDashboardStats(): Promise<
 /**
  * Get appointments with filters and pagination
  */
-export async function getAppointments(params: {
-  page?: number;
-  pageSize?: number;
-  search?: string;
-  providerId?: string;
-  status?: AppointmentStatus;
-  startDate?: Date;
-  endDate?: Date;
-}): Promise<
+export async function getAppointments(
+  params: GetAppointmentsInput
+): Promise<
   ActionResult<{
     appointments: any[];
     total: number;
@@ -144,8 +144,11 @@ export async function getAppointments(params: {
       return { success: false, error: "Provider ID not found" };
     }
 
-    const page = params.page || 1;
-    const pageSize = params.pageSize || 10;
+    // page/pageSize come straight from the client; without this an out-of-range
+    // page (0, negative, huge) either silently changed what was returned or
+    // reached Prisma unvalidated and came back as a raw engine error.
+    const validated = getAppointmentsSchema.parse(params);
+    const { page, pageSize } = validated;
     const skip = (page - 1) * pageSize;
 
     // Build where clause
@@ -154,33 +157,35 @@ export async function getAppointments(params: {
     // Role-based filtering
     if (session.user.role === "PROVIDER" && session.user.providerId) {
       whereClause.providerId = session.user.providerId;
-    } else if (params.providerId) {
-      whereClause.providerId = params.providerId;
+    } else if (validated.providerId) {
+      whereClause.providerId = validated.providerId;
     }
 
     // Status filter
-    if (params.status) {
-      whereClause.status = params.status;
+    if (validated.status) {
+      whereClause.status = validated.status;
     }
 
     // Date range filter
-    if (params.startDate || params.endDate) {
+    if (validated.startDate || validated.endDate) {
       whereClause.scheduledAt = {};
-      if (params.startDate) {
-        whereClause.scheduledAt.gte = params.startDate;
+      if (validated.startDate) {
+        whereClause.scheduledAt.gte = validated.startDate;
       }
-      if (params.endDate) {
-        whereClause.scheduledAt.lte = params.endDate;
+      if (validated.endDate) {
+        whereClause.scheduledAt.lte = validated.endDate;
       }
     }
 
-    // Search filter (patient name)
-    if (params.search) {
+    // Search filter (patient name). Escaped so a literal "%" or "_" in the
+    // search box is matched literally rather than as a SQL wildcard.
+    if (validated.search) {
+      const likeSearch = escapeLikeWildcards(validated.search);
       whereClause.patient = {
         OR: [
-          { firstName: { contains: params.search, mode: "insensitive" } },
-          { lastName: { contains: params.search, mode: "insensitive" } },
-          { email: { contains: params.search, mode: "insensitive" } },
+          { firstName: { contains: likeSearch, mode: "insensitive" } },
+          { lastName: { contains: likeSearch, mode: "insensitive" } },
+          { email: { contains: likeSearch, mode: "insensitive" } },
         ],
       };
     }

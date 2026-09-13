@@ -116,3 +116,118 @@ export function formatClinicDateTime(instant: Date | string): string {
     timeStyle: "short",
   }).format(new Date(instant));
 }
+
+/** The clinic's calendar date (Y-M-D) containing `instant`, in `timeZone`. */
+function clinicCalendarDate(
+  instant: Date,
+  timeZone: string
+): { year: number; month: number; day: number } {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(instant);
+  const get = (type: string) => Number(parts.find((p) => p.type === type)?.value);
+  return { year: get("year"), month: get("month"), day: get("day") };
+}
+
+/**
+ * The UTC instant that reads as the given wall-clock date/time in `timeZone`.
+ *
+ * Standard offset-correction technique, needed because there is no timezone
+ * database in the JS runtime beyond what `Intl` exposes: guess the instant by
+ * treating the wall-clock fields as UTC, see what that guess actually reads
+ * as in `timeZone`, and correct by the difference. Works for any zone and
+ * DST, since the offset is read at the guessed instant itself.
+ */
+function zonedWallClockToUtc(
+  year: number,
+  month: number,
+  day: number,
+  hour: number,
+  minute: number,
+  second: number,
+  ms: number,
+  timeZone: string
+): Date {
+  const guess = Date.UTC(year, month - 1, day, hour, minute, second, ms);
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hourCycle: "h23",
+  }).formatToParts(new Date(guess));
+  const get = (type: string) => Number(parts.find((p) => p.type === type)?.value);
+  const readAsUtc = Date.UTC(
+    get("year"),
+    get("month") - 1,
+    get("day"),
+    get("hour"),
+    get("minute"),
+    get("second"),
+    ms
+  );
+  return new Date(guess - (readAsUtc - guess));
+}
+
+/**
+ * Start of "today" (00:00:00.000) on the clinic's clock, as a UTC instant.
+ *
+ * `date-fns`' `startOfDay` operates on the server's own timezone, which is
+ * whatever the host happens to be set to — Asia/Kolkata on a laptop, UTC on
+ * Vercel. Dashboard "today" counts must use the clinic's timezone instead, the
+ * same reason `clinicWallClock` exists for availability slots.
+ */
+export function startOfClinicDay(
+  instant: Date,
+  timeZone: string = CLINIC_TIME_ZONE
+): Date {
+  const { year, month, day } = clinicCalendarDate(instant, timeZone);
+  return zonedWallClockToUtc(year, month, day, 0, 0, 0, 0, timeZone);
+}
+
+/** End of "today" (23:59:59.999) on the clinic's clock, as a UTC instant. */
+export function endOfClinicDay(
+  instant: Date,
+  timeZone: string = CLINIC_TIME_ZONE
+): Date {
+  const { year, month, day } = clinicCalendarDate(instant, timeZone);
+  return zonedWallClockToUtc(year, month, day, 23, 59, 59, 999, timeZone);
+}
+
+const WEEKDAY_INDEX: Record<DayOfWeek, number> = {
+  SUNDAY: 0,
+  MONDAY: 1,
+  TUESDAY: 2,
+  WEDNESDAY: 3,
+  THURSDAY: 4,
+  FRIDAY: 5,
+  SATURDAY: 6,
+};
+
+/** Start of this Monday (00:00:00.000) on the clinic's clock, as a UTC instant. */
+export function startOfClinicWeek(
+  instant: Date,
+  timeZone: string = CLINIC_TIME_ZONE
+): Date {
+  const { dayOfWeek } = clinicWallClock(instant, timeZone);
+  const daysSinceMonday = (WEEKDAY_INDEX[dayOfWeek] + 6) % 7; // Mon=0 .. Sun=6
+  const roughlyMonday = new Date(instant.getTime() - daysSinceMonday * 86_400_000);
+  return startOfClinicDay(roughlyMonday, timeZone);
+}
+
+/** End of this Sunday (23:59:59.999) on the clinic's clock, as a UTC instant. */
+export function endOfClinicWeek(
+  instant: Date,
+  timeZone: string = CLINIC_TIME_ZONE
+): Date {
+  const monday = startOfClinicWeek(instant, timeZone);
+  // A week is never long enough for a DST shift to push this outside Sunday.
+  const roughlySunday = new Date(monday.getTime() + 6 * 86_400_000);
+  return endOfClinicDay(roughlySunday, timeZone);
+}

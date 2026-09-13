@@ -288,56 +288,54 @@ This is a prototype/demonstration project with the following limitations:
 10. **Audit Log Retention**: No automated retention policy or archival system
 11. **Backup/Recovery**: No automated backup system included
 12. **Alert Linking**: Alerts reference appointments through an ID in the message text, not a foreign key
-13. **Single Timezone**: One clinic timezone per deployment; dashboard "today" counts use the server's day boundaries (UTC on Vercel)
+13. **Single Timezone**: One clinic timezone per deployment
 14. **Alert Cadence**: The Vercel cron runs once a day (Hobby plan limit), so the 1-hour urgent alert only fires if the job runs inside that window
 15. **Error Tracking**: Sentry config files are included, but Sentry isn't initialised
 16. **Animated Background**: The molten WebGL background runs on every page and redraws continuously, so low-end devices may notice battery use or less smooth scrolling on the dashboard. Reduced-motion users get a still frame, and without WebGL2 the static glass background shows instead
 
 ## Time Spent
 
-**Total**: Approximately 40-44 hours
+**Total**: Approximately 20-26 hours
 
 Breakdown (matches the sessions in [docs/plan.md](./docs/plan.md)):
-- Foundation, setup and landing page: 3 hours
-- Database and authentication: 5 hours
-- Appointments (state machine, conflict detection): 6 hours
-- Scheduling and availability: 5 hours
-- Visit notes: 4 hours
-- Alerts: 3 hours
-- Analytics dashboard: 4 hours
-- Testing: 6 hours
-- Security and audit logging: 5 hours
-- Polish and documentation: 3 hours
-
-The later UI consistency pass, data-integrity audit and final review weren't timed.
+- Foundation, setup and landing page: 1.5 hours
+- Database and authentication: 2.5 hours
+- Appointments (state machine, conflict detection): 3 hours
+- Scheduling and availability: 2.5 hours
+- Visit notes: 2 hours
+- Alerts: 1.5 hours
+- Analytics dashboard: 2 hours
+- Testing: 3 hours
+- Security and audit logging: 2.5 hours
+- Polish and documentation: 1.5 hours
+- UI consistency pass, data-integrity audit and final review: 4 hours
 
 ## What Would You Do Next, With Another 12 Hours?
 
-### Priority 1: Email Notifications (4 hours)
-- Integrate Resend or SendGrid
-- Email templates for appointment confirmations
-- Alert emails for 24-hour and 1-hour reminders
-- Email queue for reliability
+The priorities come from the gaps the final review found (see Known Limitations), ordered by risk to a real clinic rather than by visual polish.
 
-### Priority 2: Production Hardening (4 hours)
-- Redis-based rate limiting for multi-server
-- Session inactivity timeout (15 minutes)
-- Password complexity requirements (regex validation)
-- Initialise Sentry (the config files exist but aren't wired in) for structured error logging
-- Database query performance optimization
+### Priority 1: Close the remaining security gaps (3 hours)
+- Initialise Sentry (the config files exist but aren't wired in) with PHI scrubbing, and stop logging raw error objects that can contain patient details
+- Add a Content-Security-Policy header
+- Move rate limiting to Redis (Upstash) so it's shared across instances, and extend it to every API route
+- Session inactivity timeout (15 minutes) and password complexity rules for new provider accounts
 
-### Priority 3: Enhanced UX (3 hours)
-- Loading states and skeletons
-- Optimistic updates for faster perceived performance
-- Better error messages and recovery flows
-- Toast notifications for all actions
-- Keyboard shortcuts for power users
+### Priority 2: End-to-end tests and CI (3 hours)
+- Playwright tests for the core flow: sign in, book, get refused a double-booking, confirm, check in, write a visit note, check the History tab
+- Component tests for the appointment dialogs; the cancel and no-show dialogs acting on a previously opened appointment was a bug no unit test could catch
+- GitHub Actions running lint, typecheck, unit tests and integration tests against a Postgres service, on every push
 
-### Priority 4: Additional Features (1 hour)
-- File upload for visit notes attachments
-- Advanced patient search with filters
-- Appointment reminders via SMS
-- Provider calendar synchronization
+### Priority 3: Scheduling correctness (3 hours)
+- A reschedule dialog (the service and rules exist; there's no UI for it yet)
+- An appointments list that shows upcoming visits first, with sortable date and status columns
+- A real foreign key from Alert to Appointment instead of an ID embedded in the message text
+
+### Priority 4: Reminders that reach patients and staff (2 hours)
+- Transactional email (Resend) for 24-hour and 1-hour reminders; alerts are in-app only today
+- Run alert generation hourly (a Vercel paid-plan cron or an external scheduler), since the daily Hobby cron makes the 1-hour alert unreliable
+
+### Priority 5: Audit log viewer (1 hour)
+- A read-only front-desk page for the AuditLog table, filterable by user, record and date, so the audit trail can be inspected without Prisma Studio
 
 ## What Are You Least Happy With in This Codebase, and Why?
 

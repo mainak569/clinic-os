@@ -22,7 +22,7 @@
     "db:push": "prisma db push",
     "db:migrate": "prisma migrate dev",
     "db:seed": "tsx prisma/seed.ts",
-    "db:reset": "prisma migrate reset --force && npm run db:seed",
+    "db:reset": "tsx scripts/guard-destructive-db-op.ts && prisma migrate reset --force && npm run db:seed",
     "db:studio": "prisma studio",
     "delete-availability": "tsx scripts/clear-availability.ts",
     "auth:test": "echo 'Run: npm run dev, then visit http://localhost:3000/login'",

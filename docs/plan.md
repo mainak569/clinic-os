@@ -7,7 +7,7 @@ This document tracks how the work was broken down and executed.
 ## Sessions & Work Breakdown
 
 ### Session 1: Foundation & Setup
-- **Duration**: ~3 hours
+- **Duration**: ~1.5 hours
 - **Work**:
   - Next.js 15 project initialization
   - TypeScript strict mode configuration
@@ -16,7 +16,7 @@ This document tracks how the work was broken down and executed.
   - Project structure planning
 
 ### Session 2: Database & Authentication
-- **Duration**: ~5 hours
+- **Duration**: ~2.5 hours
 - **Work**:
   - Prisma schema design (User, Provider, Patient models)
   - Supabase connection setup
@@ -26,7 +26,7 @@ This document tracks how the work was broken down and executed.
   - Middleware for route protection
 
 ### Session 3: Core Domain - Appointments
-- **Duration**: ~6 hours
+- **Duration**: ~3 hours
 - **Work**:
   - Appointment model and relationships
   - Service layer architecture
@@ -36,7 +36,7 @@ This document tracks how the work was broken down and executed.
   - Business logic (availability checking, conflict detection)
 
 ### Session 4: Scheduling & Availability
-- **Duration**: ~5 hours
+- **Duration**: ~2.5 hours
 - **Work**:
   - AvailabilitySlot model
   - Bulk availability creation
@@ -45,7 +45,7 @@ This document tracks how the work was broken down and executed.
   - Collision detection logic
 
 ### Session 5: Visit Notes & Documentation
-- **Duration**: ~4 hours
+- **Duration**: ~2 hours
 - **Work**:
   - VisitNote model with history tracking
   - SOAP format implementation
@@ -54,7 +54,7 @@ This document tracks how the work was broken down and executed.
   - Edit tracking and audit trail
 
 ### Session 6: Alerts & Notifications
-- **Duration**: ~3 hours
+- **Duration**: ~1.5 hours
 - **Work**:
   - Alert model and service
   - 24-hour appointment reminders
@@ -64,7 +64,7 @@ This document tracks how the work was broken down and executed.
   - Auto-refresh functionality
 
 ### Session 7: Analytics Dashboard
-- **Duration**: ~4 hours
+- **Duration**: ~2 hours
 - **Work**:
   - Analytics service with aggregation queries
   - Recharts integration
@@ -74,7 +74,7 @@ This document tracks how the work was broken down and executed.
   - Dashboard layout
 
 ### Session 8: Testing Suite
-- **Duration**: ~6 hours
+- **Duration**: ~3 hours
 - **Work**:
   - Jest + ts-jest configuration
   - Test database setup documentation
@@ -98,7 +98,7 @@ This document tracks how the work was broken down and executed.
   - Counts reflect the current suite (179 tests) as reported by `npm test`
 
 ### Session 9: Security & Audit
-- **Duration**: ~5 hours
+- **Duration**: ~2.5 hours
 - **Work**:
   - HIPAA audit logging (AuditLog model)
   - Audit service implementation
@@ -109,7 +109,7 @@ This document tracks how the work was broken down and executed.
   - Authorization helpers enhancement
 
 ### Session 10: Polish & Documentation
-- **Duration**: ~3 hours
+- **Duration**: ~1.5 hours
 - **Work**:
   - Code cleanup and refactoring
   - Documentation writing
@@ -119,7 +119,7 @@ This document tracks how the work was broken down and executed.
   - Bug fixes and edge cases
 
 ### Session 11: UI Consistency & Data Integrity Audit
-- **Duration**: not tracked
+- **Duration**: ~4 hours
 - **Work**:
   - Shared dashboard layout and navigation for every protected route
   - One glass design system and one appointment status palette across the app
@@ -137,7 +137,7 @@ This document tracks how the work was broken down and executed.
   - Animated molten WebGL background on every route (static fallback), and redesigned dashboard charts with colour-blind-checked status colours
   - Test suite grown from 99 to 179 tests
 
-**Total Time**: ~40–44 hours (Sessions 1–10)
+**Total Time**: ~20–26 hours (about 22 hours across Sessions 1–10, plus about 4 hours in Session 11)
 
 ## Build Order & Rationale
 
@@ -222,23 +222,23 @@ live Supabase database using temporary QA records that were removed afterwards.
 
 ### What Took Longer Than Expected
 
-1. **NextAuth.js v5 Integration** (Estimated: 2 hours, Actual: 4 hours)
+1. **NextAuth.js v5 Integration** (Estimated: 1 hour, Actual: 2 hours)
    - **Why**: v5 documentation incomplete, had to reference v4 and migrate
    - **Lesson**: Budget extra time for beta/new libraries
 
-2. **State Machine Implementation** (Estimated: 3 hours, Actual: 6 hours)
+2. **State Machine Implementation** (Estimated: 1.5 hours, Actual: 3 hours)
    - **Why**: Many edge cases and business rules
    - **Lesson**: Complex business logic always takes longer than expected
 
-3. **Testing Setup** (Estimated: 2 hours, Actual: 4 hours)
+3. **Testing Setup** (Estimated: 1 hour, Actual: 2 hours)
    - **Why**: Test database configuration and Jest setup challenges
    - **Lesson**: Testing infrastructure is often underestimated
 
-4. **Alert Deduplication** (Estimated: 1 hour, Actual: 3 hours)
+4. **Alert Deduplication** (Estimated: 30 minutes, Actual: 1.5 hours)
    - **Why**: Complex logic to prevent duplicate alerts
    - **Lesson**: "Simple" features often have hidden complexity
 
-5. **Bulk Availability** (Estimated: 2 hours, Actual: 4 hours)
+5. **Bulk Availability** (Estimated: 1 hour, Actual: 2 hours)
    - **Why**: Collision detection and date handling complexity
    - **Lesson**: Date/time logic is always tricky. It stayed tricky: the date-range
      loop created one attempt per calendar date for what are weekly slots, and was
@@ -246,19 +246,19 @@ live Supabase database using temporary QA records that were removed afterwards.
 
 ### What Took Less Time Than Expected
 
-1. **Analytics Dashboard** (Estimated: 8 hours, Actual: 4 hours)
+1. **Analytics Dashboard** (Estimated: 4 hours, Actual: 2 hours)
    - **Why**: Recharts is well-designed, Prisma groupBy is powerful
    - **Lesson**: Good libraries accelerate development
 
-2. **Audit Logging** (Estimated: 8 hours, Actual: 5 hours)
+2. **Audit Logging** (Estimated: 4 hours, Actual: 2 hours)
    - **Why**: Simple model, clear requirements
    - **Lesson**: Well-defined requirements speed up implementation
 
-3. **Security Headers** (Estimated: 2 hours, Actual: 1 hour)
+3. **Security Headers** (Estimated: 1 hour, Actual: 30 minutes)
    - **Why**: Next.js makes it easy to add headers
    - **Lesson**: Some tasks are simpler than they seem
 
-4. **shadcn/ui Integration** (Estimated: 4 hours, Actual: 2 hours)
+4. **shadcn/ui Integration** (Estimated: 2 hours, Actual: 1 hour)
    - **Why**: Copy-paste components, excellent documentation
    - **Lesson**: Good developer experience matters
 

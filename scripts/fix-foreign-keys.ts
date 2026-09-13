@@ -92,6 +92,27 @@ async function checkForeignKeyIntegrity(): Promise<IssueReport> {
   return issues;
 }
 
+/**
+ * `appointments` cascades ON DELETE to `appointment_history` and
+ * `visit_notes` (which itself cascades to `visit_note_history`). Deleting an
+ * orphaned appointment below therefore silently takes its entire audit trail
+ * and any clinical note with it — surface that before it happens, since
+ * nothing else here does.
+ */
+async function warnAboutCascade(appointmentIds: string[]): Promise<void> {
+  const [historyCount, noteCount] = await Promise.all([
+    prisma.appointmentHistory.count({ where: { appointmentId: { in: appointmentIds } } }),
+    prisma.visitNote.count({ where: { appointmentId: { in: appointmentIds } } }),
+  ]);
+  if (historyCount > 0 || noteCount > 0) {
+    console.log(
+      `   ⚠️  This will also cascade-delete ${historyCount} appointment_history row(s)` +
+        (noteCount > 0 ? ` and ${noteCount} visit note(s) (with their edit history)` : "") +
+        `. There is no separate confirmation for this — it happens as part of the appointment delete below.`
+    );
+  }
+}
+
 async function fixIssues(issues: IssueReport): Promise<void> {
   console.log('\n🔧 Fixing issues...\n');
   
@@ -111,10 +132,12 @@ async function fixIssues(issues: IssueReport): Promise<void> {
 
   // Fix 2: Delete appointments with invalid patients
   if (issues.invalidAppointmentPatients.length > 0) {
+    const ids = issues.invalidAppointmentPatients.map(a => a.id);
+    await warnAboutCascade(ids);
     console.log(`\nDeleting ${issues.invalidAppointmentPatients.length} appointments with invalid patients...`);
     const deleteResult = await prisma.appointment.deleteMany({
       where: {
-        id: { in: issues.invalidAppointmentPatients.map(a => a.id) },
+        id: { in: ids },
       },
     });
     console.log(`   ✅ Deleted ${deleteResult.count} appointments`);
@@ -123,10 +146,12 @@ async function fixIssues(issues: IssueReport): Promise<void> {
 
   // Fix 3: Delete appointments with invalid providers
   if (issues.invalidAppointmentProviders.length > 0) {
+    const ids = issues.invalidAppointmentProviders.map(a => a.id);
+    await warnAboutCascade(ids);
     console.log(`\nDeleting ${issues.invalidAppointmentProviders.length} appointments with invalid providers...`);
     const deleteResult = await prisma.appointment.deleteMany({
       where: {
-        id: { in: issues.invalidAppointmentProviders.map(a => a.id) },
+        id: { in: ids },
       },
     });
     console.log(`   ✅ Deleted ${deleteResult.count} appointments`);

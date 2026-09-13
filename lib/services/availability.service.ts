@@ -3,8 +3,13 @@ import type { DayOfWeek, AvailabilitySlot } from "@prisma/client";
 import {
   AvailabilitySlotNotFoundError,
   OverlappingSlotError,
+  SlotHasBookingsError,
 } from "@/lib/errors/appointment-errors";
 import { clinicWallClock, slotMinutes } from "@/lib/clinic-time";
+
+// Appointments in these statuses still need their slot; CANCELLED, NO_SHOW
+// and COMPLETED appointments don't block changing or removing it.
+const OPEN_STATUSES = ["REQUESTED", "CONFIRMED", "CHECKED_IN"] as const;
 
 /**
  * Availability Service Layer
@@ -83,6 +88,18 @@ export class AvailabilityService {
       throw new Error("End time must be after start time");
     }
 
+    // Reject any change (day, narrower hours, or a later start/earlier end)
+    // that would leave an already-booked appointment outside the new window.
+    await this.assertNoBookingsOutsideWindow(
+      existingSlot.providerId,
+      existingSlot.dayOfWeek,
+      existingSlot.startTime,
+      existingSlot.endTime,
+      updatedDayOfWeek,
+      updatedStartTime,
+      updatedEndTime
+    );
+
     // Check for overlapping slots (excluding current slot)
     const hasOverlap = await this.checkForOverlap(
       existingSlot.providerId,
@@ -123,12 +140,44 @@ export class AvailabilityService {
       throw new AvailabilitySlotNotFoundError(slotId);
     }
 
+    await this.assertNoBookedAppointments(
+      slot.providerId,
+      slot.dayOfWeek,
+      slot.startTime,
+      slot.endTime
+    );
+
     const archivedSlot = await prisma.availabilitySlot.update({
       where: { id: slotId },
       data: { isActive: false },
     });
 
     return archivedSlot;
+  }
+
+  /**
+   * Permanently delete an availability slot.
+   *
+   * @throws AvailabilitySlotNotFoundError if slot doesn't exist
+   * @throws SlotHasBookingsError if the slot still has upcoming appointments
+   */
+  async deleteSlot(slotId: string): Promise<void> {
+    const slot = await prisma.availabilitySlot.findUnique({
+      where: { id: slotId },
+    });
+
+    if (!slot) {
+      throw new AvailabilitySlotNotFoundError(slotId);
+    }
+
+    await this.assertNoBookedAppointments(
+      slot.providerId,
+      slot.dayOfWeek,
+      slot.startTime,
+      slot.endTime
+    );
+
+    await prisma.availabilitySlot.delete({ where: { id: slotId } });
   }
 
   /**
@@ -190,6 +239,97 @@ export class AvailabilityService {
     return prisma.availabilitySlot.findUnique({
       where: { id: slotId },
     });
+  }
+
+  /**
+   * Future, still-open appointments booked into [startTime, endTime) of
+   * dayOfWeek for this provider. Recurring slots have no date, so this
+   * matches on the appointment's clinic wall-clock day and time, same as
+   * isProviderAvailable.
+   */
+  private async findBookedAppointmentsInWindow(
+    providerId: string,
+    dayOfWeek: DayOfWeek,
+    startTime: Date,
+    endTime: Date
+  ) {
+    const windowStart = slotMinutes(startTime);
+    const windowEnd = slotMinutes(endTime);
+
+    // Appointments are instants, so pull the provider's future open ones and
+    // filter by clinic wall clock in JS rather than trying to express
+    // timezone-aware day/time extraction in SQL.
+    const candidates = await prisma.appointment.findMany({
+      where: {
+        providerId,
+        status: { in: [...OPEN_STATUSES] },
+        scheduledAt: { gt: new Date() },
+      },
+      select: { id: true, scheduledAt: true, duration: true },
+    });
+
+    return candidates.filter((appt) => {
+      const wall = clinicWallClock(appt.scheduledAt);
+      if (wall.dayOfWeek !== dayOfWeek) return false;
+      const apptStart = wall.minutes;
+      const apptEnd = wall.minutes + appt.duration;
+      return apptStart < windowEnd && apptEnd > windowStart;
+    });
+  }
+
+  /** @throws SlotHasBookingsError if the window has upcoming open appointments. */
+  private async assertNoBookedAppointments(
+    providerId: string,
+    dayOfWeek: DayOfWeek,
+    startTime: Date,
+    endTime: Date
+  ): Promise<void> {
+    const booked = await this.findBookedAppointmentsInWindow(
+      providerId,
+      dayOfWeek,
+      startTime,
+      endTime
+    );
+    if (booked.length > 0) {
+      throw new SlotHasBookingsError(booked.length);
+    }
+  }
+
+  /**
+   * Same as assertNoBookedAppointments, but for an edit: only appointments
+   * that would fall OUTSIDE the new window are a problem. An edit that keeps
+   * (or grows) coverage of every existing booking is allowed.
+   */
+  private async assertNoBookingsOutsideWindow(
+    providerId: string,
+    oldDayOfWeek: DayOfWeek,
+    oldStartTime: Date,
+    oldEndTime: Date,
+    newDayOfWeek: DayOfWeek,
+    newStartTime: Date,
+    newEndTime: Date
+  ): Promise<void> {
+    const currentlyBooked = await this.findBookedAppointmentsInWindow(
+      providerId,
+      oldDayOfWeek,
+      oldStartTime,
+      oldEndTime
+    );
+    if (currentlyBooked.length === 0) return;
+
+    const newStart = slotMinutes(newStartTime);
+    const newEnd = slotMinutes(newEndTime);
+    const orphaned = currentlyBooked.filter((appt) => {
+      const wall = clinicWallClock(appt.scheduledAt);
+      if (wall.dayOfWeek !== newDayOfWeek) return true;
+      const apptStart = wall.minutes;
+      const apptEnd = wall.minutes + appt.duration;
+      return !(apptStart >= newStart && apptEnd <= newEnd);
+    });
+
+    if (orphaned.length > 0) {
+      throw new SlotHasBookingsError(orphaned.length);
+    }
   }
 
   /**

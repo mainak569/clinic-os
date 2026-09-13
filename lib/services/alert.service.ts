@@ -106,23 +106,24 @@ export class AlertService {
   }
 
   /**
-   * Generate urgent alerts for appointments 1 hour away still in REQUESTED status
+   * Generate urgent alerts for REQUESTED appointments starting within the next hour
    */
   async generateUrgentAppointmentAlerts(
     providerId: string
   ): Promise<Alert[]> {
     const now = new Date();
     const oneHourFromNow = addHours(now, 1);
-    const twoHoursFromNow = addHours(now, 2);
 
-    // Find REQUESTED appointments within 1-2 hours
+    // REQUESTED appointments starting within the next hour. The window used to
+    // be 1-2 hours ahead, so the "in 1 hour" alert fired up to 2 hours early
+    // and never for an appointment already inside its last hour.
     const appointments = await prisma.appointment.findMany({
       where: {
         providerId,
         status: "REQUESTED",
         scheduledAt: {
-          gte: oneHourFromNow,
-          lte: twoHoursFromNow,
+          gt: now,
+          lte: oneHourFromNow,
         },
       },
       select: {
@@ -162,7 +163,7 @@ export class AlertService {
             type: "APPOINTMENT_REMINDER",
             priority: "HIGH",
             title: `URGENT: ${appointment.patient.firstName} ${appointment.patient.lastName}`,
-            message: `Appointment in 1 hour (${formatClinicDateTime(appointment.scheduledAt)}) is STILL UNCONFIRMED! Take immediate action. [ID: ${appointment.id}]`,
+            message: `Appointment within the hour (${formatClinicDateTime(appointment.scheduledAt)}) is STILL UNCONFIRMED! Take immediate action. [ID: ${appointment.id}]`,
             expiresAt: appointment.scheduledAt,
           },
         });
@@ -211,43 +212,54 @@ export class AlertService {
       take: 50, // Limit to recent 50 alerts
     });
 
-    // Extract appointment IDs from messages
-    const enrichedAlerts: AppointmentAlert[] = [];
-
+    // Extract appointment IDs from messages, then fetch every appointment in
+    // one query rather than one `findUnique` per alert — this runs on a path
+    // polled every 30s by the header bell for every signed-in provider, so an
+    // N+1 here means N+1 queries on every poll, not just once.
+    const idsByAlert = new Map<string, string>();
     for (const alert of alerts) {
-      // Extract appointment ID from message
       const match = alert.message.match(/\[ID: ([^\]]+)\]/);
-      const appointmentId = match ? match[1] : null;
+      if (match) idsByAlert.set(alert.id, match[1]);
+    }
 
-      if (appointmentId) {
-        const appointment = await prisma.appointment.findUnique({
-          where: { id: appointmentId },
+    const appointments = await prisma.appointment.findMany({
+      where: { id: { in: [...new Set(idsByAlert.values())] } },
+      select: {
+        id: true,
+        scheduledAt: true,
+        status: true,
+        patient: {
           select: {
-            id: true,
-            scheduledAt: true,
-            status: true,
-            patient: {
-              select: {
-                firstName: true,
-                lastName: true,
-              },
-            },
+            firstName: true,
+            lastName: true,
           },
-        });
+        },
+      },
+    });
+    const appointmentById = new Map(appointments.map((a) => [a.id, a]));
 
-        if (appointment) {
-          enrichedAlerts.push({
-            id: alert.id,
-            type: alert.type,
-            priority: alert.priority,
-            title: alert.title,
-            message: alert.message,
-            appointmentId: appointment.id,
-            appointment: appointment as any,
-            createdAt: alert.createdAt,
-            isRead: alert.isRead,
-          });
-        }
+    const enrichedAlerts: AppointmentAlert[] = [];
+    for (const alert of alerts) {
+      const appointmentId = idsByAlert.get(alert.id);
+      if (!appointmentId) continue;
+
+      const appointment = appointmentById.get(appointmentId);
+
+      // An "unconfirmed" alert only means something while the appointment is
+      // still REQUESTED. Once it is confirmed (or cancelled, or otherwise
+      // moved on) the alert stops showing, whoever changed it.
+      if (appointment && appointment.status === "REQUESTED") {
+        enrichedAlerts.push({
+          id: alert.id,
+          type: alert.type,
+          priority: alert.priority,
+          title: alert.title,
+          message: alert.message,
+          appointmentId: appointment.id,
+          appointment: appointment as any,
+          createdAt: alert.createdAt,
+          isRead: alert.isRead,
+        });
       }
     }
 
@@ -304,19 +316,11 @@ export class AlertService {
    * Get unread alert count
    */
   async getUnreadCount(providerId: string): Promise<number> {
-    const now = new Date();
-
-    return prisma.alert.count({
-      where: {
-        providerId,
-        isRead: false,
-        isDismissed: false,
-        OR: [
-          { expiresAt: null },
-          { expiresAt: { gte: now } },
-        ],
-      },
-    });
+    // Counted from the same filtered alerts the list shows. A plain count also
+    // included alerts with no linked appointment, and alerts whose appointment
+    // had already been confirmed, so the badge disagreed with the list.
+    const alerts = await this.getProviderAlerts(providerId, false);
+    return alerts.length;
   }
 
   /**

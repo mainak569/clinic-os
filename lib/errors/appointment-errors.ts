@@ -60,6 +60,16 @@ export class OverlappingSlotError extends AvailabilityError {
   }
 }
 
+export class SlotHasBookingsError extends AvailabilityError {
+  constructor(count: number) {
+    super(
+      count === 1
+        ? "This slot has an upcoming booked appointment. Reschedule or cancel it before changing the slot."
+        : `This slot has ${count} upcoming booked appointments. Reschedule or cancel them before changing the slot.`
+    );
+  }
+}
+
 export class ValidationError extends Error {
   constructor(message: string) {
     super(message);

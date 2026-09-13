@@ -19,6 +19,7 @@ const mockDb = {
   },
   alert: {
     findFirst: jest.fn() as jest.MockedFunction<any>,
+    findMany: jest.fn() as jest.MockedFunction<any>,
     create: jest.fn() as jest.MockedFunction<any>,
     updateMany: jest.fn() as jest.MockedFunction<any>,
   },
@@ -164,5 +165,88 @@ describe("Failed sign-in lockout", () => {
 
     clearFailedLogins(email);
     expect(isLoginBlocked(email)).toBe(false);
+  });
+});
+
+describe("Unconfirmed alerts follow the appointment's status", () => {
+  // Regression for Goal 10: confirming an appointment left its "unconfirmed"
+  // alert in the list, and the badge counted alerts the list didn't show.
+  const alertFor = (appointmentId: string | null, priority = "MEDIUM") => ({
+    id: `alert-${appointmentId ?? "no-id"}`,
+    type: "APPOINTMENT_REMINDER",
+    priority,
+    title: "Unconfirmed: John Davis",
+    message: appointmentId
+      ? `Appointment is still REQUESTED. [ID: ${appointmentId}]`
+      : "Upcoming Appointment",
+    createdAt: new Date("2026-09-13T10:00:00Z"),
+    isRead: false,
+  });
+  const statusOf: Record<string, string> = {
+    "appt-requested": "REQUESTED",
+    "appt-confirmed": "CONFIRMED",
+    "appt-cancelled": "CANCELLED",
+  };
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    mockDb.alert.findMany.mockResolvedValue([
+      alertFor("appt-requested"),
+      alertFor("appt-confirmed", "HIGH"),
+      alertFor("appt-cancelled"),
+      alertFor(null),
+    ]);
+    mockDb.appointment.findMany.mockImplementation(async ({ where }: any) => {
+      const ids: string[] = where?.id?.in ?? [];
+      return ids
+        .filter((id) => statusOf[id])
+        .map((id) => ({
+          id,
+          status: statusOf[id],
+          scheduledAt: new Date(),
+          patient: { firstName: "John", lastName: "Davis" },
+        }));
+    });
+  });
+
+  it("lists only alerts whose appointment is still REQUESTED", async () => {
+    const alerts = await alertService.getProviderAlerts("provider-a");
+    expect(alerts.map((a) => a.appointmentId)).toEqual(["appt-requested"]);
+  });
+
+  it("fetches every linked appointment in one query, not one per alert", async () => {
+    // Regression: this used to call prisma.appointment.findUnique once per
+    // alert, on a path the header bell polls every 30 seconds.
+    await alertService.getProviderAlerts("provider-a");
+
+    expect(mockDb.appointment.findMany).toHaveBeenCalledTimes(1);
+    const where = (mockDb.appointment.findMany.mock.calls[0][0] as any).where;
+    expect(new Set(where.id.in)).toEqual(
+      new Set(["appt-requested", "appt-confirmed", "appt-cancelled"])
+    );
+  });
+
+  it("counts exactly what the list shows, so the badge can't disagree with it", async () => {
+    const [alerts, count] = [
+      await alertService.getProviderAlerts("provider-a"),
+      await alertService.getUnreadCount("provider-a"),
+    ];
+    expect(count).toBe(alerts.length);
+    expect(count).toBe(1);
+  });
+
+  it("creates the urgent alert only for appointments starting within the next hour", async () => {
+    mockDb.appointment.findMany.mockResolvedValue([]);
+    const before = Date.now();
+
+    await alertService.generateUrgentAppointmentAlerts("provider-a");
+
+    const where = (mockDb.appointment.findMany.mock.calls[0][0] as any).where;
+    expect(where.status).toBe("REQUESTED");
+    expect(where.scheduledAt.gte).toBeUndefined();
+    const from = (where.scheduledAt.gt as Date).getTime();
+    const to = (where.scheduledAt.lte as Date).getTime();
+    expect(Math.abs(from - before)).toBeLessThan(5000);
+    expect(to - from).toBe(60 * 60 * 1000);
   });
 });

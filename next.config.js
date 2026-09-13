@@ -6,6 +6,8 @@ const nextConfig = {
   eslint: {
     dirs: ["app", "components", "lib"],
   },
+  // Don't advertise the framework in every response (X-Powered-By: Next.js).
+  poweredByHeader: false,
   // Security headers for production
   async headers() {
     return [

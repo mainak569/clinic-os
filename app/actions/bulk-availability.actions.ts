@@ -248,7 +248,7 @@ export async function getDailySchedule(input: {
  */
 export async function deleteBulkAvailability(
   input: DeleteBulkAvailabilityInput
-): Promise<ActionResult<{ archived: number }>> {
+): Promise<ActionResult<{ archived: number; skipped: Array<{ slotId: string; reason: string }> }>> {
   try {
     await requireAuth();
 

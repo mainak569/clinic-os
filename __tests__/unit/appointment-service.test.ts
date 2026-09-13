@@ -114,13 +114,11 @@ describe("Appointment Service - State Machine", () => {
       });
     });
 
-    it("should not fail the transition when the acting user is missing", async () => {
-      // A stale session after a database reset: history is skipped, but the
-      // appointment still moves. The service warns on this path, so capture
-      // the warning rather than letting it print through the test run.
-      const warn = jest
-        .spyOn(console, "error")
-        .mockImplementation(() => undefined);
+    it("fails the whole transition, not just the history, when the acting user is missing", async () => {
+      // A stale session after a database reset: the acting user no longer
+      // exists. History is part of the transition (see the test above), so
+      // this must fail closed rather than move the appointment with a gap
+      // in its audit trail.
       mockPrismaUserFindUnique.mockResolvedValue(null);
       mockPrismaAppointmentFindUnique.mockResolvedValue({
         id: "appt1",
@@ -131,18 +129,11 @@ describe("Appointment Service - State Machine", () => {
         status: "CONFIRMED",
       });
 
-      const result = await appointmentService.confirmAppointment(
-        "appt1",
-        "ghost-user"
-      );
+      await expect(
+        appointmentService.confirmAppointment("appt1", "ghost-user")
+      ).rejects.toThrow("ghost-user");
 
-      expect(result.status).toBe("CONFIRMED");
       expect(mockPrismaAppointmentHistoryCreate).not.toHaveBeenCalled();
-      expect(warn).toHaveBeenCalledWith(
-        expect.stringContaining("ghost-user")
-      );
-
-      warn.mockRestore();
     });
 
     it("should reject invalid transition from COMPLETED", async () => {

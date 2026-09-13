@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { AppointmentType } from "@prisma/client";
+import { AppointmentType, AppointmentStatus } from "@prisma/client";
 
 /**
  * Appointment Validation Schemas
@@ -36,7 +36,12 @@ export const markNoShowSchema = z.object({
 
 export const cancelAppointmentSchema = z.object({
   appointmentId: z.string().min(1, "Invalid appointment ID"),
-  cancellationReason: z.string().min(1, "Cancellation reason is required").max(500, "Reason too long"),
+  // Trimmed first, so a reason of only spaces counts as missing.
+  cancellationReason: z
+    .string({ error: "Cancellation reason is required" })
+    .trim()
+    .min(1, "Cancellation reason is required")
+    .max(500, "Reason too long"),
 });
 
 export const rescheduleAppointmentSchema = z.object({
@@ -44,6 +49,24 @@ export const rescheduleAppointmentSchema = z.object({
   newScheduledAt: z.coerce.date(),
   reason: z.string().max(500, "Reason too long").optional(),
 });
+
+// ============================================================================
+// GET APPOINTMENTS (search, filter, paginate)
+// ============================================================================
+
+export const getAppointmentsSchema = z.object({
+  page: z.number().int().positive().default(1),
+  pageSize: z.number().int().positive().max(100).default(10),
+  search: z.string().trim().max(200).optional(),
+  providerId: z.string().optional(),
+  status: z.nativeEnum(AppointmentStatus).optional(),
+  startDate: z.coerce.date().optional(),
+  endDate: z.coerce.date().optional(),
+});
+
+// z.input, not z.infer: page/pageSize have defaults, so callers may omit them
+// even though the parsed (output) value always has them.
+export type GetAppointmentsInput = z.input<typeof getAppointmentsSchema>;
 
 export type CreateAppointmentInput = z.infer<typeof createAppointmentSchema>;
 export type ConfirmAppointmentInput = z.infer<typeof confirmAppointmentSchema>;

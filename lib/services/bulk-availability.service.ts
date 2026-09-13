@@ -1,6 +1,8 @@
 import { prisma } from "@/lib/prisma";
+import { Prisma } from "@prisma/client";
 import type { DayOfWeek, AvailabilitySlot } from "@prisma/client";
 import { formatSlotTime } from "@/lib/clinic-time";
+import { availabilityService } from "@/lib/services/availability.service";
 
 /**
  * Bulk Availability Service Layer
@@ -240,25 +242,43 @@ export class BulkAvailabilityService {
   }
 
   /**
-   * Delete bulk availability slots
+   * Delete (archive) bulk availability slots
+   *
+   * Archives each matching slot one at a time through
+   * AvailabilityService.archiveSlot rather than a blind `updateMany`, so a
+   * slot with an upcoming booked appointment is skipped instead of silently
+   * archived out from under it (the same guard a single-slot archive gets —
+   * see the Goal 2 audit finding G2-1).
    */
   async deleteBulkAvailability(input: {
     providerId: string;
     daysOfWeek: DayOfWeek[];
-  }): Promise<{ archived: number }> {
-    // Archive all matching slots
-    const result = await prisma.availabilitySlot.updateMany({
+  }): Promise<{ archived: number; skipped: Array<{ slotId: string; reason: string }> }> {
+    const slots = await prisma.availabilitySlot.findMany({
       where: {
         providerId: input.providerId,
         dayOfWeek: { in: input.daysOfWeek },
         isActive: true,
       },
-      data: {
-        isActive: false,
-      },
+      select: { id: true },
     });
 
-    return { archived: result.count };
+    let archived = 0;
+    const skipped: Array<{ slotId: string; reason: string }> = [];
+
+    for (const slot of slots) {
+      try {
+        await availabilityService.archiveSlot(slot.id);
+        archived++;
+      } catch (error) {
+        skipped.push({
+          slotId: slot.id,
+          reason: error instanceof Error ? error.message : "Unknown error occurred",
+        });
+      }
+    }
+
+    return { archived, skipped };
   }
 
 
@@ -371,7 +391,7 @@ export class BulkAvailabilityService {
     startTime: Date,
     endTime: Date
   ): Promise<void> {
-    await prisma.availabilitySlot.updateMany({
+    const conflicting = await prisma.availabilitySlot.findMany({
       where: {
         providerId,
         dayOfWeek,
@@ -394,10 +414,17 @@ export class BulkAvailabilityService {
           },
         ],
       },
-      data: {
-        isActive: false,
-      },
+      select: { id: true },
     });
+
+    // Same guard a single-slot archive gets (AvailabilityService.archiveSlot
+    // / G2-1): if a conflicting slot still has an upcoming booked
+    // appointment, this throws — the caller (bulkCreateAvailability's
+    // per-day try/catch) turns that into a skipped-day reason instead of
+    // silently archiving a live booking.
+    for (const slot of conflicting) {
+      await availabilityService.archiveSlot(slot.id);
+    }
   }
 
   /**
@@ -409,15 +436,36 @@ export class BulkAvailabilityService {
     startTime: Date,
     endTime: Date
   ): Promise<AvailabilitySlot> {
-    return prisma.availabilitySlot.create({
-      data: {
-        providerId,
-        dayOfWeek,
-        startTime,
-        endTime,
-        isActive: true,
-      },
-    });
+    try {
+      return await prisma.availabilitySlot.create({
+        data: {
+          providerId,
+          dayOfWeek,
+          startTime,
+          endTime,
+          isActive: true,
+        },
+      });
+    } catch (error) {
+      // The (providerId, dayOfWeek, startTime, endTime) unique index still
+      // counts an archived slot, so this collides when an inactive slot
+      // already occupies the exact same day/time — a case checkCollision
+      // doesn't catch, since it only looks at active slots. Restore the
+      // archived slot instead of leaking the raw constraint error into the
+      // caller's "skipped" reason.
+      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
+        const existing = await prisma.availabilitySlot.findFirst({
+          where: { providerId, dayOfWeek, startTime, endTime },
+        });
+        if (existing) {
+          return prisma.availabilitySlot.update({
+            where: { id: existing.id },
+            data: { isActive: true },
+          });
+        }
+      }
+      throw error;
+    }
   }
 
   /**

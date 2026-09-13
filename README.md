@@ -245,7 +245,7 @@ This is a prototype/demonstration project with the following limitations:
 6. **Pagination**: Offset-based, newest first by date and time, with no column sorting. May have performance issues with large datasets (>1000 records)
 7. **Search**: Patients by name, email or phone. No full-text search
 8. **Alert Linking**: Alerts reference their appointment through an ID embedded in the message text rather than a database foreign key
-9. **Single Timezone**: One clinic timezone per deployment. Dashboard "today" counts use the server's day boundaries (UTC on Vercel)
+9. **Single Timezone**: One clinic timezone per deployment
 10. **Alert Cadence**: The Vercel cron in `vercel.json` runs once a day (Hobby plan limit), so the 1-hour urgent alert only fires if the job happens to run inside that window
 11. **Audit Log Retention**: No automated retention policy or archival system
 12. **Multi-Tenancy**: Designed for single clinic use. Multi-clinic support not implemented

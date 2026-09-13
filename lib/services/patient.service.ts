@@ -1,6 +1,7 @@
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import type { Patient, Appointment } from "@prisma/client";
+import { escapeLikeWildcards } from "@/lib/db-search";
 
 /**
  * Patient Service Layer
@@ -286,11 +287,12 @@ export class PatientService {
 
     const query = params.query?.trim();
     if (query) {
+      const likeQuery = escapeLikeWildcards(query);
       whereClause.OR = [
-        { firstName: { contains: query, mode: "insensitive" } },
-        { lastName: { contains: query, mode: "insensitive" } },
-        { email: { contains: query, mode: "insensitive" } },
-        { phone: { contains: query, mode: "insensitive" } },
+        { firstName: { contains: likeQuery, mode: "insensitive" } },
+        { lastName: { contains: likeQuery, mode: "insensitive" } },
+        { email: { contains: likeQuery, mode: "insensitive" } },
+        { phone: { contains: likeQuery, mode: "insensitive" } },
       ];
     }
 

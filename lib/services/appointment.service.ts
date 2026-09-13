@@ -91,7 +91,7 @@ export class AppointmentService {
         );
       }
 
-      return tx.appointment.create({
+      const created = await tx.appointment.create({
         data: {
           patientId: input.patientId,
           providerId: input.providerId,
@@ -107,17 +107,19 @@ export class AppointmentService {
           provider: true,
         },
       });
-    });
 
-    // Create history entry
-    await this.createHistoryEntry(
-      appointment.id,
-      "CREATED",
-      null,
-      "REQUESTED",
-      "Appointment created",
-      performedBy
-    );
+      await this.createHistoryEntry(
+        tx,
+        created.id,
+        "CREATED",
+        null,
+        "REQUESTED",
+        "Appointment created",
+        performedBy
+      );
+
+      return created;
+    });
 
     return appointment;
   }
@@ -134,18 +136,23 @@ export class AppointmentService {
     this.validateTransition(appointment.status, "CONFIRMED");
     this.assertTiming("confirm", appointment);
 
-    const updated = await this.updateIfUnchanged(appointment, { status: "CONFIRMED" });
+    // The status write and its history entry commit or fail together, so a
+    // successful transition can never be missing its audit-trail row.
+    return prisma.$transaction(async (tx) => {
+      const updated = await this.updateIfUnchanged(appointment, { status: "CONFIRMED" }, tx);
 
-    await this.createHistoryEntry(
-      appointmentId,
-      "CONFIRMED",
-      appointment.status,
-      "CONFIRMED",
-      "Appointment confirmed",
-      performedBy
-    );
+      await this.createHistoryEntry(
+        tx,
+        appointmentId,
+        "CONFIRMED",
+        appointment.status,
+        "CONFIRMED",
+        "Appointment confirmed",
+        performedBy
+      );
 
-    return updated;
+      return updated;
+    });
   }
 
   /**
@@ -160,21 +167,25 @@ export class AppointmentService {
     this.validateTransition(appointment.status, "CHECKED_IN");
     this.assertTiming("checkIn", appointment);
 
-    const updated = await this.updateIfUnchanged(appointment, {
-      status: "CHECKED_IN",
-      checkedInAt: new Date(),
+    return prisma.$transaction(async (tx) => {
+      const updated = await this.updateIfUnchanged(
+        appointment,
+        { status: "CHECKED_IN", checkedInAt: new Date() },
+        tx
+      );
+
+      await this.createHistoryEntry(
+        tx,
+        appointmentId,
+        "CHECKED_IN",
+        appointment.status,
+        "CHECKED_IN",
+        "Patient checked in",
+        performedBy
+      );
+
+      return updated;
     });
-
-    await this.createHistoryEntry(
-      appointmentId,
-      "CHECKED_IN",
-      appointment.status,
-      "CHECKED_IN",
-      "Patient checked in",
-      performedBy
-    );
-
-    return updated;
   }
 
   /**
@@ -189,21 +200,25 @@ export class AppointmentService {
     this.validateTransition(appointment.status, "COMPLETED");
     this.assertTiming("complete", appointment);
 
-    const updated = await this.updateIfUnchanged(appointment, {
-      status: "COMPLETED",
-      checkedOutAt: new Date(),
+    return prisma.$transaction(async (tx) => {
+      const updated = await this.updateIfUnchanged(
+        appointment,
+        { status: "COMPLETED", checkedOutAt: new Date() },
+        tx
+      );
+
+      await this.createHistoryEntry(
+        tx,
+        appointmentId,
+        "COMPLETED",
+        appointment.status,
+        "COMPLETED",
+        "Appointment completed",
+        performedBy
+      );
+
+      return updated;
     });
-
-    await this.createHistoryEntry(
-      appointmentId,
-      "COMPLETED",
-      appointment.status,
-      "COMPLETED",
-      "Appointment completed",
-      performedBy
-    );
-
-    return updated;
   }
 
   /**
@@ -223,23 +238,30 @@ export class AppointmentService {
     this.validateTransition(appointment.status, "NO_SHOW");
     this.assertTiming("noShow", appointment);
 
-    const updated = await this.updateIfUnchanged(appointment, {
-      status: "NO_SHOW",
-      notes: notes
-        ? `${appointment.notes || ""}\nNO_SHOW: ${notes}`.trim()
-        : appointment.notes,
+    return prisma.$transaction(async (tx) => {
+      const updated = await this.updateIfUnchanged(
+        appointment,
+        {
+          status: "NO_SHOW",
+          notes: notes
+            ? `${appointment.notes || ""}\nNO_SHOW: ${notes}`.trim()
+            : appointment.notes,
+        },
+        tx
+      );
+
+      await this.createHistoryEntry(
+        tx,
+        appointmentId,
+        "NO_SHOW",
+        appointment.status,
+        "NO_SHOW",
+        notes || "Patient did not show up",
+        performedBy
+      );
+
+      return updated;
     });
-
-    await this.createHistoryEntry(
-      appointmentId,
-      "NO_SHOW",
-      appointment.status,
-      "NO_SHOW",
-      notes || "Patient did not show up",
-      performedBy
-    );
-
-    return updated;
   }
 
   /**
@@ -276,21 +298,28 @@ export class AppointmentService {
 
     this.assertTiming("cancel", appointment);
 
-    const updated = await this.updateIfUnchanged(appointment, {
-      status: "CANCELLED",
-      notes: `${appointment.notes || ""}\nCANCELLED: ${cancellationReason}`.trim(),
+    return prisma.$transaction(async (tx) => {
+      const updated = await this.updateIfUnchanged(
+        appointment,
+        {
+          status: "CANCELLED",
+          notes: `${appointment.notes || ""}\nCANCELLED: ${cancellationReason}`.trim(),
+        },
+        tx
+      );
+
+      await this.createHistoryEntry(
+        tx,
+        appointmentId,
+        "CANCELLED",
+        appointment.status,
+        "CANCELLED",
+        cancellationReason,
+        performedBy
+      );
+
+      return updated;
     });
-
-    await this.createHistoryEntry(
-      appointmentId,
-      "CANCELLED",
-      appointment.status,
-      "CANCELLED",
-      cancellationReason,
-      performedBy
-    );
-
-    return updated;
   }
 
   /**
@@ -337,7 +366,7 @@ export class AppointmentService {
       );
     }
 
-    const updated = await this.withProviderLock(appointment.providerId, async (tx) => {
+    return this.withProviderLock(appointment.providerId, async (tx) => {
       const hasConflict = await this.hasSchedulingConflict(
         appointment.providerId,
         newScheduledAt,
@@ -352,7 +381,7 @@ export class AppointmentService {
         );
       }
 
-      return this.updateIfUnchanged(
+      const updated = await this.updateIfUnchanged(
         appointment,
         {
           scheduledAt: newScheduledAt,
@@ -362,18 +391,19 @@ export class AppointmentService {
         },
         tx
       );
+
+      await this.createHistoryEntry(
+        tx,
+        appointmentId,
+        "RESCHEDULED",
+        appointment.scheduledAt.toISOString(),
+        newScheduledAt.toISOString(),
+        reason || "Appointment rescheduled",
+        performedBy
+      );
+
+      return updated;
     });
-
-    await this.createHistoryEntry(
-      appointmentId,
-      "RESCHEDULED",
-      appointment.scheduledAt.toISOString(),
-      newScheduledAt.toISOString(),
-      reason || "Appointment rescheduled",
-      performedBy
-    );
-
-    return updated;
   }
 
   /**
@@ -554,9 +584,16 @@ export class AppointmentService {
   }
 
   /**
-   * Create appointment history entry
+   * Create an appointment history entry.
+   *
+   * Always called from inside the same transaction as the write it records
+   * (`tx`), and lets errors propagate rather than swallowing them: if this
+   * throws, the transaction rolls back the status/field change too. History
+   * is immutable audit trail, not a best-effort side note — a successful
+   * change must never be left without a matching history row.
    */
   private async createHistoryEntry(
+    tx: Prisma.TransactionClient,
     appointmentId: string,
     action: HistoryAction,
     previousValue: string | null,
@@ -564,35 +601,30 @@ export class AppointmentService {
     notes: string,
     performedBy: string
   ): Promise<void> {
-    try {
-      // Verify the user exists before creating history entry
-      const userExists = await prisma.user.findUnique({
-        where: { id: performedBy },
-        select: { id: true },
-      });
+    // The performer must exist — a stale session referring to a deleted user
+    // (e.g. after a database reset in dev) is a hard error here, not a gap
+    // to paper over silently.
+    const userExists = await tx.user.findUnique({
+      where: { id: performedBy },
+      select: { id: true },
+    });
 
-      if (!userExists) {
-        console.error(`Cannot create appointment history: User ${performedBy} not found in database. This usually happens when the session is stale after a database reset.`);
-        // Still create the appointment but skip history for now
-        // In production, you might want to use a system user ID instead
-        return;
-      }
-
-      await prisma.appointmentHistory.create({
-        data: {
-          appointmentId,
-          action,
-          previousValue,
-          newValue,
-          notes,
-          performedBy,
-        },
-      });
-    } catch (error) {
-      // Log but don't fail the main operation
-      console.error('Failed to create appointment history:', error);
-      // In production, send to error tracking service
+    if (!userExists) {
+      throw new AppointmentError(
+        `Cannot record this change: acting user ${performedBy} no longer exists.`
+      );
     }
+
+    await tx.appointmentHistory.create({
+      data: {
+        appointmentId,
+        action,
+        previousValue,
+        newValue,
+        notes,
+        performedBy,
+      },
+    });
   }
 
   /**

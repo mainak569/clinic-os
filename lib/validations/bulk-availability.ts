@@ -62,7 +62,12 @@ export const exportScheduleSchema = z
   })
   .refine(
     (data) => {
-      const maxMs = 12 * 30 * 24 * 60 * 60 * 1000;
+      // 366, not 12*30 (360): the old 30-day-month approximation refused a
+      // plain calendar year (e.g. Jan 1 - Dec 31, 365 days) with a message
+      // claiming a 12-month limit. 366 covers any real 12 consecutive
+      // calendar months, including one that spans a leap day, while still
+      // capping the range (generateAllDates walks it one day at a time).
+      const maxMs = 366 * 24 * 60 * 60 * 1000;
       return data.endDate.getTime() - data.startDate.getTime() <= maxMs;
     },
     {

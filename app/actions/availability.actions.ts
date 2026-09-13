@@ -14,7 +14,6 @@ import {
   type RestoreAvailabilitySlotInput,
 } from "@/lib/validations/availability";
 import { UnauthorizedAvailabilityAccessError } from "@/lib/errors/appointment-errors";
-import { prisma } from "@/lib/prisma";
 import { timeStringToSlotDate } from "@/lib/clinic-time";
 import { revalidateDashboard } from "@/lib/revalidate";
 import { actionErrorMessage } from "@/lib/action-error";
@@ -141,9 +140,7 @@ export async function deleteAvailabilitySlot(
       throw new UnauthorizedAvailabilityAccessError();
     }
 
-    await prisma.availabilitySlot.delete({
-      where: { id: validatedInput.slotId },
-    });
+    await availabilityService.deleteSlot(validatedInput.slotId);
 
     revalidateDashboard();
 
