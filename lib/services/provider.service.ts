@@ -6,6 +6,7 @@ import type {
   ProviderProfileInput,
   UpdateProviderInput,
 } from "@/lib/validations/provider";
+import { MAX_ACTIVE_PROVIDERS } from "@/lib/validations/provider";
 
 /**
  * Provider Service Layer
@@ -24,7 +25,15 @@ const BCRYPT_ROUNDS = 10;
 const OPEN_STATUSES = ["REQUESTED", "CONFIRMED", "CHECKED_IN"] as const;
 
 const providerInclude = {
-  user: { select: { id: true, email: true, isActive: true, lastLogin: true } },
+  user: {
+    select: {
+      id: true,
+      email: true,
+      isActive: true,
+      lastLogin: true,
+      demoPassword: true,
+    },
+  },
   profile: true,
   _count: { select: { appointments: true, availabilitySlots: true } },
 } satisfies Prisma.ProviderInclude;
@@ -47,39 +56,79 @@ function profileData(profile: ProviderProfileInput) {
 }
 
 function friendlyWriteError(error: unknown): never {
-  if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
-    throw new Error("An account with this email already exists. Use a different email address.");
+  if (
+    error instanceof Prisma.PrismaClientKnownRequestError &&
+    error.code === "P2002"
+  ) {
+    throw new Error(
+      "An account with this email already exists. Use a different email address."
+    );
   }
   throw error;
 }
 
+/**
+ * Swap the stored demo password for a yes/no flag, so provider lists sent to
+ * the browser never carry a readable password.
+ */
+function withLoginFlag<T extends { user: { demoPassword: string | null } }>(
+  provider: T
+) {
+  const { demoPassword, ...user } = provider.user;
+  return { ...provider, user: { ...user, showOnLogin: demoPassword !== null } };
+}
+
+async function assertProviderCapacity(tx: Prisma.TransactionClient) {
+  const active = await tx.provider.count({ where: { isActive: true } });
+  if (active >= MAX_ACTIVE_PROVIDERS) {
+    throw new Error(
+      `The clinic can have at most ${MAX_ACTIVE_PROVIDERS} active providers. Deactivate one before adding or reactivating another.`
+    );
+  }
+}
+
 export class ProviderService {
-  async listProviders({ includeInactive = false }: { includeInactive?: boolean } = {}) {
-    return prisma.provider.findMany({
+  async listProviders({
+    includeInactive = false,
+  }: { includeInactive?: boolean } = {}) {
+    const providers = await prisma.provider.findMany({
       where: includeInactive ? {} : { isActive: true },
       include: providerInclude,
       orderBy: [{ lastName: "asc" }, { firstName: "asc" }],
     });
+    return providers.map(withLoginFlag);
   }
 
   async getProvider(id: string) {
-    return prisma.provider.findUnique({ where: { id }, include: providerInclude });
+    const provider = await prisma.provider.findUnique({
+      where: { id },
+      include: providerInclude,
+    });
+    return provider ? withLoginFlag(provider) : null;
   }
 
   async createProvider(input: CreateProviderInput) {
-    const existing = await prisma.user.findUnique({ where: { email: input.email } });
+    const existing = await prisma.user.findUnique({
+      where: { email: input.email },
+    });
     if (existing) {
-      throw new Error("An account with this email already exists. Use a different email address.");
+      throw new Error(
+        "An account with this email already exists. Use a different email address."
+      );
     }
 
     const passwordHash = await bcrypt.hash(input.password, BCRYPT_ROUNDS);
 
     try {
       return await prisma.$transaction(async (tx) => {
+        await assertProviderCapacity(tx);
+
         const user = await tx.user.create({
           data: {
             email: input.email,
             passwordHash,
+            // Listed on the login page only when front desk asks for it.
+            demoPassword: input.showOnLogin ? input.password : null,
             role: "PROVIDER",
             isActive: true,
           },
@@ -105,18 +154,37 @@ export class ProviderService {
   async updateProvider(input: UpdateProviderInput) {
     const existing = await prisma.provider.findUnique({
       where: { id: input.id },
-      include: { user: { select: { id: true, email: true } } },
+      include: {
+        user: { select: { id: true, email: true, demoPassword: true } },
+      },
     });
     if (!existing) {
       throw new Error("Provider not found");
     }
 
     if (input.email !== existing.user.email) {
-      const taken = await prisma.user.findUnique({ where: { email: input.email } });
+      const taken = await prisma.user.findUnique({
+        where: { email: input.email },
+      });
       if (taken && taken.id !== existing.userId) {
-        throw new Error("An account with this email already exists. Use a different email address.");
+        throw new Error(
+          "An account with this email already exists. Use a different email address."
+        );
       }
     }
+
+    // A listed account shows its password on the login page, so the listing
+    // follows every password change. A password can't be read back from its
+    // hash, so listing an account that isn't listed yet needs a new password.
+    const listed = input.showOnLogin ?? existing.user.demoPassword !== null;
+    if (listed && !input.password && existing.user.demoPassword === null) {
+      throw new Error(
+        "Enter a new password to show this account on the login page. The current password can't be read back."
+      );
+    }
+    const demoPassword = listed
+      ? input.password || existing.user.demoPassword
+      : null;
 
     const passwordHash = input.password
       ? await bcrypt.hash(input.password, BCRYPT_ROUNDS)
@@ -129,6 +197,7 @@ export class ProviderService {
           data: {
             email: input.email,
             ...(passwordHash ? { passwordHash } : {}),
+            demoPassword,
           },
         });
 
@@ -157,7 +226,10 @@ export class ProviderService {
    * who can't sign in to see them.
    */
   async setProviderActive(id: string, isActive: boolean) {
-    const provider = await prisma.provider.findUnique({ where: { id }, select: { userId: true } });
+    const provider = await prisma.provider.findUnique({
+      where: { id },
+      select: { userId: true, isActive: true },
+    });
     if (!provider) {
       throw new Error("Provider not found");
     }
@@ -174,6 +246,11 @@ export class ProviderService {
     }
 
     return prisma.$transaction(async (tx) => {
+      // Reactivating counts toward the limit; an already active provider doesn't.
+      if (isActive && !provider.isActive) {
+        await assertProviderCapacity(tx);
+      }
+
       await tx.user.update({
         where: { id: provider.userId },
         data: { isActive, deletedAt: isActive ? null : new Date() },

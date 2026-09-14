@@ -23,20 +23,17 @@ import {
   type CancelAppointmentInput,
   type RescheduleAppointmentInput,
 } from "@/lib/validations/appointment";
-import {
-  UnauthorizedAppointmentAccessError,
-} from "@/lib/errors/appointment-errors";
+import { UnauthorizedAppointmentAccessError } from "@/lib/errors/appointment-errors";
 
 /**
  * Appointment Server Actions
- * 
+ *
  * Handles authorization and delegates business logic to service layer
  * Returns { success, data?, error? } for client consumption
  */
 
 type ActionResult<T> =
-  | { success: true; data: T }
-  | { success: false; error: string };
+  { success: true; data: T } | { success: false; error: string };
 
 /**
  * Create a new appointment (REQUESTED status)
@@ -57,7 +54,8 @@ export async function createAppointment(
     if (!userExists) {
       return {
         success: false,
-        error: "Your session is outdated. Please log out and log back in to continue.",
+        error:
+          "Your session is outdated. Please log out and log back in to continue.",
       };
     }
 
@@ -109,15 +107,18 @@ export async function createAppointment(
     console.error("createAppointment error:", error);
 
     // Send to Sentry
-    if (typeof window === 'undefined') {
-      const Sentry = await import('@sentry/nextjs');
+    if (typeof window === "undefined") {
+      const Sentry = await import("@sentry/nextjs");
       Sentry.captureException(error, {
         tags: { action: "createAppointment" },
         extra: { providerId: input.providerId },
       });
     }
 
-    return { success: false, error: actionErrorMessage(error, "Failed to create appointment") };
+    return {
+      success: false,
+      error: actionErrorMessage(error, "Failed to create appointment"),
+    };
   }
 }
 
@@ -171,7 +172,10 @@ export async function confirmAppointment(
   } catch (error) {
     console.error("confirmAppointment error:", error);
 
-    return { success: false, error: actionErrorMessage(error, "Failed to confirm appointment") };
+    return {
+      success: false,
+      error: actionErrorMessage(error, "Failed to confirm appointment"),
+    };
   }
 }
 
@@ -225,7 +229,10 @@ export async function checkInAppointment(
   } catch (error) {
     console.error("checkInAppointment error:", error);
 
-    return { success: false, error: actionErrorMessage(error, "Failed to check in appointment") };
+    return {
+      success: false,
+      error: actionErrorMessage(error, "Failed to check in appointment"),
+    };
   }
 }
 
@@ -279,13 +286,16 @@ export async function completeAppointment(
   } catch (error) {
     console.error("completeAppointment error:", error);
 
-    return { success: false, error: actionErrorMessage(error, "Failed to complete appointment") };
+    return {
+      success: false,
+      error: actionErrorMessage(error, "Failed to complete appointment"),
+    };
   }
 }
 
 /**
  * Mark appointment as NO_SHOW (CONFIRMED → NO_SHOW)
- * 
+ *
  * Rules:
  * - Can only mark NO_SHOW from CONFIRMED status
  * - Can only mark NO_SHOW after scheduled time
@@ -327,7 +337,11 @@ export async function markAppointmentNoShow(
       action: "UPDATE",
       resource: "APPOINTMENT",
       resourceId: validatedInput.appointmentId,
-      details: { action: "NO_SHOW", newStatus: "NO_SHOW", notes: validatedInput.notes ?? null },
+      details: {
+        action: "NO_SHOW",
+        newStatus: "NO_SHOW",
+        notes: validatedInput.notes ?? null,
+      },
       ipAddress: headersList.get("x-forwarded-for") ?? null,
       userAgent: headersList.get("user-agent") ?? null,
     });
@@ -338,13 +352,16 @@ export async function markAppointmentNoShow(
   } catch (error) {
     console.error("markAppointmentNoShow error:", error);
 
-    return { success: false, error: actionErrorMessage(error, "Failed to mark appointment as no-show") };
+    return {
+      success: false,
+      error: actionErrorMessage(error, "Failed to mark appointment as no-show"),
+    };
   }
 }
 
 /**
  * Cancel appointment
- * 
+ *
  * Rules:
  * - Cannot cancel after CHECKED_IN
  * - Requires cancellation reason
@@ -386,7 +403,11 @@ export async function cancelAppointment(
       action: "UPDATE",
       resource: "APPOINTMENT",
       resourceId: validatedInput.appointmentId,
-      details: { action: "CANCEL", newStatus: "CANCELLED", reason: validatedInput.cancellationReason },
+      details: {
+        action: "CANCEL",
+        newStatus: "CANCELLED",
+        reason: validatedInput.cancellationReason,
+      },
       ipAddress: headersList.get("x-forwarded-for") ?? null,
       userAgent: headersList.get("user-agent") ?? null,
     });
@@ -397,7 +418,10 @@ export async function cancelAppointment(
   } catch (error) {
     console.error("cancelAppointment error:", error);
 
-    return { success: false, error: actionErrorMessage(error, "Failed to cancel appointment") };
+    return {
+      success: false,
+      error: actionErrorMessage(error, "Failed to cancel appointment"),
+    };
   }
 }
 
@@ -442,7 +466,12 @@ export async function rescheduleAppointment(
       action: "UPDATE",
       resource: "APPOINTMENT",
       resourceId: validatedInput.appointmentId,
-      details: { action: "RESCHEDULE", from: appointment.scheduledAt.toISOString(), to: validatedInput.newScheduledAt.toISOString(), reason: validatedInput.reason ?? null },
+      details: {
+        action: "RESCHEDULE",
+        from: appointment.scheduledAt.toISOString(),
+        to: validatedInput.newScheduledAt.toISOString(),
+        reason: validatedInput.reason ?? null,
+      },
       ipAddress: headersList.get("x-forwarded-for") ?? null,
       userAgent: headersList.get("user-agent") ?? null,
     });
@@ -453,6 +482,9 @@ export async function rescheduleAppointment(
   } catch (error) {
     console.error("rescheduleAppointment error:", error);
 
-    return { success: false, error: actionErrorMessage(error, "Failed to reschedule appointment") };
+    return {
+      success: false,
+      error: actionErrorMessage(error, "Failed to reschedule appointment"),
+    };
   }
 }

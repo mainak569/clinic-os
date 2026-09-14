@@ -10,7 +10,10 @@
  */
 
 import { describe, it, expect, jest, beforeEach } from "@jest/globals";
-import { SlotHasBookingsError, OverlappingSlotError } from "@/lib/errors/appointment-errors";
+import {
+  SlotHasBookingsError,
+  OverlappingSlotError,
+} from "@/lib/errors/appointment-errors";
 
 const mockSlotFindUnique = jest.fn() as jest.MockedFunction<any>;
 const mockSlotFindMany = jest.fn() as jest.MockedFunction<any>;
@@ -36,7 +39,9 @@ import { availabilityService } from "@/lib/services/availability.service";
 
 // A Monday 09:00-12:00 slot (canonical wall-clock encoding, 1970-01-01).
 const SLOT_ID = "slot-1";
-const slot = (overrides: Partial<{ startTime: Date; endTime: Date; dayOfWeek: string }> = {}) => ({
+const slot = (
+  overrides: Partial<{ startTime: Date; endTime: Date; dayOfWeek: string }> = {}
+) => ({
   id: SLOT_ID,
   providerId: "provider-a",
   dayOfWeek: "MONDAY",
@@ -59,7 +64,9 @@ function futureMondayAt(hour: number, minute: number, daysAhead = 14): Date {
   return d;
 }
 
-const bookedAppointment = (overrides: Partial<{ scheduledAt: Date; duration: number }> = {}) => ({
+const bookedAppointment = (
+  overrides: Partial<{ scheduledAt: Date; duration: number }> = {}
+) => ({
   id: "appt-1",
   scheduledAt: futureMondayAt(9, 30),
   duration: 30,
@@ -78,7 +85,9 @@ describe("AvailabilityService: guarding booked slots", () => {
       mockAppointmentFindMany.mockResolvedValue([bookedAppointment()]); // 09:30
 
       await expect(
-        availabilityService.updateSlot(SLOT_ID, { startTime: new Date("1970-01-01T10:00:00Z") })
+        availabilityService.updateSlot(SLOT_ID, {
+          startTime: new Date("1970-01-01T10:00:00Z"),
+        })
       ).rejects.toThrow(SlotHasBookingsError);
 
       expect(mockSlotUpdate).not.toHaveBeenCalled();
@@ -96,7 +105,10 @@ describe("AvailabilityService: guarding booked slots", () => {
     it("allows widening a slot that still covers every existing booking", async () => {
       mockSlotFindUnique.mockResolvedValue(slot());
       mockAppointmentFindMany.mockResolvedValue([bookedAppointment()]); // 09:30
-      mockSlotUpdate.mockResolvedValue({ ...slot(), startTime: new Date("1970-01-01T08:00:00Z") });
+      mockSlotUpdate.mockResolvedValue({
+        ...slot(),
+        startTime: new Date("1970-01-01T08:00:00Z"),
+      });
 
       const result = await availabilityService.updateSlot(SLOT_ID, {
         startTime: new Date("1970-01-01T08:00:00Z"),
@@ -109,7 +121,9 @@ describe("AvailabilityService: guarding booked slots", () => {
     it("allows editing a slot with no bookings", async () => {
       mockSlotFindUnique.mockResolvedValue(slot());
       mockAppointmentFindMany.mockResolvedValue([]);
-      mockSlotUpdate.mockResolvedValue(slot({ startTime: new Date("1970-01-01T10:00:00Z") }));
+      mockSlotUpdate.mockResolvedValue(
+        slot({ startTime: new Date("1970-01-01T10:00:00Z") })
+      );
 
       const result = await availabilityService.updateSlot(SLOT_ID, {
         startTime: new Date("1970-01-01T10:00:00Z"),
@@ -125,10 +139,14 @@ describe("AvailabilityService: guarding booked slots", () => {
       // returning none here simulates a cancelled appointment being filtered
       // out server-side.
       mockAppointmentFindMany.mockResolvedValue([]);
-      mockSlotUpdate.mockResolvedValue(slot({ startTime: new Date("1970-01-01T10:00:00Z") }));
+      mockSlotUpdate.mockResolvedValue(
+        slot({ startTime: new Date("1970-01-01T10:00:00Z") })
+      );
 
       await expect(
-        availabilityService.updateSlot(SLOT_ID, { startTime: new Date("1970-01-01T10:00:00Z") })
+        availabilityService.updateSlot(SLOT_ID, {
+          startTime: new Date("1970-01-01T10:00:00Z"),
+        })
       ).resolves.toBeDefined();
     });
 
@@ -138,7 +156,9 @@ describe("AvailabilityService: guarding booked slots", () => {
       mockSlotFindMany.mockResolvedValue([{ id: "other-slot" }]); // overlap found
 
       await expect(
-        availabilityService.updateSlot(SLOT_ID, { startTime: new Date("1970-01-01T08:00:00Z") })
+        availabilityService.updateSlot(SLOT_ID, {
+          startTime: new Date("1970-01-01T08:00:00Z"),
+        })
       ).rejects.toThrow(OverlappingSlotError);
     });
   });
@@ -148,16 +168,20 @@ describe("AvailabilityService: guarding booked slots", () => {
       mockSlotFindUnique.mockResolvedValue(slot());
       mockAppointmentFindMany.mockResolvedValue([bookedAppointment()]);
 
-      await expect(availabilityService.archiveSlot(SLOT_ID)).rejects.toThrow(SlotHasBookingsError);
+      await expect(availabilityService.archiveSlot(SLOT_ID)).rejects.toThrow(
+        SlotHasBookingsError
+      );
       expect(mockSlotUpdate).not.toHaveBeenCalled();
     });
 
     it("archives a slot with no bookings", async () => {
       mockSlotFindUnique.mockResolvedValue(slot());
       mockAppointmentFindMany.mockResolvedValue([]);
-      mockSlotUpdate.mockResolvedValue(slot({ }));
+      mockSlotUpdate.mockResolvedValue(slot({}));
 
-      await expect(availabilityService.archiveSlot(SLOT_ID)).resolves.toBeDefined();
+      await expect(
+        availabilityService.archiveSlot(SLOT_ID)
+      ).resolves.toBeDefined();
       expect(mockSlotUpdate).toHaveBeenCalledWith({
         where: { id: SLOT_ID },
         data: { isActive: false },
@@ -170,7 +194,9 @@ describe("AvailabilityService: guarding booked slots", () => {
       mockSlotFindUnique.mockResolvedValue(slot());
       mockAppointmentFindMany.mockResolvedValue([bookedAppointment()]);
 
-      await expect(availabilityService.deleteSlot(SLOT_ID)).rejects.toThrow(SlotHasBookingsError);
+      await expect(availabilityService.deleteSlot(SLOT_ID)).rejects.toThrow(
+        SlotHasBookingsError
+      );
       expect(mockSlotDelete).not.toHaveBeenCalled();
     });
 
@@ -179,8 +205,53 @@ describe("AvailabilityService: guarding booked slots", () => {
       mockAppointmentFindMany.mockResolvedValue([]);
       mockSlotDelete.mockResolvedValue(slot());
 
-      await expect(availabilityService.deleteSlot(SLOT_ID)).resolves.toBeUndefined();
+      await expect(
+        availabilityService.deleteSlot(SLOT_ID)
+      ).resolves.toBeUndefined();
       expect(mockSlotDelete).toHaveBeenCalledWith({ where: { id: SLOT_ID } });
     });
+  });
+});
+
+describe("AvailabilityService: describeUnavailability", () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  it("names the requested window and that day's hours, earliest first", async () => {
+    mockSlotFindMany.mockResolvedValue([
+      slot({
+        startTime: new Date("1970-01-01T13:00:00Z"),
+        endTime: new Date("1970-01-01T16:00:00Z"),
+      }),
+      slot({
+        startTime: new Date("1970-01-01T08:00:00Z"),
+        endTime: new Date("1970-01-01T12:00:00Z"),
+      }),
+    ]);
+
+    const message = await availabilityService.describeUnavailability(
+      "provider-a",
+      futureMondayAt(14, 35),
+      90
+    );
+
+    expect(mockSlotFindMany).toHaveBeenCalledWith({
+      where: { providerId: "provider-a", dayOfWeek: "MONDAY", isActive: true },
+    });
+    expect(message).toContain("from 2:35 PM to 4:05 PM");
+    expect(message).toContain("on Mondays (8:00 AM–12:00 PM, 1:00 PM–4:00 PM)");
+  });
+
+  it("says when the provider has no hours on that day", async () => {
+    mockSlotFindMany.mockResolvedValue([]);
+
+    const message = await availabilityService.describeUnavailability(
+      "provider-a",
+      futureMondayAt(10, 0),
+      30
+    );
+
+    expect(message).toContain("no available hours on Mondays");
   });
 });

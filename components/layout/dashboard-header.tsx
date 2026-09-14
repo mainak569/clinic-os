@@ -33,7 +33,12 @@ const NAV: NavItem[] = [
   { href: "/dashboard/appointments", label: "Appointments", icon: Calendar },
   { href: "/dashboard/patients", label: "Patients", icon: Users },
   { href: "/dashboard/schedule", label: "Schedule", icon: Clock },
-  { href: "/dashboard/providers", label: "Providers", icon: Stethoscope, roles: ["FRONT_DESK"] },
+  {
+    href: "/dashboard/providers",
+    label: "Providers",
+    icon: Stethoscope,
+    roles: ["FRONT_DESK"],
+  },
 ];
 
 function isActive(pathname: string, href: string) {
@@ -59,7 +64,9 @@ export function DashboardHeader({
 }) {
   const pathname = usePathname();
   const [open, setOpen] = React.useState(false);
-  const visibleNav = NAV.filter((item) => !item.roles || item.roles.includes(role));
+  const visibleNav = NAV.filter(
+    (item) => !item.roles || item.roles.includes(role)
+  );
 
   React.useEffect(() => setOpen(false), [pathname]);
 
@@ -69,7 +76,7 @@ export function DashboardHeader({
   return (
     <header className="sticky top-4 z-50 px-4">
       <div className="container mx-auto">
-        <div className="flex h-16 items-center justify-between gap-4 rounded-full bg-white/70 backdrop-blur-xl shadow-lg px-4 sm:px-6">
+        <div className="flex h-16 items-center justify-between gap-4 rounded-full bg-white/70 px-4 shadow-lg backdrop-blur-xl sm:px-6">
           {/* Logo */}
           <Link
             href="/dashboard"
@@ -82,7 +89,7 @@ export function DashboardHeader({
           </Link>
 
           {/* Desktop nav */}
-          <nav className="hidden lg:flex items-center gap-1">
+          <nav className="hidden items-center gap-1 lg:flex">
             {visibleNav.map((item) => {
               const active = isActive(pathname, item.href);
               return (
@@ -108,7 +115,7 @@ export function DashboardHeader({
           <div className="flex shrink-0 items-center gap-2 sm:gap-3">
             <AlertsDropdown />
 
-            <div className="hidden xl:flex items-center gap-2 rounded-full bg-white/50 backdrop-blur-sm px-3 py-1.5">
+            <div className="hidden items-center gap-2 rounded-full bg-white/50 px-3 py-1.5 backdrop-blur-sm xl:flex">
               <div className="flex h-7 w-7 items-center justify-center rounded-full bg-[#A855F7]/10 text-xs font-bold text-[#A855F7]">
                 {displayName.charAt(0).toUpperCase()}
               </div>
@@ -120,7 +127,7 @@ export function DashboardHeader({
 
             <button
               onClick={() => signOut({ callbackUrl: "/login" })}
-              className="hidden sm:flex items-center gap-2 rounded-full bg-white/60 px-4 py-2 text-sm font-medium text-gray-700 shadow-md transition-all hover:bg-white/80 hover:text-[#A855F7] hover:shadow-lg"
+              className="hidden items-center gap-2 rounded-full bg-white/60 px-4 py-2 text-sm font-medium text-gray-700 shadow-md transition-all hover:bg-white/80 hover:text-[#A855F7] hover:shadow-lg sm:flex"
             >
               <LogOut className="h-4 w-4" />
               <span className="hidden md:inline">Sign Out</span>
@@ -128,7 +135,7 @@ export function DashboardHeader({
 
             <button
               onClick={() => setOpen((v) => !v)}
-              className="lg:hidden rounded-full bg-white/60 p-2.5 shadow-md transition-all hover:bg-white/80"
+              className="rounded-full bg-white/60 p-2.5 shadow-md transition-all hover:bg-white/80 lg:hidden"
               aria-label="Toggle menu"
               aria-expanded={open}
             >
@@ -143,7 +150,7 @@ export function DashboardHeader({
 
         {/* Mobile nav */}
         {open && (
-          <div className="lg:hidden mt-3 overflow-hidden rounded-3xl bg-white/80 backdrop-blur-xl shadow-2xl animate-in slide-in-from-top-5">
+          <div className="mt-3 overflow-hidden rounded-3xl bg-white/80 shadow-2xl backdrop-blur-xl animate-in slide-in-from-top-5 lg:hidden">
             <div className="space-y-1 p-3">
               {visibleNav.map((item) => {
                 const active = isActive(pathname, item.href);

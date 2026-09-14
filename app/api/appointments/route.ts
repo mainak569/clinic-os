@@ -34,7 +34,13 @@ export async function GET() {
           : {},
       include: {
         patient: {
-          select: { id: true, firstName: true, lastName: true, email: true, phone: true },
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            email: true,
+            phone: true,
+          },
         },
         provider: {
           select: { id: true, firstName: true, lastName: true, title: true },
@@ -49,7 +55,10 @@ export async function GET() {
     });
   } catch (error) {
     console.error("Error fetching appointments:", error);
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 }
+    );
   }
 }
 
@@ -107,7 +116,9 @@ export async function POST(request: Request) {
       userAgent: headersList.get("user-agent") ?? null,
     });
 
-    return NextResponse.json(serializeAppointment(appointment), { status: 201 });
+    return NextResponse.json(serializeAppointment(appointment), {
+      status: 201,
+    });
   } catch (error) {
     if (error instanceof ZodError) {
       return NextResponse.json(
@@ -120,6 +131,9 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: error.message }, { status: 409 });
     }
     console.error("Error creating appointment:", error);
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 }
+    );
   }
 }

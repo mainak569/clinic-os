@@ -41,7 +41,7 @@ import {
 } from "@/components/ui/popover";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { cn } from "@/lib/utils";
-import { formatSlotTime } from "@/lib/clinic-time";
+import { summarizeWeeklyAvailability } from "@/lib/availability-summary";
 
 import { type CreateAppointmentInput } from "@/lib/validations/appointment";
 import { createAppointment } from "@/app/actions/appointment.actions";
@@ -56,8 +56,13 @@ const appointmentFormSchema = z.object({
   appointmentDate: z.date({
     error: "Appointment date is required",
   }),
-  appointmentTime: z.string().regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/, "Time must be in HH:MM format"),
-  duration: z.number().min(15, "Duration must be at least 15 minutes").max(240, "Duration cannot exceed 4 hours"),
+  appointmentTime: z
+    .string()
+    .regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/, "Time must be in HH:MM format"),
+  duration: z
+    .number()
+    .min(15, "Duration must be at least 15 minutes")
+    .max(240, "Duration cannot exceed 4 hours"),
   type: z.nativeEnum(AppointmentType),
   reason: z.string().min(1, "Reason is required").max(500, "Reason too long"),
   notes: z.string().max(1000, "Notes too long").optional(),
@@ -89,7 +94,8 @@ export function CreateAppointmentDialog({
       onOpenChange(false);
     },
     successMessage: "Appointment created successfully",
-    errorMessage: (error) => error || "Failed to create appointment",
+    // The form shows the error beside the Create button; a toast would repeat it.
+    showErrorToast: false,
     retryCount: 2,
   });
 
@@ -113,8 +119,11 @@ export function CreateAppointmentDialog({
       loadPatients();
       // Reset form with current date and time when dialog opens
       const now = new Date();
-      form.setValue('appointmentDate', now);
-      form.setValue('appointmentTime', `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`);
+      form.setValue("appointmentDate", now);
+      form.setValue(
+        "appointmentTime",
+        `${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`
+      );
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
@@ -152,19 +161,25 @@ export function CreateAppointmentDialog({
   const loadProviderSchedule = async (providerId: string) => {
     try {
       const response = await fetch(`/api/providers/${providerId}`);
-      
+
       if (response.ok) {
         const data = await response.json();
-        
+
         if (data.availabilitySlots && data.availabilitySlots.length > 0) {
           // Format availability schedule for display
           const schedule = formatAvailabilitySchedule(data.availabilitySlots);
           setProviderSchedule(schedule);
         } else {
-          setProviderSchedule("No availability configured. Please set up availability on the Schedule page.");
+          setProviderSchedule(
+            "No availability configured. Please set up availability on the Schedule page."
+          );
         }
       } else {
-        console.error('Provider API request failed:', response.status, await response.text());
+        console.error(
+          "Provider API request failed:",
+          response.status,
+          await response.text()
+        );
         setProviderSchedule("Unable to load availability. Please try again.");
       }
     } catch (error) {
@@ -173,41 +188,11 @@ export function CreateAppointmentDialog({
     }
   };
 
+  // One line per set of identical hours, e.g. "Mon–Thu: …", "Fri: …". The old
+  // version printed the first day's hours next to every day.
   const formatAvailabilitySchedule = (slots: any[]): string => {
-    if (!slots || slots.length === 0) return "No availability";
-
-    // Group by day of week
-    const dayGroups: Record<string, { start: string; end: string }[]> = {};
-    
-    slots.forEach((slot: any) => {
-      const day = slot.dayOfWeek;
-      // Slot times are wall-clock values; format them without a timezone.
-      const startTime = formatSlotTime(slot.startTime);
-      const endTime = formatSlotTime(slot.endTime);
-
-      if (!dayGroups[day]) {
-        dayGroups[day] = [];
-      }
-      dayGroups[day].push({ start: startTime, end: endTime });
-    });
-
-    // Format for display
-    const dayOrder = ['MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY', 'SUNDAY'];
-    const lines: string[] = [];
-
-    // Try to find consecutive days with same hours
-    const daysInGroup = Object.keys(dayGroups);
-    if (daysInGroup.length > 0) {
-      // Simple format: just show first day's hours as example
-      const firstDay = dayOrder.find(d => dayGroups[d]);
-      if (firstDay) {
-        const hours = dayGroups[firstDay];
-        const dayNames = dayOrder.filter(d => dayGroups[d]).map(d => d.slice(0, 3)).join(', ');
-        lines.push(`${dayNames}: ${hours.map(h => `${h.start}-${h.end}`).join(', ')}`);
-      }
-    }
-
-    return lines.join('\n') || "No availability";
+    const lines = summarizeWeeklyAvailability(slots ?? []);
+    return lines.length > 0 ? lines.join("\n") : "No availability";
   };
 
   const loadPatients = async () => {
@@ -215,18 +200,27 @@ export function CreateAppointmentDialog({
     // This is a simplified version - in production you'd have proper search
     try {
       const response = await fetch("/api/patients?pageSize=100");
-      
+
       if (!response.ok) {
         const errorText = await response.text();
-        console.error("Failed to fetch patients - HTTP", response.status, errorText);
+        console.error(
+          "Failed to fetch patients - HTTP",
+          response.status,
+          errorText
+        );
         setPatients([]);
         return;
       }
 
       const data = await response.json();
-      
+
       // API returns { patients: [...], total, page, pageSize, totalPages }
-      if (data && typeof data === 'object' && 'patients' in data && Array.isArray(data.patients)) {
+      if (
+        data &&
+        typeof data === "object" &&
+        "patients" in data &&
+        Array.isArray(data.patients)
+      ) {
         setPatients(data.patients);
       } else if (Array.isArray(data)) {
         // Fallback for direct array response
@@ -242,11 +236,10 @@ export function CreateAppointmentDialog({
   };
 
   const onSubmit = async (data: any) => {
-    
     try {
       // Combine appointmentDate and appointmentTime into scheduledAt
-      const [hours, minutes] = data.appointmentTime.split(':').map(Number);
-      
+      const [hours, minutes] = data.appointmentTime.split(":").map(Number);
+
       const scheduledAt = new Date(data.appointmentDate);
       scheduledAt.setHours(hours, minutes, 0, 0);
 
@@ -254,21 +247,24 @@ export function CreateAppointmentDialog({
         patientId: data.patientId,
         providerId: data.providerId,
         scheduledAt: scheduledAt,
-        duration: typeof data.duration === 'number' ? data.duration : parseInt(data.duration, 10),
+        duration:
+          typeof data.duration === "number"
+            ? data.duration
+            : parseInt(data.duration, 10),
         type: data.type,
         reason: data.reason,
         notes: data.notes || "",
       };
-      
+
       await createMutation.mutate(formattedData as CreateAppointmentInput);
     } catch (error) {
-      console.error('Error in onSubmit:', error);
+      console.error("Error in onSubmit:", error);
     }
   };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <CalendarIcon className="h-5 w-5" />
@@ -281,16 +277,6 @@ export function CreateAppointmentDialog({
 
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-            {/* Error Display */}
-            {createMutation.state.isError && (
-              <Alert variant="destructive">
-                <AlertCircle className="h-4 w-4" />
-                <AlertDescription>
-                  {createMutation.state.error}
-                </AlertDescription>
-              </Alert>
-            )}
-
             {/* Patient Selection */}
             <FormField
               control={form.control}
@@ -309,7 +295,8 @@ export function CreateAppointmentDialog({
                         patients.map((patient) => (
                           <SelectItem key={patient.id} value={patient.id}>
                             {patient.firstName} {patient.lastName}
-                            {patient.dateOfBirth && ` - DOB: ${new Date(patient.dateOfBirth).toLocaleDateString()}`}
+                            {patient.dateOfBirth &&
+                              ` - DOB: ${new Date(patient.dateOfBirth).toLocaleDateString()}`}
                           </SelectItem>
                         ))
                       ) : (
@@ -352,7 +339,8 @@ export function CreateAppointmentDialog({
                       {Array.isArray(providers) && providers.length > 0 ? (
                         providers.map((provider) => (
                           <SelectItem key={provider.id} value={provider.id}>
-                            {provider.title} {provider.firstName} {provider.lastName}
+                            {provider.title} {provider.firstName}{" "}
+                            {provider.lastName}
                           </SelectItem>
                         ))
                       ) : (
@@ -368,7 +356,7 @@ export function CreateAppointmentDialog({
                       : "Select the provider for this appointment"}
                   </FormDescription>
                   {providerSchedule && (
-                    <div className="mt-2 rounded-2xl border border-white/60 bg-white/50 backdrop-blur-sm p-3 shadow-sm">
+                    <div className="mt-2 rounded-2xl border border-white/60 bg-white/50 p-3 shadow-sm backdrop-blur-sm">
                       <p className="mb-1 text-sm font-medium text-[#7E22CE]">
                         Available Hours
                       </p>
@@ -410,21 +398,24 @@ export function CreateAppointmentDialog({
                           </Button>
                         </FormControl>
                       </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0 z-[100]" align="start">
+                      <PopoverContent
+                        className="z-[100] w-auto p-0"
+                        align="start"
+                      >
                         <Calendar
                           mode="single"
                           selected={field.value}
                           onSelect={(date) => {
                             field.onChange(date);
                           }}
-                          disabled={(date) => date < new Date(new Date().setHours(0, 0, 0, 0))}
+                          disabled={(date) =>
+                            date < new Date(new Date().setHours(0, 0, 0, 0))
+                          }
                           autoFocus
                         />
                       </PopoverContent>
                     </Popover>
-                    <FormDescription>
-                      Select appointment date
-                    </FormDescription>
+                    <FormDescription>Select appointment date</FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -448,29 +439,37 @@ export function CreateAppointmentDialog({
                           onChange={(e) => {
                             // Keep digits and a single colon, so typing "11:15" by hand
                             // doesn't become "11::1" once the colon is auto-inserted
-                            let value = e.target.value.replace(/[^0-9:]/g, '').replace(/:+/g, ':');
+                            let value = e.target.value
+                              .replace(/[^0-9:]/g, "")
+                              .replace(/:+/g, ":");
 
                             // Auto-insert the colon after the hour, but only while typing
                             // forward, so backspacing past it still works
-                            const typingForward = value.length > (field.value?.length ?? 0);
-                            if (typingForward && value.length === 2 && !value.includes(':')) {
-                              value = value + ':';
+                            const typingForward =
+                              value.length > (field.value?.length ?? 0);
+                            if (
+                              typingForward &&
+                              value.length === 2 &&
+                              !value.includes(":")
+                            ) {
+                              value = value + ":";
                             }
-                            
+
                             field.onChange(value);
                           }}
                           onBlur={(e) => {
                             const value = e.target.value;
                             // Validate HH:MM format
-                            const timeRegex = /^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/;
+                            const timeRegex =
+                              /^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/;
                             if (value && !timeRegex.test(value)) {
                               // Try to fix common formats
-                              const parts = value.split(':');
+                              const parts = value.split(":");
                               if (parts.length === 2) {
                                 const hours = parseInt(parts[0]) || 0;
                                 const minutes = parseInt(parts[1]) || 0;
                                 if (hours <= 23 && minutes <= 59) {
-                                  const formatted = `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
+                                  const formatted = `${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}`;
                                   field.onChange(formatted);
                                   return;
                                 }
@@ -496,7 +495,9 @@ export function CreateAppointmentDialog({
                     <FormItem>
                       <FormLabel>Duration *</FormLabel>
                       <Select
-                        onValueChange={(value) => field.onChange(parseInt(value, 10))}
+                        onValueChange={(value) =>
+                          field.onChange(parseInt(value, 10))
+                        }
                         value={field.value?.toString() || "30"}
                       >
                         <FormControl>
@@ -514,7 +515,7 @@ export function CreateAppointmentDialog({
                         </SelectContent>
                       </Select>
                       <FormDescription>
-                        Minutes
+                        The whole visit must fit in one available slot
                       </FormDescription>
                       <FormMessage />
                     </FormItem>
@@ -593,6 +594,16 @@ export function CreateAppointmentDialog({
               )}
             />
 
+            {/* Error, next to the button that triggered it */}
+            {createMutation.state.isError && (
+              <Alert variant="destructive">
+                <AlertCircle className="h-4 w-4" />
+                <AlertDescription>
+                  {createMutation.state.error}
+                </AlertDescription>
+              </Alert>
+            )}
+
             {/* Actions */}
             <div className="flex justify-end gap-2 pt-4">
               <Button
@@ -607,7 +618,9 @@ export function CreateAppointmentDialog({
                 Cancel
               </Button>
               <Button type="submit" disabled={createMutation.state.isLoading}>
-                {createMutation.state.isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                {createMutation.state.isLoading && (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                )}
                 Create Appointment
               </Button>
             </div>

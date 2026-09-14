@@ -1,6 +1,6 @@
 /**
  * Unit Tests: Appointment Service
- * 
+ *
  * Tests for lib/services/appointment.service.ts
  * Critical business logic - state machine transitions
  */
@@ -17,7 +17,8 @@ const mockPrismaAppointmentFindUnique = jest.fn() as jest.MockedFunction<any>;
 const mockPrismaAppointmentCreate = jest.fn() as jest.MockedFunction<any>;
 const mockPrismaAppointmentUpdate = jest.fn() as jest.MockedFunction<any>;
 const mockPrismaAppointmentFindMany = jest.fn() as jest.MockedFunction<any>;
-const mockPrismaAppointmentHistoryCreate = jest.fn() as jest.MockedFunction<any>;
+const mockPrismaAppointmentHistoryCreate =
+  jest.fn() as jest.MockedFunction<any>;
 // createHistoryEntry verifies the acting user exists before writing history.
 // Without this model the lookup threw, the error was swallowed, and
 // appointmentHistory.create was never reached in any test.
@@ -56,9 +57,11 @@ jest.mock("@/lib/prisma", () => ({
 
 // Mock availability service
 const mockIsProviderAvailable = jest.fn() as jest.MockedFunction<any>;
+const mockDescribeUnavailability = jest.fn() as jest.MockedFunction<any>;
 jest.mock("@/lib/services/availability.service", () => ({
   availabilityService: {
     isProviderAvailable: mockIsProviderAvailable,
+    describeUnavailability: mockDescribeUnavailability,
   },
 }));
 
@@ -76,7 +79,9 @@ describe("Appointment Service - State Machine", () => {
     mockPrismaProviderFindUnique.mockResolvedValue({ isActive: true });
     // The transaction client is the same mocked prisma.
     mockPrismaQueryRaw.mockResolvedValue([]);
-    mockPrismaTransaction.mockImplementation(async (fn: any) => fn(mockedPrisma));
+    mockPrismaTransaction.mockImplementation(async (fn: any) =>
+      fn(mockedPrisma)
+    );
   });
 
   describe("confirmAppointment", () => {
@@ -260,7 +265,9 @@ describe("Appointment Service - State Machine", () => {
 
       await expect(
         appointmentService.markNoShow("appt1", "Note", "user1")
-      ).rejects.toThrow("Cannot mark appointment as NO_SHOW before the scheduled time");
+      ).rejects.toThrow(
+        "Cannot mark appointment as NO_SHOW before the scheduled time"
+      );
     });
 
     it("should reject NO_SHOW from REQUESTED", async () => {
@@ -327,7 +334,9 @@ describe("Appointment Service - State Machine", () => {
 
       await expect(
         appointmentService.cancelAppointment("appt1", "Reason", "user1")
-      ).rejects.toThrow("Cannot cancel appointment after patient has been checked in");
+      ).rejects.toThrow(
+        "Cannot cancel appointment after patient has been checked in"
+      );
     });
 
     it("should reject cancellation from COMPLETED", async () => {
@@ -366,8 +375,11 @@ describe("Appointment Service - State Machine", () => {
       expect(mockIsProviderAvailable).toHaveBeenCalled();
     });
 
-    it("should reject if provider not available", async () => {
+    it("should reject if provider not available, saying why", async () => {
       mockIsProviderAvailable.mockResolvedValue(false);
+      mockDescribeUnavailability.mockResolvedValue(
+        "This 30-minute visit would run from 9:00 AM to 9:30 AM, outside the provider's hours on Mondays (1:00 PM–4:00 PM)."
+      );
 
       await expect(
         appointmentService.createAppointment(
@@ -381,13 +393,18 @@ describe("Appointment Service - State Machine", () => {
           },
           "user1"
         )
-      ).rejects.toThrow("Provider is not available at the requested time");
+      ).rejects.toThrow("outside the provider's hours on Mondays");
     });
 
     it("should reject if scheduling conflict exists", async () => {
       mockIsProviderAvailable.mockResolvedValue(true);
       mockPrismaAppointmentFindMany.mockResolvedValue([
-        { id: "existing", status: "CONFIRMED", scheduledAt: new Date(), duration: 30 },
+        {
+          id: "existing",
+          status: "CONFIRMED",
+          scheduledAt: new Date(),
+          duration: 30,
+        },
       ]);
 
       await expect(
@@ -402,7 +419,9 @@ describe("Appointment Service - State Machine", () => {
           },
           "user1"
         )
-      ).rejects.toThrow("This time slot conflicts with an existing appointment");
+      ).rejects.toThrow(
+        "This time slot conflicts with an existing appointment"
+      );
     });
   });
 
@@ -421,7 +440,10 @@ describe("Appointment Service - State Machine", () => {
 
     beforeEach(() => {
       mockIsProviderAvailable.mockResolvedValue(true);
-      mockPrismaAppointmentCreate.mockResolvedValue({ id: "new", status: "REQUESTED" });
+      mockPrismaAppointmentCreate.mockResolvedValue({
+        id: "new",
+        status: "REQUESTED",
+      });
     });
 
     it("detects overlap with a longer visit that started earlier", async () => {
@@ -437,7 +459,9 @@ describe("Appointment Service - State Machine", () => {
           { ...base, scheduledAt: at(10, 30), duration: 15 },
           "user1"
         )
-      ).rejects.toThrow("This time slot conflicts with an existing appointment");
+      ).rejects.toThrow(
+        "This time slot conflicts with an existing appointment"
+      );
       expect(mockPrismaAppointmentCreate).not.toHaveBeenCalled();
     });
 
@@ -492,7 +516,11 @@ describe("Appointment Service - State Machine", () => {
     it("refuses a start time in the past", async () => {
       await expect(
         appointmentService.createAppointment(
-          { ...base, scheduledAt: new Date(Date.now() - 3600000), duration: 30 },
+          {
+            ...base,
+            scheduledAt: new Date(Date.now() - 3600000),
+            duration: 30,
+          },
           "user1"
         )
       ).rejects.toThrow("in the past");
@@ -513,77 +541,113 @@ describe("Appointment Service - State Machine", () => {
     });
 
     it("refuses to confirm once the start time has passed", async () => {
-      mockPrismaAppointmentFindUnique.mockResolvedValue(appointmentAt("REQUESTED", minutes(-10)));
-
-      await expect(appointmentService.confirmAppointment("appt1", "user1")).rejects.toThrow(
-        "can't be confirmed"
+      mockPrismaAppointmentFindUnique.mockResolvedValue(
+        appointmentAt("REQUESTED", minutes(-10))
       );
+
+      await expect(
+        appointmentService.confirmAppointment("appt1", "user1")
+      ).rejects.toThrow("can't be confirmed");
       expect(mockPrismaAppointmentUpdate).not.toHaveBeenCalled();
     });
 
     it("opens check-in an hour before the visit and closes it when the visit ends", async () => {
-      mockPrismaAppointmentUpdate.mockResolvedValue({ id: "appt1", status: "CHECKED_IN" });
+      mockPrismaAppointmentUpdate.mockResolvedValue({
+        id: "appt1",
+        status: "CHECKED_IN",
+      });
 
-      mockPrismaAppointmentFindUnique.mockResolvedValue(appointmentAt("CONFIRMED", minutes(90)));
-      await expect(appointmentService.checkInAppointment("appt1", "user1")).rejects.toThrow(
-        "Check-in opens"
+      mockPrismaAppointmentFindUnique.mockResolvedValue(
+        appointmentAt("CONFIRMED", minutes(90))
       );
+      await expect(
+        appointmentService.checkInAppointment("appt1", "user1")
+      ).rejects.toThrow("Check-in opens");
 
-      mockPrismaAppointmentFindUnique.mockResolvedValue(appointmentAt("CONFIRMED", minutes(-45)));
-      await expect(appointmentService.checkInAppointment("appt1", "user1")).rejects.toThrow(
-        "already ended"
+      mockPrismaAppointmentFindUnique.mockResolvedValue(
+        appointmentAt("CONFIRMED", minutes(-45))
       );
+      await expect(
+        appointmentService.checkInAppointment("appt1", "user1")
+      ).rejects.toThrow("already ended");
 
-      mockPrismaAppointmentFindUnique.mockResolvedValue(appointmentAt("CONFIRMED", minutes(30)));
+      mockPrismaAppointmentFindUnique.mockResolvedValue(
+        appointmentAt("CONFIRMED", minutes(30))
+      );
       await expect(
         appointmentService.checkInAppointment("appt1", "user1")
       ).resolves.toMatchObject({ status: "CHECKED_IN" });
     });
 
     it("refuses to complete a visit before its start time", async () => {
-      mockPrismaAppointmentFindUnique.mockResolvedValue(appointmentAt("CHECKED_IN", minutes(20)));
-
-      await expect(appointmentService.completeAppointment("appt1", "user1")).rejects.toThrow(
-        "before its scheduled start time"
+      mockPrismaAppointmentFindUnique.mockResolvedValue(
+        appointmentAt("CHECKED_IN", minutes(20))
       );
+
+      await expect(
+        appointmentService.completeAppointment("appt1", "user1")
+      ).rejects.toThrow("before its scheduled start time");
       expect(mockPrismaAppointmentUpdate).not.toHaveBeenCalled();
     });
 
     it("refuses to cancel a confirmed appointment after its start, but clears an unconfirmed one", async () => {
-      mockPrismaAppointmentUpdate.mockResolvedValue({ id: "appt1", status: "CANCELLED" });
+      mockPrismaAppointmentUpdate.mockResolvedValue({
+        id: "appt1",
+        status: "CANCELLED",
+      });
 
-      mockPrismaAppointmentFindUnique.mockResolvedValue(appointmentAt("CONFIRMED", minutes(-5)));
+      mockPrismaAppointmentFindUnique.mockResolvedValue(
+        appointmentAt("CONFIRMED", minutes(-5))
+      );
       await expect(
         appointmentService.cancelAppointment("appt1", "Late", "user1")
       ).rejects.toThrow("can't be cancelled after its start time");
 
-      mockPrismaAppointmentFindUnique.mockResolvedValue(appointmentAt("REQUESTED", minutes(-5)));
+      mockPrismaAppointmentFindUnique.mockResolvedValue(
+        appointmentAt("REQUESTED", minutes(-5))
+      );
       await expect(
-        appointmentService.cancelAppointment("appt1", "Expired request", "user1")
+        appointmentService.cancelAppointment(
+          "appt1",
+          "Expired request",
+          "user1"
+        )
       ).resolves.toMatchObject({ status: "CANCELLED" });
     });
 
     it("refuses to reschedule once the patient has checked in", async () => {
-      mockPrismaAppointmentFindUnique.mockResolvedValue(appointmentAt("CHECKED_IN", minutes(-5)));
+      mockPrismaAppointmentFindUnique.mockResolvedValue(
+        appointmentAt("CHECKED_IN", minutes(-5))
+      );
 
       await expect(
-        appointmentService.rescheduleAppointment("appt1", minutes(24 * 60), undefined, "user1")
+        appointmentService.rescheduleAppointment(
+          "appt1",
+          minutes(24 * 60),
+          undefined,
+          "user1"
+        )
       ).rejects.toThrow("can't be rescheduled");
       expect(mockIsProviderAvailable).not.toHaveBeenCalled();
     });
 
     it("refuses when someone else changed the status since it was read", async () => {
-      mockPrismaAppointmentFindUnique.mockResolvedValue(appointmentAt("REQUESTED", minutes(60)));
+      mockPrismaAppointmentFindUnique.mockResolvedValue(
+        appointmentAt("REQUESTED", minutes(60))
+      );
       mockPrismaAppointmentUpdate.mockRejectedValueOnce(
-        new Prisma.PrismaClientKnownRequestError("Record to update not found.", {
-          code: "P2025",
-          clientVersion: "5.22.0",
-        })
+        new Prisma.PrismaClientKnownRequestError(
+          "Record to update not found.",
+          {
+            code: "P2025",
+            clientVersion: "5.22.0",
+          }
+        )
       );
 
-      await expect(appointmentService.confirmAppointment("appt1", "user1")).rejects.toThrow(
-        "changed by someone else"
-      );
+      await expect(
+        appointmentService.confirmAppointment("appt1", "user1")
+      ).rejects.toThrow("changed by someone else");
       expect(mockPrismaAppointmentUpdate).toHaveBeenCalledWith(
         expect.objectContaining({ where: { id: "appt1", status: "REQUESTED" } })
       );

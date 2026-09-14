@@ -15,7 +15,13 @@ import {
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -28,7 +34,7 @@ import {
 
 /**
  * Visit Note View Component
- * 
+ *
  * Professional display of visit note with edit capability
  * Shows current version + complete history
  */
@@ -61,12 +67,14 @@ export function VisitNoteView({
     setIsLoading(true);
     try {
       const result = await getVisitNoteByAppointment({ appointmentId });
-      
+
       if (result.success && result.data) {
         setVisitNote(result.data);
-        
+
         // Load history
-        const historyResult = await getVisitNoteHistory({ visitNoteId: result.data.id });
+        const historyResult = await getVisitNoteHistory({
+          visitNoteId: result.data.id,
+        });
         if (historyResult.success) {
           setHistory(historyResult.data);
         }
@@ -107,8 +115,8 @@ export function VisitNoteView({
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="flex items-start gap-2 text-sm text-muted-foreground mb-4">
-            <AlertCircle className="h-4 w-4 mt-0.5 text-amber-600" />
+          <div className="mb-4 flex items-start gap-2 text-sm text-muted-foreground">
+            <AlertCircle className="mt-0.5 h-4 w-4 text-amber-600" />
             <span>No visit note has been created for this appointment.</span>
           </div>
           {canEdit && (
@@ -164,17 +172,26 @@ export function VisitNoteView({
                 <div className="flex items-center gap-2">
                   <Clock className="h-3 w-3" />
                   <span>
-                    Created: {format(new Date(visitNote.createdAt), "MMM d, yyyy 'at' h:mm a")}
+                    Created:{" "}
+                    {format(
+                      new Date(visitNote.createdAt),
+                      "MMM d, yyyy 'at' h:mm a"
+                    )}
                   </span>
                 </div>
-                {visitNote.lastEditedAt && visitNote.lastEditedAt !== visitNote.createdAt && (
-                  <div className="flex items-center gap-2">
-                    <History className="h-3 w-3" />
-                    <span>
-                      Last updated: {format(new Date(visitNote.lastEditedAt), "MMM d, yyyy 'at' h:mm a")}
-                    </span>
-                  </div>
-                )}
+                {visitNote.lastEditedAt &&
+                  visitNote.lastEditedAt !== visitNote.createdAt && (
+                    <div className="flex items-center gap-2">
+                      <History className="h-3 w-3" />
+                      <span>
+                        Last updated:{" "}
+                        {format(
+                          new Date(visitNote.lastEditedAt),
+                          "MMM d, yyyy 'at' h:mm a"
+                        )}
+                      </span>
+                    </div>
+                  )}
               </CardDescription>
             </div>
             {canEdit && (
@@ -199,7 +216,7 @@ export function VisitNoteView({
           </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="current" className="space-y-6 mt-6">
+        <TabsContent value="current" className="mt-6 space-y-6">
           {/* Chief Complaint */}
           {visitNote.chiefComplaint && (
             <Card>
@@ -207,7 +224,9 @@ export function VisitNoteView({
                 <CardTitle className="text-lg">Chief Complaint</CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="text-sm whitespace-pre-wrap">{visitNote.chiefComplaint}</p>
+                <p className="whitespace-pre-wrap text-sm">
+                  {visitNote.chiefComplaint}
+                </p>
               </CardContent>
             </Card>
           )}
@@ -215,7 +234,9 @@ export function VisitNoteView({
           {/* SOAP Notes */}
           <Card>
             <CardHeader>
-              <CardTitle className="text-lg">Clinical Documentation (SOAP)</CardTitle>
+              <CardTitle className="text-lg">
+                Clinical Documentation (SOAP)
+              </CardTitle>
             </CardHeader>
             <CardContent className="space-y-6">
               {visitNote.historyOfPresent && (
@@ -263,9 +284,14 @@ export function VisitNoteView({
                 </>
               )}
 
-              {!visitNote.historyOfPresent && !visitNote.physicalExam && !visitNote.assessment && !visitNote.plan && (
-                <p className="text-sm text-muted-foreground italic">No SOAP documentation</p>
-              )}
+              {!visitNote.historyOfPresent &&
+                !visitNote.physicalExam &&
+                !visitNote.assessment &&
+                !visitNote.plan && (
+                  <p className="text-sm italic text-muted-foreground">
+                    No SOAP documentation
+                  </p>
+                )}
             </CardContent>
           </Card>
 
@@ -282,27 +308,55 @@ export function VisitNoteView({
                 <CardTitle className="text-lg">Vital Signs</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+                <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-4">
                   {visitNote.bloodPressure && (
-                    <VitalCard label="Blood Pressure" value={visitNote.bloodPressure} unit="mmHg" />
+                    <VitalCard
+                      label="Blood Pressure"
+                      value={visitNote.bloodPressure}
+                      unit="mmHg"
+                    />
                   )}
                   {visitNote.heartRate && (
-                    <VitalCard label="Heart Rate" value={visitNote.heartRate} unit="bpm" />
+                    <VitalCard
+                      label="Heart Rate"
+                      value={visitNote.heartRate}
+                      unit="bpm"
+                    />
                   )}
                   {visitNote.temperature && (
-                    <VitalCard label="Temperature" value={visitNote.temperature} unit="°F" />
+                    <VitalCard
+                      label="Temperature"
+                      value={visitNote.temperature}
+                      unit="°F"
+                    />
                   )}
                   {visitNote.respiratoryRate && (
-                    <VitalCard label="Respiratory Rate" value={visitNote.respiratoryRate} unit="bpm" />
+                    <VitalCard
+                      label="Respiratory Rate"
+                      value={visitNote.respiratoryRate}
+                      unit="bpm"
+                    />
                   )}
                   {visitNote.oxygenSaturation && (
-                    <VitalCard label="O2 Saturation" value={visitNote.oxygenSaturation} unit="%" />
+                    <VitalCard
+                      label="O2 Saturation"
+                      value={visitNote.oxygenSaturation}
+                      unit="%"
+                    />
                   )}
                   {visitNote.weight && (
-                    <VitalCard label="Weight" value={visitNote.weight} unit="lbs" />
+                    <VitalCard
+                      label="Weight"
+                      value={visitNote.weight}
+                      unit="lbs"
+                    />
                   )}
                   {visitNote.height && (
-                    <VitalCard label="Height" value={visitNote.height} unit="in" />
+                    <VitalCard
+                      label="Height"
+                      value={visitNote.height}
+                      unit="in"
+                    />
                   )}
                 </div>
               </CardContent>
@@ -316,17 +370,28 @@ export function VisitNoteView({
             visitNote.referrals) && (
             <Card>
               <CardHeader>
-                <CardTitle className="text-lg">Orders & Prescriptions</CardTitle>
+                <CardTitle className="text-lg">
+                  Orders & Prescriptions
+                </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 {visitNote.prescriptions && (
-                  <Field label="Prescriptions" content={visitNote.prescriptions} />
+                  <Field
+                    label="Prescriptions"
+                    content={visitNote.prescriptions}
+                  />
                 )}
                 {visitNote.labOrders && (
-                  <Field label="Laboratory Orders" content={visitNote.labOrders} />
+                  <Field
+                    label="Laboratory Orders"
+                    content={visitNote.labOrders}
+                  />
                 )}
                 {visitNote.imagingOrders && (
-                  <Field label="Imaging Orders" content={visitNote.imagingOrders} />
+                  <Field
+                    label="Imaging Orders"
+                    content={visitNote.imagingOrders}
+                  />
                 )}
                 {visitNote.referrals && (
                   <Field label="Referrals" content={visitNote.referrals} />
@@ -343,13 +408,23 @@ export function VisitNoteView({
               </CardHeader>
               <CardContent className="space-y-4">
                 {visitNote.followUpInstructions && (
-                  <Field label="Instructions" content={visitNote.followUpInstructions} />
+                  <Field
+                    label="Instructions"
+                    content={visitNote.followUpInstructions}
+                  />
                 )}
                 {visitNote.nextVisitDate && (
                   <div className="flex items-center gap-2 text-sm">
                     <CalendarIcon className="h-4 w-4 text-muted-foreground" />
-                    <span className="font-medium text-muted-foreground">Next Visit:</span>
-                    <span>{format(new Date(visitNote.nextVisitDate), "MMMM d, yyyy")}</span>
+                    <span className="font-medium text-muted-foreground">
+                      Next Visit:
+                    </span>
+                    <span>
+                      {format(
+                        new Date(visitNote.nextVisitDate),
+                        "MMMM d, yyyy"
+                      )}
+                    </span>
                   </div>
                 )}
               </CardContent>
@@ -381,11 +456,11 @@ function Section({
       <div className="flex items-center gap-2">
         <Badge variant="outline">{badge}</Badge>
         <div>
-          <h4 className="font-semibold text-sm">{title}</h4>
+          <h4 className="text-sm font-semibold">{title}</h4>
           <p className="text-xs text-muted-foreground">{subtitle}</p>
         </div>
       </div>
-      <p className="text-sm whitespace-pre-wrap ml-10">{content}</p>
+      <p className="ml-10 whitespace-pre-wrap text-sm">{content}</p>
     </div>
   );
 }
@@ -394,7 +469,7 @@ function Field({ label, content }: { label: string; content: string }) {
   return (
     <div className="space-y-1">
       <h5 className="text-sm font-semibold text-muted-foreground">{label}</h5>
-      <p className="text-sm whitespace-pre-wrap">{content}</p>
+      <p className="whitespace-pre-wrap text-sm">{content}</p>
     </div>
   );
 }
@@ -409,11 +484,13 @@ function VitalCard({
   unit?: string;
 }) {
   return (
-    <div className="rounded-2xl border border-white/60 bg-white/50 backdrop-blur-sm p-3">
-      <div className="text-xs text-muted-foreground mb-1">{label}</div>
-      <div className="font-semibold text-lg">
+    <div className="rounded-2xl border border-white/60 bg-white/50 p-3 backdrop-blur-sm">
+      <div className="mb-1 text-xs text-muted-foreground">{label}</div>
+      <div className="text-lg font-semibold">
         {value}
-        {unit && <span className="text-sm text-muted-foreground ml-1">{unit}</span>}
+        {unit && (
+          <span className="ml-1 text-sm text-muted-foreground">{unit}</span>
+        )}
       </div>
     </div>
   );

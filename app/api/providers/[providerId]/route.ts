@@ -48,13 +48,19 @@ export async function GET(
     });
 
     if (!provider) {
-      return NextResponse.json({ error: "Provider not found" }, { status: 404 });
+      return NextResponse.json(
+        { error: "Provider not found" },
+        { status: 404 }
+      );
     }
 
     return NextResponse.json(provider);
   } catch (error) {
     console.error("Error fetching provider:", error);
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 }
+    );
   }
 }
 
@@ -90,7 +96,10 @@ export async function PATCH(
   } catch (error) {
     if (error instanceof ZodError) {
       return NextResponse.json(
-        { error: error.issues[0]?.message ?? "Invalid provider", issues: error.issues },
+        {
+          error: error.issues[0]?.message ?? "Invalid provider",
+          issues: error.issues,
+        },
         { status: 400 }
       );
     }
@@ -98,6 +107,9 @@ export async function PATCH(
       return NextResponse.json({ error: error.message }, { status: 409 });
     }
     console.error("Error updating provider:", error);
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 }
+    );
   }
 }

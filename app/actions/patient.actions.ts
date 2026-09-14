@@ -22,14 +22,13 @@ import {
 
 /**
  * Patient Server Actions
- * 
+ *
  * Handles authorization and delegates business logic to service layer
  * Returns { success, data?, error? } for client consumption
  */
 
 type ActionResult<T> =
-  | { success: true; data: T }
-  | { success: false; error: string };
+  { success: true; data: T } | { success: false; error: string };
 
 /**
  * Create a new patient
@@ -88,14 +87,17 @@ export async function createPatient(
     console.error("createPatient error:", error);
 
     // Send to Sentry
-    if (typeof window === 'undefined') {
-      const Sentry = await import('@sentry/nextjs');
+    if (typeof window === "undefined") {
+      const Sentry = await import("@sentry/nextjs");
       Sentry.captureException(error, {
         tags: { action: "createPatient" },
       });
     }
 
-    return { success: false, error: actionErrorMessage(error, "Failed to create patient") };
+    return {
+      success: false,
+      error: actionErrorMessage(error, "Failed to create patient"),
+    };
   }
 }
 
@@ -152,7 +154,10 @@ export async function updatePatient(
   } catch (error) {
     console.error("updatePatient error:", error);
 
-    return { success: false, error: actionErrorMessage(error, "Failed to update patient") };
+    return {
+      success: false,
+      error: actionErrorMessage(error, "Failed to update patient"),
+    };
   }
 }
 
@@ -193,7 +198,10 @@ export async function deletePatient(
   } catch (error) {
     console.error("deletePatient error:", error);
 
-    return { success: false, error: actionErrorMessage(error, "Failed to delete patient") };
+    return {
+      success: false,
+      error: actionErrorMessage(error, "Failed to delete patient"),
+    };
   }
 }
 
@@ -203,15 +211,15 @@ export async function deletePatient(
  * PROVIDER: Only sees patients they have appointments with
  * FRONT_DESK: Sees all patients
  */
-export async function searchPatients(
-  input?: SearchPatientsInput
-): Promise<ActionResult<{
-  patients: any[];
-  total: number;
-  page: number;
-  pageSize: number;
-  totalPages: number;
-}>> {
+export async function searchPatients(input?: SearchPatientsInput): Promise<
+  ActionResult<{
+    patients: any[];
+    total: number;
+    page: number;
+    pageSize: number;
+    totalPages: number;
+  }>
+> {
   try {
     const session = await requireAuth();
 
@@ -223,7 +231,13 @@ export async function searchPatients(
     if (session.user.role === "PROVIDER" && !session.user.providerId) {
       return {
         success: true,
-        data: { patients: [], total: 0, page: validatedInput.page, pageSize: validatedInput.pageSize, totalPages: 0 },
+        data: {
+          patients: [],
+          total: 0,
+          page: validatedInput.page,
+          pageSize: validatedInput.pageSize,
+          totalPages: 0,
+        },
       };
     }
 
@@ -241,7 +255,10 @@ export async function searchPatients(
   } catch (error) {
     console.error("searchPatients error:", error);
 
-    return { success: false, error: actionErrorMessage(error, "Failed to search patients") };
+    return {
+      success: false,
+      error: actionErrorMessage(error, "Failed to search patients"),
+    };
   }
 }
 
@@ -295,13 +312,18 @@ export async function getPatientById(
       success: true,
       data: {
         ...patient,
-        appointments: patient.appointments.map((apt) => serializeAppointment(apt)),
+        appointments: patient.appointments.map((apt) =>
+          serializeAppointment(apt)
+        ),
       },
     };
   } catch (error) {
     console.error("getPatientById error:", error);
 
-    return { success: false, error: actionErrorMessage(error, "Failed to get patient") };
+    return {
+      success: false,
+      error: actionErrorMessage(error, "Failed to get patient"),
+    };
   }
 }
 
@@ -330,6 +352,9 @@ export async function getPatientAppointmentCount(
   } catch (error) {
     console.error("getPatientAppointmentCount error:", error);
 
-    return { success: false, error: actionErrorMessage(error, "Failed to get appointment count") };
+    return {
+      success: false,
+      error: actionErrorMessage(error, "Failed to get appointment count"),
+    };
   }
 }

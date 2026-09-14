@@ -17,21 +17,20 @@ import {
 
 /**
  * Bulk Availability Server Actions
- * 
+ *
  * Handles bulk creation, export, and management of availability slots
- * 
+ *
  * Authorization:
  * - FRONT_DESK: Can manage all providers' availability
  * - PROVIDER: Can manage own availability only
  */
 
 type ActionResult<T> =
-  | { success: true; data: T }
-  | { success: false; error: string };
+  { success: true; data: T } | { success: false; error: string };
 
 /**
  * Bulk create recurring availability slots
- * 
+ *
  * Creates slots for specified days of week within date range
  * Handles collisions and provides detailed reporting
  */
@@ -87,13 +86,16 @@ export async function bulkCreateAvailability(
   } catch (error) {
     console.error("bulkCreateAvailability error:", error);
 
-    return { success: false, error: actionErrorMessage(error, "Failed to create availability slots") };
+    return {
+      success: false,
+      error: actionErrorMessage(error, "Failed to create availability slots"),
+    };
   }
 }
 
 /**
  * Export provider schedule to CSV
- * 
+ *
  * Returns CSV string with daily schedule
  */
 export async function exportScheduleToCSV(
@@ -142,13 +144,16 @@ export async function exportScheduleToCSV(
   } catch (error) {
     console.error("exportScheduleToCSV error:", error);
 
-    return { success: false, error: actionErrorMessage(error, "Failed to export schedule") };
+    return {
+      success: false,
+      error: actionErrorMessage(error, "Failed to export schedule"),
+    };
   }
 }
 
 /**
  * Export provider schedule to JSON
- * 
+ *
  * Returns JSON string with daily schedule
  */
 export async function exportScheduleToJSON(
@@ -197,13 +202,16 @@ export async function exportScheduleToJSON(
   } catch (error) {
     console.error("exportScheduleToJSON error:", error);
 
-    return { success: false, error: actionErrorMessage(error, "Failed to export schedule") };
+    return {
+      success: false,
+      error: actionErrorMessage(error, "Failed to export schedule"),
+    };
   }
 }
 
 /**
  * Get daily schedule (for preview)
- * 
+ *
  * Returns schedule data without exporting
  */
 export async function getDailySchedule(input: {
@@ -237,18 +245,26 @@ export async function getDailySchedule(input: {
   } catch (error) {
     console.error("getDailySchedule error:", error);
 
-    return { success: false, error: actionErrorMessage(error, "Failed to get schedule") };
+    return {
+      success: false,
+      error: actionErrorMessage(error, "Failed to get schedule"),
+    };
   }
 }
 
 /**
  * Delete bulk availability slots
- * 
+ *
  * Archives all slots matching criteria
  */
 export async function deleteBulkAvailability(
   input: DeleteBulkAvailabilityInput
-): Promise<ActionResult<{ archived: number; skipped: Array<{ slotId: string; reason: string }> }>> {
+): Promise<
+  ActionResult<{
+    archived: number;
+    skipped: Array<{ slotId: string; reason: string }>;
+  }>
+> {
   try {
     await requireAuth();
 
@@ -279,7 +295,9 @@ export async function deleteBulkAvailability(
   } catch (error) {
     console.error("deleteBulkAvailability error:", error);
 
-    return { success: false, error: actionErrorMessage(error, "Failed to delete availability slots") };
+    return {
+      success: false,
+      error: actionErrorMessage(error, "Failed to delete availability slots"),
+    };
   }
 }
-

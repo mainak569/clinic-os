@@ -83,7 +83,9 @@ export function PatientsTable({ userRole }: PatientsTableProps) {
   const [createEditDialogOpen, setCreateEditDialogOpen] = useState(false);
   const [detailsDialogOpen, setDetailsDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [selectedPatientId, setSelectedPatientId] = useState<string | null>(null);
+  const [selectedPatientId, setSelectedPatientId] = useState<string | null>(
+    null
+  );
   const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null);
   const [isEditMode, setIsEditMode] = useState(false);
 
@@ -164,7 +166,10 @@ export function PatientsTable({ userRole }: PatientsTableProps) {
     const birthDate = new Date(dateOfBirth);
     let age = today.getFullYear() - birthDate.getFullYear();
     const monthDiff = today.getMonth() - birthDate.getMonth();
-    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+    if (
+      monthDiff < 0 ||
+      (monthDiff === 0 && today.getDate() < birthDate.getDate())
+    ) {
       age--;
     }
     return age;
@@ -199,7 +204,7 @@ export function PatientsTable({ userRole }: PatientsTableProps) {
       </div>
 
       {/* Stats */}
-      <div className="rounded-2xl border border-white/60 bg-white/50 backdrop-blur-sm p-4">
+      <div className="rounded-2xl border border-white/60 bg-white/50 p-4 backdrop-blur-sm">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <User className="h-5 w-5 text-muted-foreground" />
@@ -215,7 +220,7 @@ export function PatientsTable({ userRole }: PatientsTableProps) {
       </div>
 
       {/* Table */}
-      <div className="rounded-2xl border border-white/60 overflow-hidden">
+      <div className="overflow-hidden rounded-2xl border border-white/60">
         <Table>
           <TableHeader>
             <TableRow>
@@ -230,18 +235,28 @@ export function PatientsTable({ userRole }: PatientsTableProps) {
             {isLoading ? (
               Array.from({ length: 5 }).map((_, i) => (
                 <TableRow key={i}>
-                  <TableCell><Skeleton className="h-4 w-32" /></TableCell>
-                  <TableCell><Skeleton className="h-4 w-24" /></TableCell>
-                  <TableCell><Skeleton className="h-4 w-40" /></TableCell>
-                  <TableCell><Skeleton className="h-4 w-32" /></TableCell>
-                  <TableCell><Skeleton className="h-8 w-8 ml-auto" /></TableCell>
+                  <TableCell>
+                    <Skeleton className="h-4 w-32" />
+                  </TableCell>
+                  <TableCell>
+                    <Skeleton className="h-4 w-24" />
+                  </TableCell>
+                  <TableCell>
+                    <Skeleton className="h-4 w-40" />
+                  </TableCell>
+                  <TableCell>
+                    <Skeleton className="h-4 w-32" />
+                  </TableCell>
+                  <TableCell>
+                    <Skeleton className="ml-auto h-8 w-8" />
+                  </TableCell>
                 </TableRow>
               ))
             ) : patients.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={5} className="h-24 text-center">
                   <div className="flex flex-col items-center justify-center text-muted-foreground">
-                    <User className="h-8 w-8 mb-2" />
+                    <User className="mb-2 h-8 w-8" />
                     <p>No patients found</p>
                     {search && (
                       <p className="text-sm">Try adjusting your search</p>
@@ -328,13 +343,17 @@ export function PatientsTable({ userRole }: PatientsTableProps) {
                       <DropdownMenuContent align="end">
                         <DropdownMenuLabel>Actions</DropdownMenuLabel>
                         <DropdownMenuSeparator />
-                        <DropdownMenuItem onClick={() => handleViewDetails(patient.id)}>
+                        <DropdownMenuItem
+                          onClick={() => handleViewDetails(patient.id)}
+                        >
                           <Eye className="mr-2 h-4 w-4" />
                           View Details
                         </DropdownMenuItem>
                         {canModify && (
                           <>
-                            <DropdownMenuItem onClick={() => handleEdit(patient)}>
+                            <DropdownMenuItem
+                              onClick={() => handleEdit(patient)}
+                            >
                               <Edit className="mr-2 h-4 w-4" />
                               Edit
                             </DropdownMenuItem>
@@ -431,9 +450,10 @@ export function PatientsTable({ userRole }: PatientsTableProps) {
               <span className="font-semibold">
                 {selectedPatient?.firstName} {selectedPatient?.lastName}
               </span>
-              ? This action cannot be undone and will soft-delete the patient record.
+              ? This action cannot be undone and will soft-delete the patient
+              record.
               {selectedPatient && (
-                <span className="block mt-2 text-amber-600">
+                <span className="mt-2 block text-amber-600">
                   Note: Patients with upcoming appointments cannot be deleted.
                 </span>
               )}

@@ -106,7 +106,7 @@ export function MonthView({ slots, onSlotClick, isLoading }: MonthViewProps) {
       </div>
 
       {/* Calendar Grid */}
-      <div className="rounded-2xl border border-white/60 overflow-hidden">
+      <div className="overflow-hidden rounded-2xl border border-white/60">
         {/* Day headers */}
         <div className="grid grid-cols-7 border-b border-white/60 bg-white/40">
           {DAY_LABELS.map((label) => (
@@ -147,7 +147,10 @@ export function MonthView({ slots, onSlotClick, isLoading }: MonthViewProps) {
                     {format(day, "d")}
                   </div>
                   {daySlots.length > 0 && (
-                    <Badge variant="secondary" className="h-5 px-1.5 text-[10px]">
+                    <Badge
+                      variant="secondary"
+                      className="h-5 px-1.5 text-[10px]"
+                    >
                       {daySlots.length}
                     </Badge>
                   )}

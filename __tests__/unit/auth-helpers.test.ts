@@ -1,6 +1,6 @@
 /**
  * Unit Tests: Authorization Helpers
- * 
+ *
  * Tests for lib/auth-helpers.ts
  * Critical security component - comprehensive testing required
  */

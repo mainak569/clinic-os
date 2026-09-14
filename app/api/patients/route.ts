@@ -5,7 +5,7 @@ import { patientService } from "@/lib/services/patient.service";
 /**
  * GET /api/patients
  * Fetch patients with optional pagination and search
- * 
+ *
  * Query params:
  * - query: Search term (optional)
  * - page: Page number (default: 1)
@@ -28,7 +28,13 @@ export async function GET(request: Request) {
     // Providers only see patients they have appointments with, filtered in the
     // database so pagination and totals are correct.
     if (session.user.role === "PROVIDER" && !session.user.providerId) {
-      return NextResponse.json({ patients: [], total: 0, page, pageSize, totalPages: 0 });
+      return NextResponse.json({
+        patients: [],
+        total: 0,
+        page,
+        pageSize,
+        totalPages: 0,
+      });
     }
 
     const result = await patientService.searchPatients({

@@ -26,7 +26,10 @@ import {
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { createProvider, updateProvider } from "@/app/actions/provider.actions";
-import { createProviderSchema, updateProviderSchema } from "@/lib/validations/provider";
+import {
+  createProviderSchema,
+  updateProviderSchema,
+} from "@/lib/validations/provider";
 
 interface ProviderFormDialogProps {
   open: boolean;
@@ -44,6 +47,7 @@ function defaults(provider?: any | null) {
     lastName: provider?.lastName ?? "",
     email: provider?.user?.email ?? "",
     password: "",
+    showOnLogin: provider?.user?.showOnLogin ?? false,
     profile: {
       specialization: provider?.profile?.specialization ?? "",
       licenseNumber: provider?.profile?.licenseNumber ?? "",
@@ -56,7 +60,8 @@ function defaults(provider?: any | null) {
   };
 }
 
-const minutesField = (onChange: (v: number | undefined) => void) =>
+const minutesField =
+  (onChange: (v: number | undefined) => void) =>
   (e: React.ChangeEvent<HTMLInputElement>) =>
     onChange(e.target.value === "" ? undefined : e.target.valueAsNumber);
 
@@ -72,13 +77,17 @@ export function ProviderFormDialog({
   // The parent keys this component by provider id, so the resolver and
   // defaults are fixed for the lifetime of one form.
   const form = useForm<any>({
-    resolver: zodResolver(isEdit ? updateProviderSchema : createProviderSchema) as any,
+    resolver: zodResolver(
+      isEdit ? updateProviderSchema : createProviderSchema
+    ) as any,
     defaultValues: defaults(provider),
   });
 
   const onSubmit = async (values: any) => {
     setIsSubmitting(true);
-    const result = isEdit ? await updateProvider(values) : await createProvider(values);
+    const result = isEdit
+      ? await updateProvider(values)
+      : await createProvider(values);
     setIsSubmitting(false);
 
     if (result.success) {
@@ -165,7 +174,12 @@ export function ProviderFormDialog({
                     <FormItem>
                       <FormLabel>Email *</FormLabel>
                       <FormControl>
-                        <Input type="email" autoComplete="off" placeholder="dr.smith@clinicos.com" {...field} />
+                        <Input
+                          type="email"
+                          autoComplete="off"
+                          placeholder="dr.smith@clinicos.com"
+                          {...field}
+                        />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -176,16 +190,59 @@ export function ProviderFormDialog({
                   name="password"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>{isEdit ? "New Password" : "Password *"}</FormLabel>
+                      <FormLabel>
+                        {isEdit ? "New Password" : "Password *"}
+                      </FormLabel>
                       <FormControl>
-                        <Input type="password" autoComplete="new-password" placeholder="At least 8 characters" {...field} />
+                        <Input
+                          type="password"
+                          autoComplete="new-password"
+                          placeholder="At least 8 characters"
+                          {...field}
+                        />
                       </FormControl>
-                      {isEdit && <FormDescription>Leave blank to keep the current password.</FormDescription>}
+                      {isEdit && (
+                        <FormDescription>
+                          Leave blank to keep the current password.
+                        </FormDescription>
+                      )}
                       <FormMessage />
                     </FormItem>
                   )}
                 />
               </div>
+              <FormField
+                control={form.control}
+                name="showOnLogin"
+                render={({ field }) => (
+                  <FormItem className="flex items-start gap-3 space-y-0 rounded-2xl border border-white/60 bg-white/50 p-3 backdrop-blur-sm">
+                    <FormControl>
+                      <input
+                        type="checkbox"
+                        className="mt-0.5 h-4 w-4 shrink-0 cursor-pointer accent-[#A855F7]"
+                        checked={Boolean(field.value)}
+                        onChange={(e) => field.onChange(e.target.checked)}
+                        onBlur={field.onBlur}
+                        ref={field.ref}
+                      />
+                    </FormControl>
+                    <div className="space-y-1">
+                      <FormLabel className="cursor-pointer">
+                        Show on login page
+                      </FormLabel>
+                      <FormDescription>
+                        Lists this email and password on the public sign-in page
+                        as a demo account, and keeps it up to date when the
+                        password changes. Anyone who opens the page can use it.
+                        {isEdit &&
+                          !provider?.user?.showOnLogin &&
+                          " To list this account, also enter a new password."}
+                      </FormDescription>
+                      <FormMessage />
+                    </div>
+                  </FormItem>
+                )}
+              />
             </section>
 
             {/* Profile */}
@@ -294,7 +351,11 @@ export function ProviderFormDialog({
                   <FormItem>
                     <FormLabel>Bio</FormLabel>
                     <FormControl>
-                      <Textarea placeholder="Short professional summary..." className="min-h-[80px]" {...field} />
+                      <Textarea
+                        placeholder="Short professional summary..."
+                        className="min-h-[80px]"
+                        {...field}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -312,7 +373,9 @@ export function ProviderFormDialog({
                 Cancel
               </Button>
               <Button type="submit" disabled={isSubmitting}>
-                {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                {isSubmitting && (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                )}
                 {isEdit ? "Save Changes" : "Add Provider"}
               </Button>
             </div>

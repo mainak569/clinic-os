@@ -41,7 +41,9 @@ function hhmm(minutes: number) {
 }
 
 async function main() {
-  const slots = await prisma.availabilitySlot.findMany({ orderBy: { createdAt: "asc" } });
+  const slots = await prisma.availabilitySlot.findMany({
+    orderBy: { createdAt: "asc" },
+  });
 
   const plan = slots.map((slot) => {
     const start = wallMinutes(slot.startTime);
@@ -64,7 +66,9 @@ async function main() {
   // Refuse to write anything inconsistent.
   const invalid = plan.filter((p) => p.end <= p.start);
   if (invalid.length) {
-    throw new Error(`Refusing to migrate: ${invalid.length} slot(s) would end before they start.`);
+    throw new Error(
+      `Refusing to migrate: ${invalid.length} slot(s) would end before they start.`
+    );
   }
   const keys = new Map<string, string>();
   for (const p of plan) {

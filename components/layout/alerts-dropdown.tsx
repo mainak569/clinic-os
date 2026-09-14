@@ -23,7 +23,6 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
   getMyAlerts,
-  getUnreadAlertCount,
   markAlertRead,
   dismissAlert,
   markAllAlertsRead,
@@ -58,17 +57,13 @@ export function AlertsDropdown() {
   const fetchAlerts = async () => {
     setLoading(true);
     try {
-      const [alertsResult, countResult] = await Promise.all([
-        getMyAlerts(false), // Only unread
-        getUnreadAlertCount(),
-      ]);
+      const alertsResult = await getMyAlerts(false); // Only unread
 
       if (alertsResult.success) {
         setAlerts(alertsResult.data);
-      }
-
-      if (countResult.success) {
-        setUnreadCount(countResult.data);
+        // The unread count is the length of this same list (see
+        // alertService.getUnreadCount), so it isn't fetched a second time.
+        setUnreadCount(alertsResult.data.length);
       }
     } catch (error) {
       console.error("Failed to fetch alerts:", error);
@@ -93,7 +88,9 @@ export function AlertsDropdown() {
 
       // Navigate to appointment if available
       if (alert.appointment) {
-        router.push(`/dashboard/appointments?highlight=${alert.appointment.id}`);
+        router.push(
+          `/dashboard/appointments?highlight=${alert.appointment.id}`
+        );
       }
 
       // Refresh alerts
@@ -187,12 +184,13 @@ export function AlertsDropdown() {
               {unreadCount > 9 ? "9+" : unreadCount}
             </span>
           )}
-          <span className="sr-only">
-            Notifications ({unreadCount} unread)
-          </span>
+          <span className="sr-only">Notifications ({unreadCount} unread)</span>
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-[min(24rem,calc(100vw-2rem))] p-0" align="end">
+      <PopoverContent
+        className="w-[min(24rem,calc(100vw-2rem))] p-0"
+        align="end"
+      >
         <div className="flex items-center justify-between border-b border-white/60 px-4 py-3">
           <h3 className="font-semibold">Alerts</h3>
           {alerts.length > 0 && (
@@ -242,7 +240,7 @@ export function AlertsDropdown() {
                         />
                       );
                     })()}
-                    <div className="flex-1 space-y-1 min-w-0">
+                    <div className="min-w-0 flex-1 space-y-1">
                       <div className="flex items-start justify-between gap-2">
                         <p className="text-sm font-medium leading-tight">
                           {alert.title}

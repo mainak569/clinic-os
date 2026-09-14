@@ -1,14 +1,16 @@
 /**
  * Test Setup Configuration
- * 
+ *
  * Initializes testing environment with Jest/Vitest
  */
 
 // Mock environment variables BEFORE any imports
 process.env.AUTH_SECRET = "test-secret-key-for-testing-only";
 process.env.AUTH_URL = "http://localhost:3000";
-process.env.DATABASE_URL = "postgresql://test_user:test_password@localhost:5432/clinicos_test";
-process.env.DIRECT_URL = "postgresql://test_user:test_password@localhost:5432/clinicos_test";
+process.env.DATABASE_URL =
+  "postgresql://test_user:test_password@localhost:5432/clinicos_test";
+process.env.DIRECT_URL =
+  "postgresql://test_user:test_password@localhost:5432/clinicos_test";
 // Tests build appointment times with local setHours(), so read them on the same
 // wall clock as the machine running the tests. Without this, availability
 // checks would pass on a laptop in IST and fail on a UTC CI runner.
@@ -54,7 +56,10 @@ jest.mock("next-auth", () => ({
  * @param dayOfWeek 0=Sunday, 1=Monday, etc.
  * @param daysAhead Minimum days ahead (default 7)
  */
-export function getNextDayOfWeek(dayOfWeek: number, daysAhead: number = 7): Date {
+export function getNextDayOfWeek(
+  dayOfWeek: number,
+  daysAhead: number = 7
+): Date {
   const date = new Date();
   date.setDate(date.getDate() + daysAhead);
   const dayOffset = (dayOfWeek + 7 - date.getDay()) % 7 || 7;

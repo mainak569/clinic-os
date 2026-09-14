@@ -6,6 +6,10 @@ import {
   SlotHasBookingsError,
 } from "@/lib/errors/appointment-errors";
 import { clinicWallClock, slotMinutes } from "@/lib/clinic-time";
+import {
+  formatMinutesOfDay,
+  formatSlotRanges,
+} from "@/lib/availability-summary";
 
 // Appointments in these statuses still need their slot; CANCELLED, NO_SHOW
 // and COMPLETED appointments don't block changing or removing it.
@@ -13,7 +17,7 @@ const OPEN_STATUSES = ["REQUESTED", "CONFIRMED", "CHECKED_IN"] as const;
 
 /**
  * Availability Service Layer
- * 
+ *
  * Handles all business logic for provider availability management
  * Separated from authorization - call with pre-authorized data
  */
@@ -21,7 +25,7 @@ const OPEN_STATUSES = ["REQUESTED", "CONFIRMED", "CHECKED_IN"] as const;
 export class AvailabilityService {
   /**
    * Create a new availability slot
-   * 
+   *
    * @throws OverlappingSlotError if slot overlaps with existing slot
    */
   async createSlot(input: {
@@ -58,7 +62,7 @@ export class AvailabilityService {
 
   /**
    * Update an existing availability slot
-   * 
+   *
    * @throws AvailabilitySlotNotFoundError if slot doesn't exist
    * @throws OverlappingSlotError if update causes overlap
    */
@@ -128,7 +132,7 @@ export class AvailabilityService {
 
   /**
    * Archive (soft delete) an availability slot
-   * 
+   *
    * @throws AvailabilitySlotNotFoundError if slot doesn't exist
    */
   async archiveSlot(slotId: string): Promise<AvailabilitySlot> {
@@ -182,7 +186,7 @@ export class AvailabilityService {
 
   /**
    * Restore an archived availability slot
-   * 
+   *
    * @throws AvailabilitySlotNotFoundError if slot doesn't exist
    * @throws OverlappingSlotError if restoration causes overlap
    */
@@ -334,7 +338,7 @@ export class AvailabilityService {
 
   /**
    * Check if a time slot overlaps with existing active slots
-   * 
+   *
    * @param excludeSlotId - Slot ID to exclude from overlap check (for updates)
    */
   private async checkForOverlap(
@@ -382,6 +386,34 @@ export class AvailabilityService {
   /**
    * Check if provider is available at a specific time
    */
+  /**
+   * Why a visit doesn't fit the provider's hours, for the booking error.
+   *
+   * Names the requested window and that day's hours: a bare "not available"
+   * didn't say whether the start time or the visit length was the problem.
+   */
+  async describeUnavailability(
+    providerId: string,
+    scheduledAt: Date,
+    duration: number
+  ): Promise<string> {
+    const wall = clinicWallClock(scheduledAt);
+    const day =
+      wall.dayOfWeek.charAt(0) + wall.dayOfWeek.slice(1).toLowerCase();
+
+    const slots = await prisma.availabilitySlot.findMany({
+      where: { providerId, dayOfWeek: wall.dayOfWeek, isActive: true },
+    });
+
+    if (slots.length === 0) {
+      return `The provider has no available hours on ${day}s. Choose another day, or add hours on the Schedule page.`;
+    }
+
+    const start = formatMinutesOfDay(wall.minutes);
+    const end = formatMinutesOfDay(wall.minutes + duration);
+    return `This ${duration}-minute visit would run from ${start} to ${end}, outside the provider's hours on ${day}s (${formatSlotRanges(slots)}). Choose a start time or a shorter duration so the whole visit fits within those hours.`;
+  }
+
   async isProviderAvailable(
     providerId: string,
     scheduledAt: Date,
@@ -412,7 +444,6 @@ export class AvailabilityService {
         appointmentEnd <= slotMinutes(slot.endTime)
     );
   }
-
 }
 
 // Singleton instance

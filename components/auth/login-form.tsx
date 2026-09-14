@@ -8,7 +8,18 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { AlertCircle, Loader2 } from "lucide-react";
 
-export function LoginForm() {
+interface DemoAccount {
+  label: string;
+  email: string;
+  password: string;
+}
+
+export function LoginForm({
+  demoAccounts = [],
+}: {
+  /** Accounts front desk chose to list, loaded on the server. */
+  demoAccounts?: DemoAccount[];
+}) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const callbackUrl = searchParams.get("callbackUrl") || "/dashboard";
@@ -24,15 +35,18 @@ export function LoginForm() {
     if (urlError) {
       // Map NextAuth error codes to user-friendly messages
       const errorMessages: Record<string, string> = {
-        Configuration: "Authentication service configuration error. Please contact support.",
+        Configuration:
+          "Authentication service configuration error. Please contact support.",
         AccessDenied: "Access denied. You don't have permission to sign in.",
-        Verification: "Verification token has expired or has already been used.",
+        Verification:
+          "Verification token has expired or has already been used.",
         OAuthSignin: "Error starting sign in process.",
         OAuthCallback: "Error during sign in callback.",
         OAuthCreateAccount: "Could not create account.",
         EmailCreateAccount: "Could not create email account.",
         Callback: "Authentication callback error.",
-        OAuthAccountNotLinked: "Account already exists with different provider.",
+        OAuthAccountNotLinked:
+          "Account already exists with different provider.",
         EmailSignin: "Email sign in error.",
         CredentialsSignin: "Invalid email or password.",
         SessionRequired: "Please sign in to access this page.",
@@ -92,7 +106,7 @@ export function LoginForm() {
       {error && (
         <div
           role="alert"
-          className="flex items-start gap-2 rounded-2xl border border-red-200 bg-red-50/70 backdrop-blur-sm p-3 text-sm text-red-700 shadow-md"
+          className="flex items-start gap-2 rounded-2xl border border-red-200 bg-red-50/70 p-3 text-sm text-red-700 shadow-md backdrop-blur-sm"
         >
           <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-red-500" />
           <p>{error}</p>
@@ -141,34 +155,34 @@ export function LoginForm() {
         )}
       </Button>
 
-      {/* Demo Credentials — tap one to fill the form */}
-      <div className="mt-4 rounded-2xl bg-white/50 backdrop-blur-sm p-4 text-xs shadow-md">
-        <p className="mb-2 font-medium text-foreground">Demo Credentials:</p>
-        <div className="space-y-1.5">
-          {[
-            ["Provider 1", "dr.smith@clinicos.com", "DrSmith123!"],
-            ["Provider 2", "dr.johnson@clinicos.com", "DrJohnson123!"],
-            ["Front Desk", "frontdesk@clinicos.com", "FrontDesk123!"],
-          ].map(([label, user, pass]) => (
-            <button
-              key={user}
-              type="button"
-              disabled={isLoading}
-              onClick={() => {
-                setEmail(user);
-                setPassword(pass);
-                setError("");
-              }}
-              className="flex w-full items-center gap-2 rounded-xl px-2 py-1.5 text-left text-muted-foreground transition-colors hover:bg-white/70 hover:text-[#A855F7] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#A855F7]/50 disabled:opacity-50"
-            >
-              <strong className="shrink-0 text-foreground">{label}:</strong>
-              <span className="min-w-0 truncate">{user}</span>
-              <span className="shrink-0 text-muted-foreground/60">/</span>
-              <code className="shrink-0 font-mono text-foreground/80">{pass}</code>
-            </button>
-          ))}
+      {/* Demo accounts front desk chose to list — tap one to fill the form */}
+      {demoAccounts.length > 0 && (
+        <div className="mt-4 rounded-2xl bg-white/50 p-4 text-xs shadow-md backdrop-blur-sm">
+          <p className="mb-2 font-medium text-foreground">Demo Credentials:</p>
+          <div className="space-y-1.5">
+            {demoAccounts.map(({ label, email: user, password: pass }) => (
+              <button
+                key={user}
+                type="button"
+                disabled={isLoading}
+                onClick={() => {
+                  setEmail(user);
+                  setPassword(pass);
+                  setError("");
+                }}
+                className="flex w-full items-center gap-2 rounded-xl px-2 py-1.5 text-left text-muted-foreground transition-colors hover:bg-white/70 hover:text-[#A855F7] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#A855F7]/50 disabled:opacity-50"
+              >
+                <strong className="shrink-0 text-foreground">{label}:</strong>
+                <span className="min-w-0 truncate">{user}</span>
+                <span className="shrink-0 text-muted-foreground/60">/</span>
+                <code className="shrink-0 font-mono text-foreground/80">
+                  {pass}
+                </code>
+              </button>
+            ))}
+          </div>
         </div>
-      </div>
+      )}
     </form>
   );
 }

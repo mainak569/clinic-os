@@ -14,7 +14,7 @@ import {
 
 /**
  * Visit Note History Component
- * 
+ *
  * Displays immutable history of visit note edits
  * Shows complete snapshots of each version
  */
@@ -74,7 +74,9 @@ export function VisitNoteHistory({
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <p className="text-muted-foreground text-sm">No edit history available</p>
+          <p className="text-sm text-muted-foreground">
+            No edit history available
+          </p>
         </CardContent>
       </Card>
     );
@@ -104,11 +106,11 @@ export function VisitNoteHistory({
         </div>
 
         {/* Immutability notice */}
-        <div className="mt-6 rounded-2xl border border-purple-200 bg-purple-50/70 backdrop-blur-sm p-3">
+        <div className="mt-6 rounded-2xl border border-purple-200 bg-purple-50/70 p-3 backdrop-blur-sm">
           <div className="flex gap-2">
-            <AlertCircle className="h-4 w-4 text-[#A855F7] mt-0.5" />
+            <AlertCircle className="mt-0.5 h-4 w-4 text-[#A855F7]" />
             <div className="text-xs text-purple-900">
-              <p className="font-semibold mb-1">Immutable Medical Records</p>
+              <p className="mb-1 font-semibold">Immutable Medical Records</p>
               <p>
                 All versions are permanently preserved and cannot be modified or
                 deleted. This ensures compliance with healthcare regulations and
@@ -137,19 +139,25 @@ function VersionCard({
     <Collapsible open={isOpen} onOpenChange={setIsOpen}>
       <div className="rounded-2xl border border-white/60 bg-white/40 backdrop-blur-sm">
         <CollapsibleTrigger asChild>
-          <div className="flex items-start justify-between p-4 cursor-pointer hover:bg-white/60 transition-colors">
+          <div className="flex cursor-pointer items-start justify-between p-4 transition-colors hover:bg-white/60">
             <div className="flex-1 space-y-2">
               <div className="flex items-center gap-2">
                 <Badge variant={isLatest ? "default" : "secondary"}>
                   Version {versionNumber}
                 </Badge>
                 {isLatest && (
-                  <Badge variant="outline" className="bg-green-100/80 text-green-700 border-green-200">
+                  <Badge
+                    variant="outline"
+                    className="border-green-200 bg-green-100/80 text-green-700"
+                  >
                     Latest
                   </Badge>
                 )}
                 <span className="text-xs text-muted-foreground">
-                  {format(new Date(version.editedAt), "MMM d, yyyy 'at' h:mm a")}
+                  {format(
+                    new Date(version.editedAt),
+                    "MMM d, yyyy 'at' h:mm a"
+                  )}
                 </span>
               </div>
 
@@ -185,7 +193,7 @@ function VersionCard({
         </CollapsibleTrigger>
 
         <CollapsibleContent>
-          <div className="border-t p-4 space-y-4 bg-muted/20">
+          <div className="space-y-4 border-t bg-muted/20 p-4">
             {/* Clinical Documentation */}
             <Section title="Clinical Documentation">
               <Field label="Chief Complaint" value={version.chiefComplaint} />
@@ -200,7 +208,7 @@ function VersionCard({
 
             {/* Vital Signs */}
             <Section title="Vital Signs">
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+              <div className="grid grid-cols-2 gap-3 md:grid-cols-3">
                 <VitalField
                   label="Blood Pressure"
                   value={version.bloodPressure}
@@ -262,16 +270,28 @@ function VersionCard({
   );
 }
 
-function Section({ title, children }: { title: string; children: React.ReactNode }) {
+function Section({
+  title,
+  children,
+}: {
+  title: string;
+  children: React.ReactNode;
+}) {
   return (
     <div className="space-y-2">
-      <h4 className="font-semibold text-sm text-muted-foreground">{title}</h4>
+      <h4 className="text-sm font-semibold text-muted-foreground">{title}</h4>
       <div className="space-y-2">{children}</div>
     </div>
   );
 }
 
-function Field({ label, value }: { label: string; value?: string | null | undefined }) {
+function Field({
+  label,
+  value,
+}: {
+  label: string;
+  value?: string | null | undefined;
+}) {
   if (!value) return null;
 
   return (
@@ -294,11 +314,13 @@ function VitalField({
   if (value === null || value === undefined) return null;
 
   return (
-    <div className="rounded-2xl border border-white/60 bg-white/50 backdrop-blur-sm p-2">
-      <div className="text-xs text-muted-foreground mb-0.5">{label}</div>
+    <div className="rounded-2xl border border-white/60 bg-white/50 p-2 backdrop-blur-sm">
+      <div className="mb-0.5 text-xs text-muted-foreground">{label}</div>
       <div className="font-semibold">
         {value}
-        {unit && <span className="text-xs text-muted-foreground ml-1">{unit}</span>}
+        {unit && (
+          <span className="ml-1 text-xs text-muted-foreground">{unit}</span>
+        )}
       </div>
     </div>
   );

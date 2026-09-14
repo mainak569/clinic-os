@@ -28,11 +28,16 @@ import {
   type LucideIcon,
 } from "lucide-react";
 
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { getDashboardAnalytics } from "@/app/actions/analytics.actions";
-import { getDashboardStats } from "@/app/actions/queries.actions";
+import { getDashboardOverview } from "@/app/actions/dashboard.actions";
 import { STATUS_HEX, statusLabel } from "@/lib/appointment-status";
 
 /**
@@ -92,7 +97,14 @@ const AXIS_TEXT = "#6B7280";
  * with colour-blindness, so the three purple-family states are never adjacent.
  * Cancelled is a neutral gray and sits last.
  */
-const DONUT_ORDER = ["CONFIRMED", "COMPLETED", "REQUESTED", "NO_SHOW", "CHECKED_IN", "CANCELLED"];
+const DONUT_ORDER = [
+  "CONFIRMED",
+  "COMPLETED",
+  "REQUESTED",
+  "NO_SHOW",
+  "CHECKED_IN",
+  "CANCELLED",
+];
 
 export function AnalyticsCharts() {
   const [analytics, setAnalytics] = useState<DashboardAnalytics | null>(null);
@@ -103,10 +115,10 @@ export function AnalyticsCharts() {
   const loadAnalytics = async () => {
     try {
       setError(null);
-      const [result, statsResult] = await Promise.all([
-        getDashboardAnalytics(),
-        getDashboardStats(),
-      ]);
+      // One action rather than two: the browser runs Server Actions one at a
+      // time, so separate calls made the stats wait for the analytics.
+      const { analytics: result, stats: statsResult } =
+        await getDashboardOverview();
 
       if (result.success) {
         setAnalytics(result.data as DashboardAnalytics);
@@ -199,7 +211,9 @@ export function AnalyticsCharts() {
         />
       </div>
 
-      <div className={`grid gap-6 ${showProviderChart ? "lg:grid-cols-2" : ""}`}>
+      <div
+        className={`grid gap-6 ${showProviderChart ? "lg:grid-cols-2" : ""}`}
+      >
         {showProviderChart && (
           <ProviderChart data={analytics.appointmentsByProvider ?? []} />
         )}
@@ -274,7 +288,11 @@ function GlassTooltip({
   return (
     <div className="min-w-[140px] rounded-2xl border border-white/70 bg-white/90 px-3.5 py-2.5 shadow-xl shadow-purple-500/10 backdrop-blur-xl">
       <div className="flex items-center gap-2">
-        <span className="h-0.5 w-3 rounded-full" style={{ backgroundColor: color }} aria-hidden />
+        <span
+          className="h-0.5 w-3 rounded-full"
+          style={{ backgroundColor: color }}
+          aria-hidden
+        />
         <span className="text-base font-semibold text-gray-950">{value}</span>
       </div>
       <p className="mt-0.5 text-xs font-medium text-gray-600">{label}</p>
@@ -283,12 +301,22 @@ function GlassTooltip({
   );
 }
 
-function EmptyChart({ title, description, message }: { title: string; description: string; message: string }) {
+function EmptyChart({
+  title,
+  description,
+  message,
+}: {
+  title: string;
+  description: string;
+  message: string;
+}) {
   return (
     <Card>
       <CardHeader>
         <CardTitle className="text-gray-900">{title}</CardTitle>
-        <CardDescription className="text-gray-600">{description}</CardDescription>
+        <CardDescription className="text-gray-600">
+          {description}
+        </CardDescription>
       </CardHeader>
       <CardContent>
         <div className="flex h-[220px] items-center justify-center rounded-2xl border border-dashed border-purple-200 bg-white/40">
@@ -308,7 +336,13 @@ function ProviderChart({ data }: { data: ProviderCount[] }) {
   const description = "All appointments booked with each provider";
 
   if (data.length === 0) {
-    return <EmptyChart title={title} description={description} message="No appointments yet" />;
+    return (
+      <EmptyChart
+        title={title}
+        description={description}
+        message="No appointments yet"
+      />
+    );
   }
 
   const rows = [...data].sort((a, b) => b.count - a.count);
@@ -319,10 +353,15 @@ function ProviderChart({ data }: { data: ProviderCount[] }) {
     <Card>
       <CardHeader>
         <CardTitle className="text-gray-900">{title}</CardTitle>
-        <CardDescription className="text-gray-600">{description}</CardDescription>
+        <CardDescription className="text-gray-600">
+          {description}
+        </CardDescription>
       </CardHeader>
       <CardContent>
-        <div style={{ height: Math.max(rows.length * 52 + 16, 140) }} aria-hidden>
+        <div
+          style={{ height: Math.max(rows.length * 52 + 16, 140) }}
+          aria-hidden
+        >
           <ResponsiveContainer width="100%" height="100%">
             <BarChart
               data={rows}
@@ -343,7 +382,8 @@ function ProviderChart({ data }: { data: ProviderCount[] }) {
               <Tooltip
                 cursor={{ fill: "rgba(168, 85, 247, 0.06)", radius: 12 }}
                 content={({ active, payload }) => {
-                  const row = payload?.[0]?.payload as ProviderCount | undefined;
+                  const row = payload?.[0]?.payload as
+                    ProviderCount | undefined;
                   if (!active || !row) return null;
                   return (
                     <GlassTooltip
@@ -355,7 +395,12 @@ function ProviderChart({ data }: { data: ProviderCount[] }) {
                   );
                 }}
               />
-              <Bar dataKey="count" fill={ACCENT} radius={[0, 4, 4, 0]} barSize={20}>
+              <Bar
+                dataKey="count"
+                fill={ACCENT}
+                radius={[0, 4, 4, 0]}
+                barSize={20}
+              >
                 <LabelList
                   dataKey="count"
                   position="right"
@@ -369,8 +414,11 @@ function ProviderChart({ data }: { data: ProviderCount[] }) {
           </ResponsiveContainer>
         </div>
         <p className="mt-4 text-sm text-gray-600">
-          <span className="font-semibold text-gray-900">{total.toLocaleString()}</span> appointments across{" "}
-          {rows.length} {rows.length === 1 ? "provider" : "providers"}
+          <span className="font-semibold text-gray-900">
+            {total.toLocaleString()}
+          </span>{" "}
+          appointments across {rows.length}{" "}
+          {rows.length === 1 ? "provider" : "providers"}
         </p>
         <table className="sr-only">
           <caption>{title}</caption>
@@ -405,12 +453,20 @@ function StatusChart({ data }: { data: StatusCount[] }) {
   const title = "Appointments by status";
   const description = "Where every appointment currently stands";
 
-  const slices = DONUT_ORDER.map((status) => data.find((d) => d.status === status))
+  const slices = DONUT_ORDER.map((status) =>
+    data.find((d) => d.status === status)
+  )
     .concat(data.filter((d) => !DONUT_ORDER.includes(d.status)))
     .filter((d): d is StatusCount => !!d && d.count > 0);
 
   if (slices.length === 0) {
-    return <EmptyChart title={title} description={description} message="No appointments yet" />;
+    return (
+      <EmptyChart
+        title={title}
+        description={description}
+        message="No appointments yet"
+      />
+    );
   }
 
   const total = slices.reduce((sum, s) => sum + s.count, 0);
@@ -421,11 +477,16 @@ function StatusChart({ data }: { data: StatusCount[] }) {
     <Card>
       <CardHeader>
         <CardTitle className="text-gray-900">{title}</CardTitle>
-        <CardDescription className="text-gray-600">{description}</CardDescription>
+        <CardDescription className="text-gray-600">
+          {description}
+        </CardDescription>
       </CardHeader>
       <CardContent>
         <div className="grid items-center gap-6 sm:grid-cols-[minmax(0,220px)_1fr]">
-          <div className="relative mx-auto h-[220px] w-full max-w-[220px]" aria-hidden>
+          <div
+            className="relative mx-auto h-[220px] w-full max-w-[220px]"
+            aria-hidden
+          >
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
                 <Pie
@@ -438,7 +499,9 @@ function StatusChart({ data }: { data: StatusCount[] }) {
                   strokeWidth={2}
                   startAngle={90}
                   endAngle={-270}
-                  onMouseEnter={(_: unknown, index: number) => setActiveStatus(slices[index]?.status ?? null)}
+                  onMouseEnter={(_: unknown, index: number) =>
+                    setActiveStatus(slices[index]?.status ?? null)
+                  }
                   onMouseLeave={() => setActiveStatus(null)}
                   shape={(props: PieSectorShapeProps) => {
                     const slice = props.payload as StatusCount;
@@ -495,7 +558,9 @@ function StatusChart({ data }: { data: StatusCount[] }) {
                   <span className="flex-1 text-sm font-medium text-gray-700">
                     {statusLabel(slice.status)}
                   </span>
-                  <span className="text-sm font-semibold tabular-nums text-gray-950">{slice.count}</span>
+                  <span className="text-sm font-semibold tabular-nums text-gray-950">
+                    {slice.count}
+                  </span>
                   <span className="w-10 text-right text-xs tabular-nums text-gray-500">
                     {slice.percentage.toFixed(0)}%
                   </span>
@@ -513,15 +578,31 @@ function StatusChart({ data }: { data: StatusCount[] }) {
 /* No-show rate trend                                                        */
 /* ------------------------------------------------------------------------ */
 
-function NoShowTrendChart({ data, overallRate }: { data: WeeklyNoShow[]; overallRate: number }) {
+function NoShowTrendChart({
+  data,
+  overallRate,
+}: {
+  data: WeeklyNoShow[];
+  overallRate: number;
+}) {
   const title = "No-show rate";
-  const description = "Share of attended-or-missed visits that were no-shows, last 8 weeks";
+  const description =
+    "Share of attended-or-missed visits that were no-shows, last 8 weeks";
 
   if (data.length === 0) {
-    return <EmptyChart title={title} description={description} message="No completed visits yet" />;
+    return (
+      <EmptyChart
+        title={title}
+        description={description}
+        message="No completed visits yet"
+      />
+    );
   }
 
-  const points = data.map((w) => ({ ...w, label: w.week.replace(/^Week of\s+/, "") }));
+  const points = data.map((w) => ({
+    ...w,
+    label: w.week.replace(/^Week of\s+/, ""),
+  }));
   const lastIndex = points.length - 1;
   const latest = points[lastIndex];
   const previous = points[lastIndex - 1];
@@ -541,12 +622,17 @@ function NoShowTrendChart({ data, overallRate }: { data: WeeklyNoShow[]; overall
     <Card>
       <CardHeader className="gap-1">
         <CardTitle className="text-gray-900">{title}</CardTitle>
-        <CardDescription className="text-gray-600">{description}</CardDescription>
+        <CardDescription className="text-gray-600">
+          {description}
+        </CardDescription>
       </CardHeader>
       <CardContent>
         <div className="h-[260px]" aria-hidden>
           <ResponsiveContainer width="100%" height="100%">
-            <AreaChart data={points} margin={{ top: 28, right: 24, bottom: 0, left: 0 }}>
+            <AreaChart
+              data={points}
+              margin={{ top: 28, right: 24, bottom: 0, left: 0 }}
+            >
               <defs>
                 <linearGradient id="noShowFill" x1="0" y1="0" x2="0" y2="1">
                   <stop offset="0%" stopColor={ACCENT} stopOpacity={0.22} />
@@ -576,7 +662,8 @@ function NoShowTrendChart({ data, overallRate }: { data: WeeklyNoShow[]; overall
               <Tooltip
                 cursor={{ stroke: "#C4B5FD", strokeWidth: 1 }}
                 content={({ active, payload }) => {
-                  const week = payload?.[0]?.payload as (WeeklyNoShow & { label: string }) | undefined;
+                  const week = payload?.[0]?.payload as
+                    (WeeklyNoShow & { label: string }) | undefined;
                   if (!active || !week) return null;
                   return (
                     <GlassTooltip
@@ -601,7 +688,12 @@ function NoShowTrendChart({ data, overallRate }: { data: WeeklyNoShow[]; overall
                 strokeLinejoin="round"
                 fill="url(#noShowFill)"
                 dot={{ r: 4, fill: ACCENT, stroke: SURFACE, strokeWidth: 2 }}
-                activeDot={{ r: 6, fill: ACCENT, stroke: SURFACE, strokeWidth: 2 }}
+                activeDot={{
+                  r: 6,
+                  fill: ACCENT,
+                  stroke: SURFACE,
+                  strokeWidth: 2,
+                }}
               >
                 {/* Label only the latest week; the axis and tooltip carry the rest. */}
                 <LabelList
@@ -634,7 +726,9 @@ function NoShowTrendChart({ data, overallRate }: { data: WeeklyNoShow[]; overall
           </div>
           <p className="text-gray-600">
             Overall no-show rate{" "}
-            <span className="font-semibold text-gray-900">{overallRate.toFixed(1)}%</span>
+            <span className="font-semibold text-gray-900">
+              {overallRate.toFixed(1)}%
+            </span>
           </p>
         </div>
 

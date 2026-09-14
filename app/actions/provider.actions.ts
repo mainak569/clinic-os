@@ -1,7 +1,11 @@
 "use server";
 
 import { headers } from "next/headers";
-import { requireAuth, requireRole, canAccessProviderData } from "@/lib/auth-helpers";
+import {
+  requireAuth,
+  requireRole,
+  canAccessProviderData,
+} from "@/lib/auth-helpers";
 import { providerService } from "@/lib/services/provider.service";
 import { auditService } from "@/lib/services/audit.service";
 import { revalidateDashboard } from "@/lib/revalidate";
@@ -24,8 +28,7 @@ import {
  */
 
 type ActionResult<T> =
-  | { success: true; data: T }
-  | { success: false; error: string };
+  { success: true; data: T } | { success: false; error: string };
 
 async function audit(
   userId: string,
@@ -56,7 +59,10 @@ export async function listProviders(input?: {
     return { success: true, data: providers };
   } catch (error) {
     console.error("listProviders error:", error);
-    return { success: false, error: actionErrorMessage(error, "Failed to load providers") };
+    return {
+      success: false,
+      error: actionErrorMessage(error, "Failed to load providers"),
+    };
   }
 }
 
@@ -74,13 +80,17 @@ export async function createProvider(
       email: validatedInput.email,
       firstName: validatedInput.firstName,
       lastName: validatedInput.lastName,
+      showOnLogin: Boolean(validatedInput.showOnLogin),
     });
 
     revalidateDashboard();
     return { success: true, data: { id: provider.id } };
   } catch (error) {
     console.error("createProvider error:", error);
-    return { success: false, error: actionErrorMessage(error, "Failed to add provider") };
+    return {
+      success: false,
+      error: actionErrorMessage(error, "Failed to add provider"),
+    };
   }
 }
 
@@ -92,21 +102,37 @@ export async function updateProvider(
     const validatedInput = updateProviderSchema.parse(input);
 
     if (!(await canAccessProviderData(validatedInput.id))) {
-      return { success: false, error: "You can only update your own provider details" };
+      return {
+        success: false,
+        error: "You can only update your own provider details",
+      };
     }
 
-    const provider = await providerService.updateProvider(validatedInput);
+    // Only front desk decides which accounts appear on the login page. A
+    // provider changing their own password still updates an existing listing.
+    const updateInput =
+      session.user.role === "FRONT_DESK"
+        ? validatedInput
+        : { ...validatedInput, showOnLogin: undefined };
+
+    const provider = await providerService.updateProvider(updateInput);
 
     await audit(session.user.id, "UPDATE", provider.id, {
       email: validatedInput.email,
       passwordChanged: Boolean(validatedInput.password),
+      ...(updateInput.showOnLogin !== undefined
+        ? { showOnLogin: updateInput.showOnLogin }
+        : {}),
     });
 
     revalidateDashboard();
     return { success: true, data: { id: provider.id } };
   } catch (error) {
     console.error("updateProvider error:", error);
-    return { success: false, error: actionErrorMessage(error, "Failed to update provider") };
+    return {
+      success: false,
+      error: actionErrorMessage(error, "Failed to update provider"),
+    };
   }
 }
 
@@ -127,14 +153,19 @@ export async function setProviderActive(
     });
 
     revalidateDashboard();
-    return { success: true, data: { id: provider.id, isActive: provider.isActive } };
+    return {
+      success: true,
+      data: { id: provider.id, isActive: provider.isActive },
+    };
   } catch (error) {
     console.error("setProviderActive error:", error);
     return {
       success: false,
       error: actionErrorMessage(
         error,
-        input?.isActive ? "Failed to reactivate provider" : "Failed to deactivate provider"
+        input?.isActive
+          ? "Failed to reactivate provider"
+          : "Failed to deactivate provider"
       ),
     };
   }

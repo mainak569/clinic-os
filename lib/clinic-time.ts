@@ -94,9 +94,15 @@ export function clinicWallClock(
   }).formatToParts(instant);
 
   const get = (type: string) => parts.find((p) => p.type === type)?.value ?? "";
-  const weekdayIndex = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].indexOf(
-    get("weekday")
-  );
+  const weekdayIndex = [
+    "Sun",
+    "Mon",
+    "Tue",
+    "Wed",
+    "Thu",
+    "Fri",
+    "Sat",
+  ].indexOf(get("weekday"));
 
   return {
     dayOfWeek: WEEKDAYS[weekdayIndex],
@@ -128,7 +134,8 @@ function clinicCalendarDate(
     month: "2-digit",
     day: "2-digit",
   }).formatToParts(instant);
-  const get = (type: string) => Number(parts.find((p) => p.type === type)?.value);
+  const get = (type: string) =>
+    Number(parts.find((p) => p.type === type)?.value);
   return { year: get("year"), month: get("month"), day: get("day") };
 }
 
@@ -162,7 +169,8 @@ function zonedWallClockToUtc(
     second: "2-digit",
     hourCycle: "h23",
   }).formatToParts(new Date(guess));
-  const get = (type: string) => Number(parts.find((p) => p.type === type)?.value);
+  const get = (type: string) =>
+    Number(parts.find((p) => p.type === type)?.value);
   const readAsUtc = Date.UTC(
     get("year"),
     get("month") - 1,
@@ -217,7 +225,9 @@ export function startOfClinicWeek(
 ): Date {
   const { dayOfWeek } = clinicWallClock(instant, timeZone);
   const daysSinceMonday = (WEEKDAY_INDEX[dayOfWeek] + 6) % 7; // Mon=0 .. Sun=6
-  const roughlyMonday = new Date(instant.getTime() - daysSinceMonday * 86_400_000);
+  const roughlyMonday = new Date(
+    instant.getTime() - daysSinceMonday * 86_400_000
+  );
   return startOfClinicDay(roughlyMonday, timeZone);
 }
 

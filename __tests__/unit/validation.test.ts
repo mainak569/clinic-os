@@ -1,6 +1,6 @@
 /**
  * Unit Tests: Validation Schemas
- * 
+ *
  * Tests for Zod validation schemas
  */
 
@@ -134,12 +134,18 @@ describe("Validation Schemas", () => {
         cancellationReason: "   \n\t ",
       });
       expect(result.success).toBe(false);
-      expect(result.error?.issues[0]?.message).toBe("Cancellation reason is required");
+      expect(result.error?.issues[0]?.message).toBe(
+        "Cancellation reason is required"
+      );
     });
 
     it("should explain a missing reason in plain words, not a type error", () => {
-      const result = cancelAppointmentSchema.safeParse({ appointmentId: "appt_123" });
-      expect(result.error?.issues[0]?.message).toBe("Cancellation reason is required");
+      const result = cancelAppointmentSchema.safeParse({
+        appointmentId: "appt_123",
+      });
+      expect(result.error?.issues[0]?.message).toBe(
+        "Cancellation reason is required"
+      );
     });
 
     it("should store the reason trimmed", () => {

@@ -18,6 +18,7 @@ export function canWriteVisitNote(
     userRole === "PROVIDER" &&
     !!userProviderId &&
     userProviderId === appointmentProviderId &&
-    (appointmentStatus === undefined || VISIT_NOTE_STATUSES.includes(appointmentStatus))
+    (appointmentStatus === undefined ||
+      VISIT_NOTE_STATUSES.includes(appointmentStatus))
   );
 }

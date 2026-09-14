@@ -4,17 +4,17 @@ import { redirect } from "next/navigation";
 
 /**
  * Authorization Helpers
- * 
+ *
  * Security Principle: Never trust the frontend
  * All authorization checks happen server-side
- * 
+ *
  * Usage in Server Components, Server Actions, and API Routes
  */
 
 /**
  * Requires user to be authenticated
  * Redirects to login if not authenticated
- * 
+ *
  * @returns Session with authenticated user
  * @throws Redirects to /login if not authenticated
  */
@@ -42,12 +42,12 @@ export async function getApiSession() {
 
 /**
  * Requires user to have specific role(s)
- * 
+ *
  * @param allowedRoles - Single role or array of allowed roles
  * @returns Session with authenticated user
  * @throws Redirects to /unauthorized if wrong role
  * @throws Redirects to /login if not authenticated
- * 
+ *
  * @example
  * const session = await requireRole("PROVIDER");
  * const session = await requireRole(["PROVIDER", "FRONT_DESK"]);
@@ -67,10 +67,10 @@ export async function requireRole(allowedRoles: Role | Role[]) {
 /**
  * Checks if user is a specific provider
  * Used to enforce provider data isolation
- * 
+ *
  * @param providerId - Provider ID to check
  * @returns true if user is the provider or is FRONT_DESK
- * 
+ *
  * @example
  * const canAccess = await canAccessProviderData(providerId);
  * if (!canAccess) throw new Error("Unauthorized");
@@ -96,10 +96,10 @@ export async function canAccessProviderData(
 /**
  * Requires user to be the specific provider or FRONT_DESK
  * Throws error if unauthorized
- * 
+ *
  * @param providerId - Provider ID to check
  * @throws Error if user cannot access provider data
- * 
+ *
  * @example
  * await requireProviderAccess(providerId);
  */
@@ -107,9 +107,7 @@ export async function requireProviderAccess(providerId: string): Promise<void> {
   const canAccess = await canAccessProviderData(providerId);
 
   if (!canAccess) {
-    throw new Error(
-      "Unauthorized: You can only access your own provider data"
-    );
+    throw new Error("Unauthorized: You can only access your own provider data");
   }
 }
 
@@ -140,11 +138,11 @@ export async function getCurrentProviderId(): Promise<string | null> {
 
 /**
  * Authorization check for appointment access
- * 
+ *
  * Rules:
  * - FRONT_DESK: Can access all appointments
  * - PROVIDER: Can only access appointments where they are the provider
- * 
+ *
  * @param appointmentProviderId - Provider ID from the appointment
  * @returns true if user can access the appointment
  */
@@ -156,11 +154,11 @@ export async function canAccessAppointment(
 
 /**
  * Authorization check for patient access
- * 
+ *
  * Rules:
  * - FRONT_DESK: Can access all patients
  * - PROVIDER: Can only access patients they have appointments with
- * 
+ *
  * @param patientId - Patient ID to check
  * @returns true if user can access the patient
  */

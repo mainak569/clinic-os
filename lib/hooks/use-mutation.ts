@@ -19,9 +19,15 @@ export interface MutationState<T = unknown> {
 export interface MutationOptions<TData = unknown, TVariables = unknown> {
   onSuccess?: (data: TData, variables: TVariables) => void | Promise<void>;
   onError?: (error: string, variables: TVariables) => void | Promise<void>;
-  onSettled?: (data: TData | null, error: string | null, variables: TVariables) => void | Promise<void>;
+  onSettled?: (
+    data: TData | null,
+    error: string | null,
+    variables: TVariables
+  ) => void | Promise<void>;
   successMessage?: string | ((data: TData, variables: TVariables) => string);
   errorMessage?: string | ((error: string, variables: TVariables) => string);
+  /** Toast on failure (default true). Turn off when the form shows the error itself. */
+  showErrorToast?: boolean;
   retryCount?: number;
   retryDelay?: number;
 }
@@ -38,16 +44,16 @@ export interface MutationResult<TData = unknown, TVariables = unknown> {
 
 /**
  * Custom hook for managing mutation state with loading, success, failure, and retry
- * 
+ *
  * @example
  * const createMutation = useMutation(createAppointment, {
  *   onSuccess: () => router.refresh(),
  *   successMessage: "Appointment created successfully",
  *   retryCount: 2,
  * });
- * 
+ *
  * // In component
- * <Button 
+ * <Button
  *   onClick={() => createMutation.mutate(formData)}
  *   disabled={createMutation.state.isLoading}
  * >
@@ -56,7 +62,9 @@ export interface MutationResult<TData = unknown, TVariables = unknown> {
  * </Button>
  */
 export function useMutation<TData = unknown, TVariables = unknown>(
-  mutationFn: (variables: TVariables) => Promise<{ success: boolean; data?: TData; error?: string }>,
+  mutationFn: (
+    variables: TVariables
+  ) => Promise<{ success: boolean; data?: TData; error?: string }>,
   options: MutationOptions<TData, TVariables> = {}
 ): MutationResult<TData, TVariables> {
   const {
@@ -65,6 +73,7 @@ export function useMutation<TData = unknown, TVariables = unknown>(
     onSettled,
     successMessage,
     errorMessage,
+    showErrorToast = true,
     retryCount = 0,
     retryDelay = 1000,
   } = options;
@@ -143,9 +152,10 @@ export function useMutation<TData = unknown, TVariables = unknown>(
 
         // Success toast
         if (successMessage) {
-          const message = typeof successMessage === "function"
-            ? successMessage(data, variables)
-            : successMessage;
+          const message =
+            typeof successMessage === "function"
+              ? successMessage(data, variables)
+              : successMessage;
           toast.success(message);
         }
 
@@ -156,7 +166,8 @@ export function useMutation<TData = unknown, TVariables = unknown>(
 
         return data;
       } catch (error) {
-        const errorMsg = error instanceof Error ? error.message : "An error occurred";
+        const errorMsg =
+          error instanceof Error ? error.message : "An error occurred";
 
         setState({
           isLoading: false,
@@ -172,13 +183,12 @@ export function useMutation<TData = unknown, TVariables = unknown>(
         }
 
         // Error toast
-        if (errorMessage) {
-          const message = typeof errorMessage === "function"
-            ? errorMessage(errorMsg, variables)
-            : errorMessage;
+        if (showErrorToast) {
+          const message =
+            typeof errorMessage === "function"
+              ? errorMessage(errorMsg, variables)
+              : errorMessage || errorMsg;
           toast.error(message);
-        } else {
-          toast.error(errorMsg);
         }
 
         // Settled callback
@@ -189,7 +199,16 @@ export function useMutation<TData = unknown, TVariables = unknown>(
         throw error;
       }
     },
-    [executeWithRetry, retryCount, onSuccess, onError, onSettled, successMessage, errorMessage]
+    [
+      executeWithRetry,
+      retryCount,
+      onSuccess,
+      onError,
+      onSettled,
+      successMessage,
+      errorMessage,
+      showErrorToast,
+    ]
   );
 
   const mutate = useCallback(
@@ -231,14 +250,21 @@ function isRetriableError(error: unknown): boolean {
   if (!(error instanceof Error)) return false;
 
   const message = error.message.toLowerCase();
-  
+
   // Network errors - retriable
-  if (message.includes("network") || message.includes("timeout") || message.includes("fetch")) {
+  if (
+    message.includes("network") ||
+    message.includes("timeout") ||
+    message.includes("fetch")
+  ) {
     return true;
   }
 
   // Server errors (5xx) - retriable
-  if (message.includes("internal server error") || message.includes("service unavailable")) {
+  if (
+    message.includes("internal server error") ||
+    message.includes("service unavailable")
+  ) {
     return true;
   }
 

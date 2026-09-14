@@ -26,7 +26,10 @@ import {
 } from "@/components/ui/form";
 import { Textarea } from "@/components/ui/textarea";
 
-import { markNoShowSchema, type MarkNoShowInput } from "@/lib/validations/appointment";
+import {
+  markNoShowSchema,
+  type MarkNoShowInput,
+} from "@/lib/validations/appointment";
 import { markAppointmentNoShow } from "@/app/actions/appointment.actions";
 
 interface NoShowDialogProps {
@@ -89,7 +92,8 @@ export function NoShowDialog({
             Mark as No-Show
           </DialogTitle>
           <DialogDescription>
-            Mark this appointment as a no-show. This is typically done when a patient does not arrive for their scheduled appointment.
+            Mark this appointment as a no-show. This is typically done when a
+            patient does not arrive for their scheduled appointment.
           </DialogDescription>
         </DialogHeader>
 
@@ -104,12 +108,13 @@ export function NoShowDialog({
                   <FormControl>
                     <Textarea
                       placeholder="Additional notes about the no-show..."
-                      className="resize-none min-h-[80px]"
+                      className="min-h-[80px] resize-none"
                       {...field}
                     />
                   </FormControl>
                   <FormDescription>
-                    Any additional context or notes about why the patient didn&apos;t show
+                    Any additional context or notes about why the patient
+                    didn&apos;t show
                   </FormDescription>
                   <FormMessage />
                 </FormItem>
@@ -125,12 +130,10 @@ export function NoShowDialog({
               >
                 Cancel
               </Button>
-              <Button
-                type="submit"
-                variant="default"
-                disabled={isSubmitting}
-              >
-                {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              <Button type="submit" variant="default" disabled={isSubmitting}>
+                {isSubmitting && (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                )}
                 Mark as No-Show
               </Button>
             </DialogFooter>

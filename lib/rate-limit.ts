@@ -13,18 +13,22 @@ interface RateLimitRecord {
 
 const globalRequests = new Map<string, RateLimitRecord>();
 const failedLogins = new Map<string, RateLimitRecord>();
+const assistantRequests = new Map<string, RateLimitRecord>();
 
 // Drop expired entries every 5 minutes
-const cleanup = setInterval(() => {
-  const now = Date.now();
-  for (const store of [globalRequests, failedLogins]) {
-    for (const [key, value] of store.entries()) {
-      if (now > value.resetAt) {
-        store.delete(key);
+const cleanup = setInterval(
+  () => {
+    const now = Date.now();
+    for (const store of [globalRequests, failedLogins, assistantRequests]) {
+      for (const [key, value] of store.entries()) {
+        if (now > value.resetAt) {
+          store.delete(key);
+        }
       }
     }
-  }
-}, 5 * 60 * 1000);
+  },
+  5 * 60 * 1000
+);
 // Don't keep a Node process (such as a test run) alive just for cleanup.
 (cleanup as { unref?: () => void }).unref?.();
 
@@ -44,7 +48,12 @@ function checkRateLimit(
 
   if (!record || now > record.resetAt) {
     store.set(identifier, { count: 1, resetAt: now + windowMs });
-    return { success: true, limit, remaining: limit - 1, reset: now + windowMs };
+    return {
+      success: true,
+      limit,
+      remaining: limit - 1,
+      reset: now + windowMs,
+    };
   }
 
   if (record.count >= limit) {
@@ -52,7 +61,12 @@ function checkRateLimit(
   }
 
   record.count++;
-  return { success: true, limit, remaining: limit - record.count, reset: record.resetAt };
+  return {
+    success: true,
+    limit,
+    remaining: limit - record.count,
+    reset: record.resetAt,
+  };
 }
 
 /**
@@ -62,6 +76,15 @@ function checkRateLimit(
  */
 export function globalRateLimit(identifier: string) {
   return checkRateLimit(globalRequests, identifier, 100, 60 * 1000);
+}
+
+/**
+ * AI assistant: 20 messages per 5 minutes per signed-in user.
+ * Keyed on the user id from the session, not the client IP, so it can't be
+ * sidestepped by changing request headers.
+ */
+export function assistantRateLimit(userId: string) {
+  return checkRateLimit(assistantRequests, userId, 20, 5 * 60 * 1000);
 }
 
 /** Failed sign-ins allowed per email before it is locked for the window. */
@@ -75,14 +98,21 @@ const FAILED_LOGIN_WINDOW_MS = 15 * 60 * 1000;
  */
 export function isLoginBlocked(identifier: string): boolean {
   const record = failedLogins.get(identifier);
-  return !!record && Date.now() <= record.resetAt && record.count >= MAX_FAILED_LOGINS;
+  return (
+    !!record &&
+    Date.now() <= record.resetAt &&
+    record.count >= MAX_FAILED_LOGINS
+  );
 }
 
 export function recordFailedLogin(identifier: string): void {
   const now = Date.now();
   const record = failedLogins.get(identifier);
   if (!record || now > record.resetAt) {
-    failedLogins.set(identifier, { count: 1, resetAt: now + FAILED_LOGIN_WINDOW_MS });
+    failedLogins.set(identifier, {
+      count: 1,
+      resetAt: now + FAILED_LOGIN_WINDOW_MS,
+    });
   } else {
     record.count++;
   }

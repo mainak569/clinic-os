@@ -14,12 +14,7 @@
 export const CHECK_IN_OPENS_MINUTES_BEFORE = 60;
 
 export type AppointmentAction =
-  | "confirm"
-  | "checkIn"
-  | "complete"
-  | "noShow"
-  | "cancel"
-  | "reschedule";
+  "confirm" | "checkIn" | "complete" | "noShow" | "cancel" | "reschedule";
 
 export interface AppointmentTiming {
   status: string;
@@ -70,10 +65,14 @@ export function actionBlockedReason(
       return null;
 
     case "complete":
-      return t <= start ? "A visit can't be completed before its scheduled start time." : null;
+      return t <= start
+        ? "A visit can't be completed before its scheduled start time."
+        : null;
 
     case "noShow":
-      return t <= start ? "Cannot mark appointment as NO_SHOW before the scheduled time" : null;
+      return t <= start
+        ? "Cannot mark appointment as NO_SHOW before the scheduled time"
+        : null;
 
     case "cancel":
       // An unconfirmed request whose time has passed can still be cleared away;

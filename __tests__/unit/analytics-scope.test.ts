@@ -79,10 +79,9 @@ describe("Analytics provider isolation", () => {
       expect(wheres(mockFindMany)).toHaveLength(1);
       expect(wheres(mockFindMany)[0].providerId).toBe("provider-a");
 
-      expect(mockCount).toHaveBeenCalled();
-      for (const where of wheres(mockCount)) {
-        expect(where.providerId).toBe("provider-a");
-      }
+      // Summary counts are derived from that scoped status breakdown, so there
+      // is no separate count query that could run unscoped.
+      expect(mockCount).not.toHaveBeenCalled();
     });
 
     it("never runs the cross-provider aggregation", async () => {
@@ -92,6 +91,26 @@ describe("Analytics provider isolation", () => {
         (call: any[]) => call[0]?.by?.[0] === "providerId"
       );
       expect(byProvider).toHaveLength(0);
+    });
+
+    it("derives the summary counts from the status breakdown", async () => {
+      mockGroupBy.mockResolvedValue([
+        { status: "COMPLETED", _count: { id: 6 } },
+        { status: "CONFIRMED", _count: { id: 3 } },
+        { status: "NO_SHOW", _count: { id: 2 } },
+        { status: "CANCELLED", _count: { id: 1 } },
+      ]);
+
+      const result = await analyticsService.getProviderAnalytics("provider-a");
+
+      expect(result.summary).toEqual({
+        totalAppointments: 12,
+        confirmedAppointments: 3,
+        completedAppointments: 6,
+        cancelledAppointments: 1,
+        noShowAppointments: 2,
+        overallNoShowRate: 25,
+      });
     });
   });
 
@@ -129,7 +148,10 @@ describe("Analytics provider isolation", () => {
 
       const result = await getDashboardAnalytics();
 
-      expect(result).toEqual({ success: false, error: "Provider ID not found" });
+      expect(result).toEqual({
+        success: false,
+        error: "Provider ID not found",
+      });
       expect(mockGroupBy).not.toHaveBeenCalled();
       expect(mockFindMany).not.toHaveBeenCalled();
       expect(mockCount).not.toHaveBeenCalled();
@@ -178,9 +200,16 @@ describe("Analytics provider isolation", () => {
     it("refuses provider accounts with no linked provider instead of returning clinic data", async () => {
       asProvider(null);
 
-      for (const action of [getAppointmentsByStatus, getNoShowRateLast8Weeks, () => getRecentTrends()]) {
+      for (const action of [
+        getAppointmentsByStatus,
+        getNoShowRateLast8Weeks,
+        () => getRecentTrends(),
+      ]) {
         const result = await action();
-        expect(result).toEqual({ success: false, error: "Provider ID not found" });
+        expect(result).toEqual({
+          success: false,
+          error: "Provider ID not found",
+        });
       }
       expect(mockGroupBy).not.toHaveBeenCalled();
       expect(mockFindMany).not.toHaveBeenCalled();

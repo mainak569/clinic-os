@@ -43,7 +43,9 @@ export const bulkCreateAvailabilitySchema = z
     path: ["endTime"],
   });
 
-export type BulkCreateAvailabilityInput = z.input<typeof bulkCreateAvailabilitySchema>;
+export type BulkCreateAvailabilityInput = z.input<
+  typeof bulkCreateAvailabilitySchema
+>;
 
 // ============================================================================
 // EXPORT SCHEDULE TO CSV
@@ -93,4 +95,6 @@ export const deleteBulkAvailabilitySchema = z.object({
     .min(1, "At least one day of week is required"),
 });
 
-export type DeleteBulkAvailabilityInput = z.infer<typeof deleteBulkAvailabilitySchema>;
+export type DeleteBulkAvailabilityInput = z.infer<
+  typeof deleteBulkAvailabilitySchema
+>;

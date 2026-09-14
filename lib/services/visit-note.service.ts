@@ -3,47 +3,45 @@ import type { VisitNote, VisitNoteHistory } from "@prisma/client";
 
 /**
  * Visit Note Service Layer
- * 
+ *
  * Handles all business logic for visit note management
  * Implements immutable history tracking for compliance and audit
- * 
+ *
  * Key Features:
  * - Automatic history snapshots on every edit
  * - Author-only edit permissions (enforced at action layer)
  * - Complete audit trail
- * - HIPAA-compliant immutable records
+ * - Immutable records with security-focused audit history
  */
 
 export class VisitNoteService {
   /**
    * Create a new visit note
-   * 
+   *
    * Creates initial version and records creation in history
    */
-  async createVisitNote(
-    input: {
-      appointmentId: string;
-      authorId: string;
-      chiefComplaint?: string;
-      historyOfPresent?: string;
-      physicalExam?: string;
-      assessment?: string;
-      plan?: string;
-      bloodPressure?: string;
-      heartRate?: number;
-      temperature?: number;
-      respiratoryRate?: number;
-      oxygenSaturation?: number;
-      weight?: number;
-      height?: number;
-      prescriptions?: string;
-      labOrders?: string;
-      imagingOrders?: string;
-      referrals?: string;
-      followUpInstructions?: string;
-      nextVisitDate?: Date;
-    }
-  ): Promise<VisitNote> {
+  async createVisitNote(input: {
+    appointmentId: string;
+    authorId: string;
+    chiefComplaint?: string;
+    historyOfPresent?: string;
+    physicalExam?: string;
+    assessment?: string;
+    plan?: string;
+    bloodPressure?: string;
+    heartRate?: number;
+    temperature?: number;
+    respiratoryRate?: number;
+    oxygenSaturation?: number;
+    weight?: number;
+    height?: number;
+    prescriptions?: string;
+    labOrders?: string;
+    imagingOrders?: string;
+    referrals?: string;
+    followUpInstructions?: string;
+    nextVisitDate?: Date;
+  }): Promise<VisitNote> {
     // A visit can only be documented once the patient has arrived.
     const appointment = await prisma.appointment.findUnique({
       where: { id: input.appointmentId },
@@ -53,7 +51,9 @@ export class VisitNoteService {
       throw new Error("Appointment not found");
     }
     if (!["CHECKED_IN", "COMPLETED"].includes(appointment.status)) {
-      throw new Error("A visit note can be written once the patient has checked in.");
+      throw new Error(
+        "A visit note can be written once the patient has checked in."
+      );
     }
 
     // Check if visit note already exists for this appointment
@@ -128,7 +128,7 @@ export class VisitNoteService {
    * Update a visit note
    *
    * `undefined` leaves a field unchanged; `null` clears it.
-   * 
+   *
    * Creates immutable history snapshot before updating
    * Only the author can edit their own notes (enforced at action layer)
    */
@@ -331,7 +331,7 @@ export class VisitNoteService {
 
   /**
    * Get complete history for a visit note
-   * 
+   *
    * Returns all historical versions in reverse chronological order
    * IMMUTABLE - history records cannot be modified or deleted
    */
@@ -359,7 +359,7 @@ export class VisitNoteService {
 
   /**
    * Create an immutable history snapshot
-   * 
+   *
    * PRIVATE METHOD - automatically called on create/update
    * Records complete state of visit note at point in time
    */
@@ -406,10 +406,13 @@ export class VisitNoteService {
 
   /**
    * Check if user can edit visit note
-   * 
+   *
    * Only the original author can edit their notes
    */
-  async canEditVisitNote(visitNoteId: string, userId: string): Promise<boolean> {
+  async canEditVisitNote(
+    visitNoteId: string,
+    userId: string
+  ): Promise<boolean> {
     const visitNote = await prisma.visitNote.findUnique({
       where: { id: visitNoteId },
       select: { authorId: true },

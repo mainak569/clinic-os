@@ -27,8 +27,7 @@ import { actionErrorMessage } from "@/lib/action-error";
  */
 
 type ActionResult<T> =
-  | { success: true; data: T }
-  | { success: false; error: string };
+  { success: true; data: T } | { success: false; error: string };
 
 /**
  * Create a new availability slot
@@ -76,7 +75,9 @@ export async function updateAvailabilitySlot(
 
     const validatedInput = updateAvailabilitySlotSchema.parse(input);
 
-    const existingSlot = await availabilityService.getSlotById(validatedInput.slotId);
+    const existingSlot = await availabilityService.getSlotById(
+      validatedInput.slotId
+    );
     if (!existingSlot) {
       return { success: false, error: "Availability slot not found" };
     }
@@ -102,7 +103,10 @@ export async function updateAvailabilitySlot(
       updateData.endTime = timeStringToSlotDate(validatedInput.endTime);
     }
 
-    const slot = await availabilityService.updateSlot(validatedInput.slotId, updateData);
+    const slot = await availabilityService.updateSlot(
+      validatedInput.slotId,
+      updateData
+    );
 
     revalidateDashboard();
 
@@ -130,7 +134,9 @@ export async function deleteAvailabilitySlot(
 
     const validatedInput = archiveAvailabilitySlotSchema.parse(input);
 
-    const existingSlot = await availabilityService.getSlotById(validatedInput.slotId);
+    const existingSlot = await availabilityService.getSlotById(
+      validatedInput.slotId
+    );
     if (!existingSlot) {
       return { success: false, error: "Availability slot not found" };
     }
@@ -165,7 +171,9 @@ export async function archiveAvailabilitySlot(
 
     const validatedInput = archiveAvailabilitySlotSchema.parse(input);
 
-    const existingSlot = await availabilityService.getSlotById(validatedInput.slotId);
+    const existingSlot = await availabilityService.getSlotById(
+      validatedInput.slotId
+    );
     if (!existingSlot) {
       return { success: false, error: "Availability slot not found" };
     }
@@ -200,7 +208,9 @@ export async function restoreAvailabilitySlot(
 
     const validatedInput = restoreAvailabilitySlotSchema.parse(input);
 
-    const existingSlot = await availabilityService.getSlotById(validatedInput.slotId);
+    const existingSlot = await availabilityService.getSlotById(
+      validatedInput.slotId
+    );
     if (!existingSlot) {
       return { success: false, error: "Availability slot not found" };
     }
@@ -241,7 +251,10 @@ export async function getProviderAvailability(
       );
     }
 
-    const slots = await availabilityService.getProviderSlots(providerId, includeInactive);
+    const slots = await availabilityService.getProviderSlots(
+      providerId,
+      includeInactive
+    );
 
     return { success: true, data: slots };
   } catch (error) {

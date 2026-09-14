@@ -13,7 +13,7 @@ export default function UnauthorizedPage() {
     <div className="relative flex min-h-screen flex-col items-center justify-center px-4">
       <MoltenBackground />
 
-      <div className="w-full max-w-md rounded-3xl bg-white/70 backdrop-blur-xl p-8 text-center shadow-2xl">
+      <div className="w-full max-w-md rounded-3xl bg-white/70 p-8 text-center shadow-2xl backdrop-blur-xl">
         <div className="mb-6 flex justify-center">
           <div className="rounded-full bg-red-500/10 p-6">
             <ShieldAlert className="h-12 w-12 text-red-500" />

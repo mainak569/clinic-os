@@ -1,6 +1,6 @@
 /**
  * Integration Tests: Authorization & Access Control
- * 
+ *
  * Tests provider data isolation and authorization boundaries
  * Critical for multi-tenant security
  */
@@ -8,7 +8,10 @@
 import { describe, it, expect, beforeAll, afterAll } from "@jest/globals";
 import { prisma } from "@/lib/prisma";
 import { appointmentService } from "@/lib/services/appointment.service";
-import { canAccessProviderData, canAccessAppointment } from "@/lib/auth-helpers";
+import {
+  canAccessProviderData,
+  canAccessAppointment,
+} from "@/lib/auth-helpers";
 import { auth } from "@/auth";
 
 // Mock auth module
@@ -76,7 +79,15 @@ describe("Authorization & Access Control", () => {
     });
 
     // Create availability slots for all days
-    const allDays = ["MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY", "SATURDAY", "SUNDAY"] as const;
+    const allDays = [
+      "MONDAY",
+      "TUESDAY",
+      "WEDNESDAY",
+      "THURSDAY",
+      "FRIDAY",
+      "SATURDAY",
+      "SUNDAY",
+    ] as const;
     for (const day of allDays) {
       await prisma.availabilitySlot.create({
         data: {
@@ -99,7 +110,9 @@ describe("Authorization & Access Control", () => {
 
     // Create appointments on next Monday
     const futureDate = new Date();
-    futureDate.setDate(futureDate.getDate() + ((1 + 7 - futureDate.getDay()) % 7 || 7));
+    futureDate.setDate(
+      futureDate.getDate() + ((1 + 7 - futureDate.getDay()) % 7 || 7)
+    );
     futureDate.setHours(10, 0, 0, 0);
 
     await appointmentService.createAppointment(
@@ -135,10 +148,22 @@ describe("Authorization & Access Control", () => {
     await prisma.appointmentHistory.deleteMany({});
     await prisma.appointment.deleteMany({});
     await prisma.availabilitySlot.deleteMany({});
-    await prisma.patient.deleteMany({ where: { email: "auth-patient@test.com" } });
-    await prisma.provider.deleteMany({ where: { userId: { in: [user1.id, user2.id] } } });
+    await prisma.patient.deleteMany({
+      where: { email: "auth-patient@test.com" },
+    });
+    await prisma.provider.deleteMany({
+      where: { userId: { in: [user1.id, user2.id] } },
+    });
     await prisma.user.deleteMany({
-      where: { email: { in: ["provider1@test.com", "provider2@test.com", "frontdesk@test.com"] } },
+      where: {
+        email: {
+          in: [
+            "provider1@test.com",
+            "provider2@test.com",
+            "frontdesk@test.com",
+          ],
+        },
+      },
     });
   });
 
@@ -230,9 +255,8 @@ describe("Authorization & Access Control", () => {
 
   describe("Cross-Provider Data Leakage", () => {
     it("should not return appointments from other providers", async () => {
-      const provider1Appointments = await appointmentService.getProviderAppointments(
-        provider1.id
-      );
+      const provider1Appointments =
+        await appointmentService.getProviderAppointments(provider1.id);
 
       const hasProvider2Appointments = provider1Appointments.some(
         (appt) => appt.providerId === provider2.id
@@ -242,7 +266,9 @@ describe("Authorization & Access Control", () => {
     });
 
     it("should only return appointments for the specified provider", async () => {
-      const appointments = await appointmentService.getProviderAppointments(provider1.id);
+      const appointments = await appointmentService.getProviderAppointments(
+        provider1.id
+      );
 
       appointments.forEach((appt) => {
         expect(appt.providerId).toBe(provider1.id);
@@ -252,7 +278,9 @@ describe("Authorization & Access Control", () => {
 
   describe("Role-Based Access", () => {
     it("should allow PROVIDER to access only their appointments", async () => {
-      const appointments = await appointmentService.getProviderAppointments(provider1.id);
+      const appointments = await appointmentService.getProviderAppointments(
+        provider1.id
+      );
 
       expect(appointments.length).toBeGreaterThan(0);
       appointments.forEach((appt) => {
@@ -296,8 +324,10 @@ describe("Authorization & Access Control", () => {
     it("should validate providerId in server actions", async () => {
       // This tests that server actions properly check authorization
       // In real implementation, this would test the actual server action
-      const appointment = await appointmentService.getAppointmentById(appointment2.id);
-      
+      const appointment = await appointmentService.getAppointmentById(
+        appointment2.id
+      );
+
       (auth as jest.Mock).mockResolvedValue({
         user: {
           id: user1.id,

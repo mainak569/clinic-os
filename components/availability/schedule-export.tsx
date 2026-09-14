@@ -8,7 +8,13 @@ import { format } from "date-fns";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -28,7 +34,7 @@ import { Badge } from "@/components/ui/badge";
 
 /**
  * Schedule Export Component
- * 
+ *
  * Allows exporting provider schedule to CSV or JSON
  * Shows preview of schedule data
  */
@@ -38,7 +44,10 @@ interface ScheduleExportProps {
   providerName: string;
 }
 
-export function ScheduleExport({ providerId, providerName }: ScheduleExportProps) {
+export function ScheduleExport({
+  providerId,
+  providerName,
+}: ScheduleExportProps) {
   const [startDate, setStartDate] = useState(format(new Date(), "yyyy-MM-dd"));
   const [endDate, setEndDate] = useState(
     format(new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), "yyyy-MM-dd")
@@ -211,12 +220,10 @@ export function ScheduleExport({ providerId, providerName }: ScheduleExportProps
         <Card>
           <CardHeader>
             <CardTitle>Schedule Preview</CardTitle>
-            <CardDescription>
-              Showing {schedule.length} days
-            </CardDescription>
+            <CardDescription>Showing {schedule.length} days</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="max-h-96 overflow-auto rounded-2xl border border-white/60 overflow-hidden">
+            <div className="max-h-96 overflow-auto overflow-hidden rounded-2xl border border-white/60">
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -237,16 +244,13 @@ export function ScheduleExport({ providerId, providerName }: ScheduleExportProps
                       </TableCell>
                       <TableCell>
                         {day.slots.length === 0 ? (
-                          <span className="text-muted-foreground text-sm">
+                          <span className="text-sm text-muted-foreground">
                             No availability
                           </span>
                         ) : (
                           <div className="space-y-1">
                             {day.slots.map((slot: any, slotIndex: number) => (
-                              <div
-                                key={slotIndex}
-                                className="text-sm"
-                              >
+                              <div key={slotIndex} className="text-sm">
                                 {formatSlotTime(slot.startTime)} -{" "}
                                 {formatSlotTime(slot.endTime)}
                               </div>

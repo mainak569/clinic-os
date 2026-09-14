@@ -1,11 +1,18 @@
 /**
  * Integration Tests: Appointment State Machine
- * 
+ *
  * Tests all valid and invalid state transitions
  * Ensures business rules are enforced
  */
 
-import { describe, it, expect, beforeAll, afterAll, beforeEach } from "@jest/globals";
+import {
+  describe,
+  it,
+  expect,
+  beforeAll,
+  afterAll,
+  beforeEach,
+} from "@jest/globals";
 import { prisma } from "@/lib/prisma";
 import { appointmentService } from "@/lib/services/appointment.service";
 import { InvalidTransitionError } from "@/lib/errors/appointment-errors";
@@ -56,7 +63,15 @@ describe("Appointment State Machine", () => {
     });
 
     // Create availability for all days of the week (including weekends for testing)
-    const allDays = ["MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY", "SATURDAY", "SUNDAY"] as const;
+    const allDays = [
+      "MONDAY",
+      "TUESDAY",
+      "WEDNESDAY",
+      "THURSDAY",
+      "FRIDAY",
+      "SATURDAY",
+      "SUNDAY",
+    ] as const;
     for (const day of allDays) {
       await prisma.availabilitySlot.create({
         data: {
@@ -74,9 +89,13 @@ describe("Appointment State Machine", () => {
     await prisma.appointmentHistory.deleteMany({});
     await prisma.appointment.deleteMany({});
     await prisma.availabilitySlot.deleteMany({});
-    await prisma.patient.deleteMany({ where: { email: "patient-state@test.com" } });
+    await prisma.patient.deleteMany({
+      where: { email: "patient-state@test.com" },
+    });
     await prisma.provider.deleteMany({ where: { userId: testUser.id } });
-    await prisma.user.deleteMany({ where: { email: "test-state-machine@test.com" } });
+    await prisma.user.deleteMany({
+      where: { email: "test-state-machine@test.com" },
+    });
   });
 
   beforeEach(async () => {
@@ -147,7 +166,9 @@ describe("Appointment State Machine", () => {
       expect(checkedIn.checkedInAt).toBeDefined();
 
       // Cleanup
-      await prisma.appointmentHistory.deleteMany({ where: { appointmentId: appointment.id } });
+      await prisma.appointmentHistory.deleteMany({
+        where: { appointmentId: appointment.id },
+      });
       await prisma.appointment.delete({ where: { id: appointment.id } });
     });
 
@@ -404,7 +425,9 @@ describe("Appointment State Machine", () => {
           "Too late",
           testUser.id
         )
-      ).rejects.toThrow("Cannot cancel appointment after patient has been checked in");
+      ).rejects.toThrow(
+        "Cannot cancel appointment after patient has been checked in"
+      );
 
       // Cleanup
       await prisma.appointment.delete({ where: { id: appointment.id } });
@@ -430,7 +453,9 @@ describe("Appointment State Machine", () => {
 
       await expect(
         appointmentService.markNoShow(appointment.id, undefined, testUser.id)
-      ).rejects.toThrow("Cannot mark appointment as NO_SHOW before the scheduled time");
+      ).rejects.toThrow(
+        "Cannot mark appointment as NO_SHOW before the scheduled time"
+      );
 
       // Cleanup
       await prisma.appointment.delete({ where: { id: appointment.id } });
@@ -438,7 +463,10 @@ describe("Appointment State Machine", () => {
   });
 
   describe("Timing Rules", () => {
-    const insert = (status: "REQUESTED" | "CONFIRMED" | "CHECKED_IN", scheduledAt: Date) =>
+    const insert = (
+      status: "REQUESTED" | "CONFIRMED" | "CHECKED_IN",
+      scheduledAt: Date
+    ) =>
       prisma.appointment.create({
         data: {
           patientId: testPatient.id,
@@ -482,7 +510,11 @@ describe("Appointment State Machine", () => {
     it("should reject cancelling a confirmed appointment after its start time", async () => {
       const appointment = await insert("CONFIRMED", minutesFromNow(-10));
       await expect(
-        appointmentService.cancelAppointment(appointment.id, "Too late", testUser.id)
+        appointmentService.cancelAppointment(
+          appointment.id,
+          "Too late",
+          testUser.id
+        )
       ).rejects.toThrow("can't be cancelled after its start time");
     });
 

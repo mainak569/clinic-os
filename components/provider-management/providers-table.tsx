@@ -43,7 +43,11 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { listProviders, setProviderActive } from "@/app/actions/provider.actions";
+import {
+  listProviders,
+  setProviderActive,
+} from "@/app/actions/provider.actions";
+import { MAX_ACTIVE_PROVIDERS } from "@/lib/validations/provider";
 import { ProviderFormDialog } from "./provider-form-dialog";
 
 function fullName(p: any) {
@@ -90,7 +94,10 @@ export function ProvidersTable() {
     if (!confirming) return;
     setIsToggling(true);
     const next = !confirming.isActive;
-    const result = await setProviderActive({ id: confirming.id, isActive: next });
+    const result = await setProviderActive({
+      id: confirming.id,
+      isActive: next,
+    });
     setIsToggling(false);
 
     if (result.success) {
@@ -101,6 +108,10 @@ export function ProvidersTable() {
       toast.error(result.error);
     }
   };
+
+  // The server enforces the limit too; this just explains it up front.
+  const activeCount = providers.filter((p) => p.isActive).length;
+  const atLimit = activeCount >= MAX_ACTIVE_PROVIDERS;
 
   return (
     <div className="space-y-4">
@@ -123,11 +134,22 @@ export function ProvidersTable() {
           >
             {showInactive ? "Hide inactive" : "Show inactive"}
           </Button>
+          {!isLoading && (
+            <span className="text-sm text-muted-foreground">
+              {activeCount} / {MAX_ACTIVE_PROVIDERS} active
+            </span>
+          )}
           <Button
             onClick={() => {
               setEditing(null);
               setFormOpen(true);
             }}
+            disabled={atLimit}
+            title={
+              atLimit
+                ? `The clinic can have at most ${MAX_ACTIVE_PROVIDERS} active providers. Deactivate one to add another.`
+                : undefined
+            }
           >
             <Plus className="mr-2 h-4 w-4" />
             New Provider
@@ -164,7 +186,11 @@ export function ProvidersTable() {
                 <TableCell colSpan={6} className="h-32 text-center">
                   <div className="flex flex-col items-center justify-center gap-2 text-muted-foreground">
                     <Stethoscope className="h-8 w-8" />
-                    <p>{search ? "No providers match that search" : "No providers yet"}</p>
+                    <p>
+                      {search
+                        ? "No providers match that search"
+                        : "No providers yet"}
+                    </p>
                     {!search && (
                       <Button
                         variant="link"
@@ -181,15 +207,29 @@ export function ProvidersTable() {
               </TableRow>
             ) : (
               visible.map((provider) => (
-                <TableRow key={provider.id} className={provider.isActive ? "" : "opacity-60"}>
+                <TableRow
+                  key={provider.id}
+                  className={provider.isActive ? "" : "opacity-60"}
+                >
                   <TableCell>
                     <div className="font-medium">{fullName(provider)}</div>
                     <div className="text-sm text-muted-foreground">
-                      {provider.profile?.specialization || "No specialization set"}
+                      {provider.profile?.specialization ||
+                        "No specialization set"}
                     </div>
                   </TableCell>
                   <TableCell>
-                    <div className="text-sm">{provider.user?.email}</div>
+                    <div className="flex flex-wrap items-center gap-2 text-sm">
+                      {provider.user?.email}
+                      {provider.user?.showOnLogin && (
+                        <Badge
+                          variant="outline"
+                          className="border-purple-200 bg-purple-100/80 text-purple-700"
+                        >
+                          On login page
+                        </Badge>
+                      )}
+                    </div>
                     <div className="text-xs text-muted-foreground">
                       {provider.user?.lastLogin
                         ? `Last sign-in ${new Date(provider.user.lastLogin).toLocaleDateString()}`
@@ -211,8 +251,8 @@ export function ProvidersTable() {
                       variant="outline"
                       className={
                         provider.isActive
-                          ? "bg-green-100/80 text-green-700 border-green-200"
-                          : "bg-slate-100/80 text-slate-600 border-slate-200"
+                          ? "border-green-200 bg-green-100/80 text-green-700"
+                          : "border-slate-200 bg-slate-100/80 text-slate-600"
                       }
                     >
                       {provider.isActive ? "Active" : "Inactive"}
@@ -221,7 +261,11 @@ export function ProvidersTable() {
                   <TableCell className="text-right">
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="sm" aria-label={`Actions for ${fullName(provider)}`}>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          aria-label={`Actions for ${fullName(provider)}`}
+                        >
                           <MoreHorizontal className="h-4 w-4" />
                         </Button>
                       </DropdownMenuTrigger>
@@ -239,7 +283,9 @@ export function ProvidersTable() {
                         </DropdownMenuItem>
                         <DropdownMenuItem
                           onClick={() => setConfirming(provider)}
-                          className={provider.isActive ? "text-destructive" : ""}
+                          className={
+                            provider.isActive ? "text-destructive" : ""
+                          }
                         >
                           {provider.isActive ? (
                             <PowerOff className="mr-2 h-4 w-4" />
@@ -266,11 +312,15 @@ export function ProvidersTable() {
         onSuccess={load}
       />
 
-      <AlertDialog open={!!confirming} onOpenChange={(open) => !open && setConfirming(null)}>
+      <AlertDialog
+        open={!!confirming}
+        onOpenChange={(open) => !open && setConfirming(null)}
+      >
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>
-              {confirming?.isActive ? "Deactivate" : "Reactivate"} {confirming && fullName(confirming)}?
+              {confirming?.isActive ? "Deactivate" : "Reactivate"}{" "}
+              {confirming && fullName(confirming)}?
             </AlertDialogTitle>
             <AlertDialogDescription>
               {confirming?.isActive

@@ -15,11 +15,11 @@ export function GlassBackground() {
 
       {/* Animated gradient orbs */}
       <div
-        className="absolute top-0 -left-4 w-[500px] h-[500px] bg-purple-200/35 rounded-full mix-blend-multiply filter blur-3xl opacity-70 animate-pulse"
+        className="absolute -left-4 top-0 h-[500px] w-[500px] animate-pulse rounded-full bg-purple-200/35 opacity-70 mix-blend-multiply blur-3xl filter"
         style={{ boxShadow: "0 0 100px rgba(192, 132, 252, 0.25)" }}
       />
       <div
-        className="absolute top-1/4 right-0 w-[600px] h-[600px] bg-fuchsia-200/35 rounded-full mix-blend-multiply filter blur-3xl opacity-70 animate-pulse"
+        className="absolute right-0 top-1/4 h-[600px] w-[600px] animate-pulse rounded-full bg-fuchsia-200/35 opacity-70 mix-blend-multiply blur-3xl filter"
         style={{
           animationDelay: "2s",
           animationDuration: "7s",
@@ -27,7 +27,7 @@ export function GlassBackground() {
         }}
       />
       <div
-        className="absolute -bottom-32 left-1/3 w-[500px] h-[500px] bg-purple-100/40 rounded-full mix-blend-multiply filter blur-3xl opacity-70 animate-pulse"
+        className="absolute -bottom-32 left-1/3 h-[500px] w-[500px] animate-pulse rounded-full bg-purple-100/40 opacity-70 mix-blend-multiply blur-3xl filter"
         style={{
           animationDelay: "4s",
           animationDuration: "9s",
@@ -35,7 +35,7 @@ export function GlassBackground() {
         }}
       />
       <div
-        className="absolute top-1/2 left-0 w-[400px] h-[400px] bg-purple-200/25 rounded-full mix-blend-multiply filter blur-3xl opacity-70 animate-pulse"
+        className="absolute left-0 top-1/2 h-[400px] w-[400px] animate-pulse rounded-full bg-purple-200/25 opacity-70 mix-blend-multiply blur-3xl filter"
         style={{
           animationDelay: "6s",
           animationDuration: "8s",

@@ -1,10 +1,23 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Calendar as CalendarIcon, List, Plus, Download, Archive, ArchiveRestore } from "lucide-react";
+import {
+  Calendar as CalendarIcon,
+  List,
+  Plus,
+  Download,
+  Archive,
+  ArchiveRestore,
+} from "lucide-react";
 import { WeekView } from "./week-view";
 import { MonthView } from "./month-view";
 import { ListView } from "./list-view";
@@ -96,7 +109,8 @@ export function ScheduleCalendar({
               <CardTitle>Availability Schedule</CardTitle>
               <CardDescription>
                 {activeSlots.length} active slots
-                {archivedSlots.length > 0 && `, ${archivedSlots.length} archived`}
+                {archivedSlots.length > 0 &&
+                  `, ${archivedSlots.length} archived`}
               </CardDescription>
             </div>
             <div className="flex flex-wrap gap-2">

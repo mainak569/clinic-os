@@ -4,10 +4,10 @@ import { globalRateLimit } from "@/lib/rate-limit";
 
 /**
  * Middleware for route protection and rate limiting
- * 
+ *
  * Runs on every request to protected routes
  * Enforces authentication at the edge (before reaching the application)
- * 
+ *
  * Protected routes: /dashboard, /appointments, /patients, /providers
  * Public routes: /, /login, /api/auth/*
  */
@@ -66,7 +66,7 @@ export default auth((req) => {
 
 /**
  * Matcher configuration
- * 
+ *
  * Runs middleware only on specified routes
  * Excludes static files and API routes (except auth)
  */

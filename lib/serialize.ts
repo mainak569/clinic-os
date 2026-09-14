@@ -17,7 +17,9 @@ export function toNumber(value: unknown): number | null {
 
 type Row = Record<string, any>;
 
-export function serializeVisitNote<T extends Row | null | undefined>(note: T): T {
+export function serializeVisitNote<T extends Row | null | undefined>(
+  note: T
+): T {
   if (!note) return note;
   return {
     ...note,
@@ -27,7 +29,9 @@ export function serializeVisitNote<T extends Row | null | undefined>(note: T): T
   } as T;
 }
 
-export function serializeAppointment<T extends Row | null | undefined>(appointment: T): T {
+export function serializeAppointment<T extends Row | null | undefined>(
+  appointment: T
+): T {
   if (!appointment) return appointment;
   return {
     ...appointment,

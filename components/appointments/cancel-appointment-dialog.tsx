@@ -37,7 +37,10 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 
-import { cancelAppointmentSchema, type CancelAppointmentInput } from "@/lib/validations/appointment";
+import {
+  cancelAppointmentSchema,
+  type CancelAppointmentInput,
+} from "@/lib/validations/appointment";
 import { cancelAppointment } from "@/app/actions/appointment.actions";
 
 interface CancelAppointmentDialogProps {
@@ -104,7 +107,9 @@ export function CancelAppointmentDialog({
               Cancel Appointment
             </DialogTitle>
             <DialogDescription>
-              Please provide a reason for cancelling this appointment. This action will update the appointment status and notify relevant parties.
+              Please provide a reason for cancelling this appointment. This
+              action will update the appointment status and notify relevant
+              parties.
             </DialogDescription>
           </DialogHeader>
 
@@ -129,7 +134,7 @@ export function CancelAppointmentDialog({
                     <FormControl>
                       <Textarea
                         placeholder="Enter the reason for cancellation..."
-                        className="resize-none min-h-[100px]"
+                        className="min-h-[100px] resize-none"
                         {...field}
                       />
                     </FormControl>
@@ -158,7 +163,9 @@ export function CancelAppointmentDialog({
                   variant="destructive"
                   disabled={cancelMutation.state.isLoading}
                 >
-                  {cancelMutation.state.isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  {cancelMutation.state.isLoading && (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  )}
                   Cancel Appointment
                 </Button>
               </DialogFooter>
@@ -173,7 +180,8 @@ export function CancelAppointmentDialog({
           <AlertDialogHeader>
             <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
             <AlertDialogDescription>
-              This will permanently cancel this appointment. The cancellation will be recorded in the audit trail.
+              This will permanently cancel this appointment. The cancellation
+              will be recorded in the audit trail.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -185,7 +193,9 @@ export function CancelAppointmentDialog({
               disabled={cancelMutation.state.isLoading}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
-              {cancelMutation.state.isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              {cancelMutation.state.isLoading && (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              )}
               Yes, cancel appointment
             </AlertDialogAction>
           </AlertDialogFooter>

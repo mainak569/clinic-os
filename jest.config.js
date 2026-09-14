@@ -9,9 +9,7 @@ const config = {
     "^@/(.*)$": "<rootDir>/$1",
   },
   // Transform ESM modules from node_modules
-  transformIgnorePatterns: [
-    "node_modules/(?!(@auth|next-auth|@panva)/)",
-  ],
+  transformIgnorePatterns: ["node_modules/(?!(@auth|next-auth|@panva)/)"],
   collectCoverageFrom: [
     "lib/**/*.ts",
     "app/actions/**/*.ts",

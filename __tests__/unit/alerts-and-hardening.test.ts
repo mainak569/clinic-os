@@ -10,7 +10,14 @@
  * - failed sign-ins were never throttled.
  */
 
-import { describe, it, expect, jest, beforeEach, afterEach } from "@jest/globals";
+import {
+  describe,
+  it,
+  expect,
+  jest,
+  beforeEach,
+  afterEach,
+} from "@jest/globals";
 
 const mockDb = {
   appointment: {
@@ -40,10 +47,16 @@ import {
   getCalendarAppointments,
   getDashboardStats,
 } from "@/app/actions/queries.actions";
-import { clearFailedLogins, isLoginBlocked, recordFailedLogin } from "@/lib/rate-limit";
+import {
+  clearFailedLogins,
+  isLoginBlocked,
+  recordFailedLogin,
+} from "@/lib/rate-limit";
 
 const signInAs = (role: "PROVIDER" | "FRONT_DESK", providerId: string | null) =>
-  mockRequireAuth.mockResolvedValue({ user: { id: `user-${role}`, role, providerId } });
+  mockRequireAuth.mockResolvedValue({
+    user: { id: `user-${role}`, role, providerId },
+  });
 
 const appointment = {
   id: "appt-1",
@@ -55,7 +68,10 @@ describe("Alert generation de-duplication", () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockDb.appointment.findMany.mockResolvedValue([appointment]);
-    mockDb.alert.create.mockImplementation(async ({ data }: any) => ({ id: "alert-1", ...data }));
+    mockDb.alert.create.mockImplementation(async ({ data }: any) => ({
+      id: "alert-1",
+      ...data,
+    }));
   });
 
   it("looks for an existing alert by the appointment id in the message", async () => {
@@ -67,7 +83,9 @@ describe("Alert generation de-duplication", () => {
     expect(where.message).toEqual({ contains: "[ID: appt-1]" });
     expect(where.title).toBeUndefined();
     expect(mockDb.alert.create).toHaveBeenCalledTimes(1);
-    expect((mockDb.alert.create.mock.calls[0][0] as any).data.message).toContain("[ID: appt-1]");
+    expect(
+      (mockDb.alert.create.mock.calls[0][0] as any).data.message
+    ).toContain("[ID: appt-1]");
   });
 
   it("doesn't create a second alert when one already exists", async () => {
@@ -101,7 +119,10 @@ describe("Alert actions are scoped to the owning provider", () => {
 
     expect(mockDb.alert.updateMany).toHaveBeenCalledTimes(2);
     for (const call of mockDb.alert.updateMany.mock.calls) {
-      expect((call[0] as any).where).toEqual({ id: "alert-1", providerId: "provider-b" });
+      expect((call[0] as any).where).toEqual({
+        id: "alert-1",
+        providerId: "provider-b",
+      });
     }
   });
 
@@ -121,7 +142,10 @@ describe("Alert actions are scoped to the owning provider", () => {
 
   it("refuses accounts without a provider, and empty ids, before writing", async () => {
     signInAs("FRONT_DESK", null);
-    expect(await markAlertRead("alert-1")).toEqual({ success: false, error: "Provider ID not found" });
+    expect(await markAlertRead("alert-1")).toEqual({
+      success: false,
+      error: "Provider ID not found",
+    });
 
     signInAs("PROVIDER", "provider-b");
     expect((await dismissAlert("")).success).toBe(false);
@@ -145,11 +169,17 @@ describe("Dashboard queries for a provider account with no linked provider", () 
     ],
   ];
 
-  it.each(cases)("%s refuses instead of returning clinic-wide data", async (_name, call) => {
-    expect(await call()).toEqual({ success: false, error: "Provider ID not found" });
-    expect(mockDb.appointment.findMany).not.toHaveBeenCalled();
-    expect(mockDb.appointment.count).not.toHaveBeenCalled();
-  });
+  it.each(cases)(
+    "%s refuses instead of returning clinic-wide data",
+    async (_name, call) => {
+      expect(await call()).toEqual({
+        success: false,
+        error: "Provider ID not found",
+      });
+      expect(mockDb.appointment.findMany).not.toHaveBeenCalled();
+      expect(mockDb.appointment.count).not.toHaveBeenCalled();
+    }
+  );
 });
 
 describe("Failed sign-in lockout", () => {

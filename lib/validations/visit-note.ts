@@ -16,8 +16,18 @@ import { z } from "zod";
 export const VITAL_BOUNDS = {
   heartRate: { label: "Heart rate", min: 20, max: 300, integer: true },
   temperature: { label: "Temperature", min: 80, max: 115, integer: false },
-  respiratoryRate: { label: "Respiratory rate", min: 4, max: 80, integer: true },
-  oxygenSaturation: { label: "Oxygen saturation", min: 0, max: 100, integer: true },
+  respiratoryRate: {
+    label: "Respiratory rate",
+    min: 4,
+    max: 80,
+    integer: true,
+  },
+  oxygenSaturation: {
+    label: "Oxygen saturation",
+    min: 0,
+    max: 100,
+    integer: true,
+  },
   weight: { label: "Weight", min: 0.1, max: 999.99, integer: false },
   height: { label: "Height", min: 0.1, max: 999.99, integer: false },
 } as const;
@@ -114,7 +124,9 @@ export const getVisitNoteByAppointmentSchema = z.object({
   appointmentId: z.string().min(1, "Appointment ID is required"),
 });
 
-export type GetVisitNoteByAppointmentInput = z.infer<typeof getVisitNoteByAppointmentSchema>;
+export type GetVisitNoteByAppointmentInput = z.infer<
+  typeof getVisitNoteByAppointmentSchema
+>;
 
 // ============================================================================
 // GET VISIT NOTE HISTORY
@@ -124,4 +136,6 @@ export const getVisitNoteHistorySchema = z.object({
   visitNoteId: z.string().min(1, "Visit note ID is required"),
 });
 
-export type GetVisitNoteHistoryInput = z.infer<typeof getVisitNoteHistorySchema>;
+export type GetVisitNoteHistoryInput = z.infer<
+  typeof getVisitNoteHistorySchema
+>;

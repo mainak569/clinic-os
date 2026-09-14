@@ -23,7 +23,9 @@ export async function GET(request: Request) {
   const secret = process.env.CRON_SECRET;
 
   if (!secret && process.env.NODE_ENV === "production") {
-    console.error("Generate alerts cron: CRON_SECRET is not set; refusing request");
+    console.error(
+      "Generate alerts cron: CRON_SECRET is not set; refusing request"
+    );
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
   if (secret && request.headers.get("authorization") !== `Bearer ${secret}`) {
@@ -40,7 +42,9 @@ export async function GET(request: Request) {
     let totalUrgent = 0;
 
     for (const provider of providers) {
-      const { upcoming, urgent } = await alertService.generateAllAlerts(provider.id);
+      const { upcoming, urgent } = await alertService.generateAllAlerts(
+        provider.id
+      );
       totalUpcoming += upcoming.length;
       totalUrgent += urgent.length;
     }

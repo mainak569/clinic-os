@@ -13,8 +13,7 @@ import { analyticsService } from "@/lib/services/analytics.service";
  */
 
 type ActionResult<T> =
-  | { success: true; data: T }
-  | { success: false; error: string };
+  { success: true; data: T } | { success: false; error: string };
 
 type Session = Awaited<ReturnType<typeof requireAuth>>;
 
@@ -50,7 +49,11 @@ export async function getDashboardAnalytics(
     }
 
     const analytics = scope.providerId
-      ? await analyticsService.getProviderAnalytics(scope.providerId, startDate, endDate)
+      ? await analyticsService.getProviderAnalytics(
+          scope.providerId,
+          startDate,
+          endDate
+        )
       : await analyticsService.getDashboardAnalytics(startDate, endDate);
 
     return { success: true, data: analytics };
@@ -79,7 +82,10 @@ export async function getAppointmentsByProvider(
       };
     }
 
-    const data = await analyticsService.getAppointmentsByProvider(startDate, endDate);
+    const data = await analyticsService.getAppointmentsByProvider(
+      startDate,
+      endDate
+    );
 
     return { success: true, data };
   } catch (error) {
@@ -130,7 +136,9 @@ export async function getNoShowRateLast8Weeks(): Promise<ActionResult<any[]>> {
       return { success: false, error: scope.error };
     }
 
-    const data = await analyticsService.getNoShowRateLast8Weeks(scope.providerId);
+    const data = await analyticsService.getNoShowRateLast8Weeks(
+      scope.providerId
+    );
 
     return { success: true, data };
   } catch (error) {

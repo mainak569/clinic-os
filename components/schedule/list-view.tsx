@@ -45,9 +45,7 @@ export function ListView({
     if (dayA !== dayB) return dayA - dayB;
 
     // Then by start time
-    return (
-      new Date(a.startTime).getTime() - new Date(b.startTime).getTime()
-    );
+    return new Date(a.startTime).getTime() - new Date(b.startTime).getTime();
   });
 
   if (isLoading) {
@@ -71,10 +69,13 @@ export function ListView({
   }
 
   // Group by day of week
-  const slotsByDay = DAY_ORDER.reduce((acc, day) => {
-    acc[day] = sortedSlots.filter((slot) => slot.dayOfWeek === day);
-    return acc;
-  }, {} as Record<string, AvailabilitySlot[]>);
+  const slotsByDay = DAY_ORDER.reduce(
+    (acc, day) => {
+      acc[day] = sortedSlots.filter((slot) => slot.dayOfWeek === day);
+      return acc;
+    },
+    {} as Record<string, AvailabilitySlot[]>
+  );
 
   return (
     <div className="space-y-6">
@@ -89,7 +90,7 @@ export function ListView({
               <Badge variant="outline">{daySlots.length} slots</Badge>
             </div>
 
-            <div className="rounded-2xl border border-white/60 overflow-hidden">
+            <div className="overflow-hidden rounded-2xl border border-white/60">
               <Table>
                 <TableHeader>
                   <TableRow>

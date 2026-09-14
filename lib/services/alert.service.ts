@@ -5,7 +5,7 @@ import { formatClinicDateTime } from "@/lib/clinic-time";
 
 /**
  * Alert Service Layer
- * 
+ *
  * Manages alerts for appointment reminders and notifications
  * Optimized queries with selective field loading
  */
@@ -33,7 +33,7 @@ export interface AppointmentAlert {
 export class AlertService {
   /**
    * Generate alerts for requested appointments within 24 hours
-   * 
+   *
    * Creates alerts for appointments that are:
    * - Status: REQUESTED
    * - Scheduled within next 24 hours
@@ -108,9 +108,7 @@ export class AlertService {
   /**
    * Generate urgent alerts for REQUESTED appointments starting within the next hour
    */
-  async generateUrgentAppointmentAlerts(
-    providerId: string
-  ): Promise<Alert[]> {
+  async generateUrgentAppointmentAlerts(providerId: string): Promise<Alert[]> {
     const now = new Date();
     const oneHourFromNow = addHours(now, 1);
 
@@ -177,7 +175,7 @@ export class AlertService {
 
   /**
    * Get active alerts for provider
-   * 
+   *
    * Returns unread or recent alerts, ordered by priority and date
    */
   async getProviderAlerts(
@@ -191,10 +189,7 @@ export class AlertService {
         providerId,
         isDismissed: false,
         ...(includeRead ? {} : { isRead: false }),
-        OR: [
-          { expiresAt: null },
-          { expiresAt: { gte: now } },
-        ],
+        OR: [{ expiresAt: null }, { expiresAt: { gte: now } }],
       },
       include: {
         provider: {
@@ -269,7 +264,10 @@ export class AlertService {
   /**
    * Mark alert as read
    */
-  async markAlertAsRead(alertId: string, providerId: string): Promise<{ id: string }> {
+  async markAlertAsRead(
+    alertId: string,
+    providerId: string
+  ): Promise<{ id: string }> {
     // Scoped to the provider, so nobody can change another provider's alerts by id.
     const result = await prisma.alert.updateMany({
       where: { id: alertId, providerId },
@@ -301,7 +299,10 @@ export class AlertService {
   /**
    * Dismiss alert
    */
-  async dismissAlert(alertId: string, providerId: string): Promise<{ id: string }> {
+  async dismissAlert(
+    alertId: string,
+    providerId: string
+  ): Promise<{ id: string }> {
     const result = await prisma.alert.updateMany({
       where: { id: alertId, providerId },
       data: { isDismissed: true },
@@ -325,7 +326,7 @@ export class AlertService {
 
   /**
    * Clean up expired alerts
-   * 
+   *
    * Marks expired alerts as dismissed
    */
   async cleanupExpiredAlerts(): Promise<{ count: number }> {
@@ -348,7 +349,7 @@ export class AlertService {
 
   /**
    * Generate all alerts for a provider
-   * 
+   *
    * Convenience method to generate both 24-hour and 1-hour alerts
    */
   async generateAllAlerts(providerId: string): Promise<{

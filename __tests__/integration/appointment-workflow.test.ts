@@ -1,11 +1,18 @@
 /**
  * Integration Tests: Appointment Workflows
- * 
+ *
  * Tests complete appointment lifecycles with database
  * These tests require a test database connection
  */
 
-import { describe, it, expect, beforeAll, afterAll, beforeEach } from "@jest/globals";
+import {
+  describe,
+  it,
+  expect,
+  beforeAll,
+  afterAll,
+  beforeEach,
+} from "@jest/globals";
 import { prisma } from "@/lib/prisma";
 import { appointmentService } from "@/lib/services/appointment.service";
 
@@ -41,7 +48,15 @@ describe("Appointment Workflow Integration Tests", () => {
     });
 
     // Create availability for all days of the week (including weekends for testing)
-    const allDays = ["MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY", "SATURDAY", "SUNDAY"] as const;
+    const allDays = [
+      "MONDAY",
+      "TUESDAY",
+      "WEDNESDAY",
+      "THURSDAY",
+      "FRIDAY",
+      "SATURDAY",
+      "SUNDAY",
+    ] as const;
     for (const day of allDays) {
       await prisma.availabilitySlot.create({
         data: {
@@ -75,7 +90,9 @@ describe("Appointment Workflow Integration Tests", () => {
     it("should complete full workflow: Create → Confirm → CheckIn → Complete", async () => {
       // Get next Monday
       const nextMonday = new Date();
-      nextMonday.setDate(nextMonday.getDate() + ((1 + 7 - nextMonday.getDay()) % 7 || 7));
+      nextMonday.setDate(
+        nextMonday.getDate() + ((1 + 7 - nextMonday.getDay()) % 7 || 7)
+      );
       nextMonday.setHours(10, 0, 0, 0);
 
       // Step 1: Create appointment (REQUESTED)
@@ -146,7 +163,7 @@ describe("Appointment Workflow Integration Tests", () => {
       const pastDate = new Date();
       pastDate.setDate(pastDate.getDate() - 7);
       // Set to Monday using getDay() and setDate
-      const dayOffset = (pastDate.getDay() === 0 ? -6 : 1 - pastDate.getDay());
+      const dayOffset = pastDate.getDay() === 0 ? -6 : 1 - pastDate.getDay();
       pastDate.setDate(pastDate.getDate() + dayOffset);
       pastDate.setHours(10, 0, 0, 0);
 
@@ -249,7 +266,9 @@ describe("Appointment Workflow Integration Tests", () => {
           "Late cancellation",
           testUser.id
         )
-      ).rejects.toThrow("Cannot cancel appointment after patient has been checked in");
+      ).rejects.toThrow(
+        "Cannot cancel appointment after patient has been checked in"
+      );
     });
   });
 
@@ -288,7 +307,9 @@ describe("Appointment Workflow Integration Tests", () => {
           },
           testUser.id
         )
-      ).rejects.toThrow("This time slot conflicts with an existing appointment");
+      ).rejects.toThrow(
+        "This time slot conflicts with an existing appointment"
+      );
     });
 
     it("should allow booking after first is cancelled", async () => {

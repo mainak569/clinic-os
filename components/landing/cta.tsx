@@ -47,7 +47,7 @@ export function CTA() {
                   size="lg"
                   variant="outline"
                   asChild
-                  className="w-full bg-white/20 backdrop-blur-sm text-white hover:bg-white/30 md:w-auto"
+                  className="w-full bg-white/20 text-white backdrop-blur-sm hover:bg-white/30 md:w-auto"
                 >
                   <Link href="#contact">Talk to Sales</Link>
                 </Button>

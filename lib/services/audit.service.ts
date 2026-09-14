@@ -2,12 +2,13 @@ import { prisma } from "@/lib/prisma";
 import type { AuditAction, ResourceType, AuditLog } from "@prisma/client";
 
 /**
- * HIPAA Audit Logging Service
- * 
- * Logs all access to Protected Health Information (PHI)
- * Required for HIPAA compliance
- * 
- * Retention: 7 years minimum (HIPAA requirement)
+ * Security Audit Logging Service
+ *
+ * Tracks important application actions for accountability,
+ * debugging, and security investigations.
+ *
+ * Audit records are immutable and provide traceability
+ * for sensitive application workflows.
  */
 
 export interface AuditLogInput {
@@ -22,8 +23,8 @@ export interface AuditLogInput {
 
 export class AuditService {
   /**
-   * Log an action for HIPAA compliance
-   * 
+   * Log an action for security auditing and accountability.
+   *
    * IMPORTANT: This should NEVER fail the main operation
    * If audit logging fails, log error but continue
    */
@@ -50,19 +51,17 @@ export class AuditService {
         resource: input.resource,
         resourceId: input.resourceId,
       });
-      
+
       // In production, this should alert operations team
       // Consider sending to error tracking service
     }
   }
 
   /**
-   * Get audit trail for a specific resource
-   * 
    * Used for:
-   * - HIPAA compliance audits
    * - Security investigations
-   * - Breach notifications
+   * - Activity review
+   * - Accountability tracking
    */
   async getAuditTrail(
     resourceType: ResourceType,
@@ -90,15 +89,12 @@ export class AuditService {
 
   /**
    * Get user's activity log
-   * 
+   *
    * Used for:
    * - User activity tracking
    * - Security investigations
    */
-  async getUserActivity(
-    userId: string,
-    limit = 100
-  ): Promise<AuditLog[]> {
+  async getUserActivity(userId: string, limit = 100): Promise<AuditLog[]> {
     return prisma.auditLog.findMany({
       where: { userId },
       orderBy: { timestamp: "desc" },
@@ -108,7 +104,7 @@ export class AuditService {
 
   /**
    * Search audit logs
-   * 
+   *
    * Used for compliance audits and investigations
    */
   async searchLogs(params: {
@@ -119,7 +115,14 @@ export class AuditService {
     endDate?: Date;
     limit?: number;
   }): Promise<AuditLog[]> {
-    const { userId, action, resource, startDate, endDate, limit = 1000 } = params;
+    const {
+      userId,
+      action,
+      resource,
+      startDate,
+      endDate,
+      limit = 1000,
+    } = params;
 
     return prisma.auditLog.findMany({
       where: {
@@ -151,7 +154,7 @@ export class AuditService {
 
   /**
    * Get audit summary statistics
-   * 
+   *
    * Used for compliance reporting
    */
   async getAuditSummary(startDate: Date, endDate: Date) {

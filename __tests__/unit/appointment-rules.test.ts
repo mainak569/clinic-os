@@ -28,8 +28,20 @@ describe("Appointment timing rules", () => {
   });
 
   it("check-in: from an hour before the start until the visit ends", () => {
-    expect(canPerform("checkIn", appt("CONFIRMED", CHECK_IN_OPENS_MINUTES_BEFORE + 1), now)).toBe(false);
-    expect(canPerform("checkIn", appt("CONFIRMED", CHECK_IN_OPENS_MINUTES_BEFORE), now)).toBe(true);
+    expect(
+      canPerform(
+        "checkIn",
+        appt("CONFIRMED", CHECK_IN_OPENS_MINUTES_BEFORE + 1),
+        now
+      )
+    ).toBe(false);
+    expect(
+      canPerform(
+        "checkIn",
+        appt("CONFIRMED", CHECK_IN_OPENS_MINUTES_BEFORE),
+        now
+      )
+    ).toBe(true);
     expect(canPerform("checkIn", appt("CONFIRMED", -30), now)).toBe(true); // ends exactly now
     expect(canPerform("checkIn", appt("CONFIRMED", -31), now)).toBe(false);
   });
@@ -54,9 +66,9 @@ describe("Appointment timing rules", () => {
 
   it("reschedule: not once the patient has checked in", () => {
     expect(canPerform("reschedule", appt("CONFIRMED", 60), now)).toBe(true);
-    expect(actionBlockedReason("reschedule", appt("CHECKED_IN", -5), now)).toMatch(
-      /can't be rescheduled/
-    );
+    expect(
+      actionBlockedReason("reschedule", appt("CHECKED_IN", -5), now)
+    ).toMatch(/can't be rescheduled/);
   });
 
   it("never offers an action from the wrong status", () => {
@@ -67,8 +79,14 @@ describe("Appointment timing rules", () => {
   });
 
   it("explains why an action is blocked", () => {
-    expect(actionBlockedReason("checkIn", appt("CONFIRMED", 120), now)).toMatch(/Check-in opens/);
-    expect(actionBlockedReason("checkIn", appt("CONFIRMED", -45), now)).toMatch(/already ended/);
-    expect(actionBlockedReason("checkIn", appt("CONFIRMED", 30), now)).toBeNull();
+    expect(actionBlockedReason("checkIn", appt("CONFIRMED", 120), now)).toMatch(
+      /Check-in opens/
+    );
+    expect(actionBlockedReason("checkIn", appt("CONFIRMED", -45), now)).toMatch(
+      /already ended/
+    );
+    expect(
+      actionBlockedReason("checkIn", appt("CONFIRMED", 30), now)
+    ).toBeNull();
   });
 });

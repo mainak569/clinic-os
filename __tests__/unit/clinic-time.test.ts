@@ -21,7 +21,9 @@ import {
 
 describe("slot time encoding", () => {
   it("stores wall-clock time on 1970-01-01 in the UTC fields", () => {
-    expect(timeStringToSlotDate("09:30").toISOString()).toBe("1970-01-01T09:30:00.000Z");
+    expect(timeStringToSlotDate("09:30").toISOString()).toBe(
+      "1970-01-01T09:30:00.000Z"
+    );
   });
 
   it("round-trips HH:MM", () => {
@@ -54,24 +56,37 @@ describe("clinicWallClock", () => {
   const instant = new Date("2026-09-14T04:30:00Z");
 
   it("reads an instant on the clinic's wall clock", () => {
-    expect(clinicWallClock(instant, "Asia/Kolkata")).toEqual({ dayOfWeek: "MONDAY", minutes: 600 });
+    expect(clinicWallClock(instant, "Asia/Kolkata")).toEqual({
+      dayOfWeek: "MONDAY",
+      minutes: 600,
+    });
   });
 
   it("gives a different answer in a different zone, whatever the server's own zone", () => {
-    expect(clinicWallClock(instant, "UTC")).toEqual({ dayOfWeek: "MONDAY", minutes: 270 });
-    expect(clinicWallClock(instant, "America/New_York")).toEqual({ dayOfWeek: "MONDAY", minutes: 30 });
+    expect(clinicWallClock(instant, "UTC")).toEqual({
+      dayOfWeek: "MONDAY",
+      minutes: 270,
+    });
+    expect(clinicWallClock(instant, "America/New_York")).toEqual({
+      dayOfWeek: "MONDAY",
+      minutes: 30,
+    });
   });
 
   it("uses the clinic's weekday when the instant crosses midnight", () => {
     // Sunday 20:00 UTC is already Monday 01:30 in Kolkata.
-    expect(clinicWallClock(new Date("2026-09-13T20:00:00Z"), "Asia/Kolkata")).toEqual({
+    expect(
+      clinicWallClock(new Date("2026-09-13T20:00:00Z"), "Asia/Kolkata")
+    ).toEqual({
       dayOfWeek: "MONDAY",
       minutes: 90,
     });
   });
 
   it("reports midnight as minute 0, not 24:00", () => {
-    expect(clinicWallClock(new Date("2026-09-14T00:00:00Z"), "UTC").minutes).toBe(0);
+    expect(
+      clinicWallClock(new Date("2026-09-14T00:00:00Z"), "UTC").minutes
+    ).toBe(0);
   });
 });
 
@@ -96,8 +111,12 @@ describe("clinic day/week boundaries", () => {
 
   it("gives a different day boundary in a different zone, for the same instant", () => {
     const instant = new Date("2026-09-14T04:30:00Z");
-    expect(startOfClinicDay(instant, "UTC").toISOString()).toBe("2026-09-14T00:00:00.000Z");
-    expect(endOfClinicDay(instant, "UTC").toISOString()).toBe("2026-09-14T23:59:59.999Z");
+    expect(startOfClinicDay(instant, "UTC").toISOString()).toBe(
+      "2026-09-14T00:00:00.000Z"
+    );
+    expect(endOfClinicDay(instant, "UTC").toISOString()).toBe(
+      "2026-09-14T23:59:59.999Z"
+    );
   });
 
   it("buckets a late-night IST appointment into the correct clinic day even though its UTC date differs", () => {
@@ -111,7 +130,10 @@ describe("clinic day/week boundaries", () => {
     expect(end.toISOString()).toBe("2026-09-15T18:29:59.999Z"); // Sep 15, 23:59:59.999 IST
     expect(lateNight >= start && lateNight <= end).toBe(true);
     // And it's outside the *previous* UTC-naive day's boundary.
-    expect(lateNight > endOfClinicDay(new Date("2026-09-13T04:30:00Z"), "Asia/Kolkata")).toBe(true);
+    expect(
+      lateNight >
+        endOfClinicDay(new Date("2026-09-13T04:30:00Z"), "Asia/Kolkata")
+    ).toBe(true);
   });
 
   it("gives Monday-to-Sunday for the week, regardless of which day of it is passed in", () => {

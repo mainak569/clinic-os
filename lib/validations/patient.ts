@@ -2,7 +2,7 @@ import { z } from "zod";
 
 /**
  * Patient Validation Schemas
- * 
+ *
  * Centralized validation for all patient-related operations
  * Used in Server Actions and API routes
  */
@@ -25,45 +25,44 @@ const emailSchema = z
 /**
  * Create Patient Schema
  */
-export const createPatientSchema = z.object({
-  // Required fields
-  firstName: z.string().min(1, "First name is required").max(100),
-  lastName: z.string().min(1, "Last name is required").max(100),
+export const createPatientSchema = z
+  .object({
+    // Required fields
+    firstName: z.string().min(1, "First name is required").max(100),
+    lastName: z.string().min(1, "Last name is required").max(100),
 
-  // Contact information
-  email: emailSchema,
-  phone: phoneSchema,
-  dateOfBirth: z.coerce.date().optional(),
+    // Contact information
+    email: emailSchema,
+    phone: phoneSchema,
+    dateOfBirth: z.coerce.date().optional(),
 
-  // Address
-  address: z.string().max(200).optional().or(z.literal("")),
-  city: z.string().max(100).optional().or(z.literal("")),
-  state: z.string().max(2).optional().or(z.literal("")),
-  zipCode: z
-    .string()
-    .regex(/^\d{5}(-\d{4})?$/, "Invalid ZIP code")
-    .optional()
-    .or(z.literal("")),
+    // Address
+    address: z.string().max(200).optional().or(z.literal("")),
+    city: z.string().max(100).optional().or(z.literal("")),
+    state: z.string().max(2).optional().or(z.literal("")),
+    zipCode: z
+      .string()
+      .regex(/^\d{5}(-\d{4})?$/, "Invalid ZIP code")
+      .optional()
+      .or(z.literal("")),
 
-  // Emergency Contact
-  emergencyContactName: z.string().max(200).optional().or(z.literal("")),
-  emergencyContactPhone: phoneSchema,
+    // Emergency Contact
+    emergencyContactName: z.string().max(200).optional().or(z.literal("")),
+    emergencyContactPhone: phoneSchema,
 
-  // Insurance
-  insuranceProvider: z.string().max(200).optional().or(z.literal("")),
-  insuranceId: z.string().max(100).optional().or(z.literal("")),
+    // Insurance
+    insuranceProvider: z.string().max(200).optional().or(z.literal("")),
+    insuranceId: z.string().max(100).optional().or(z.literal("")),
 
-  // Medical Information
-  allergies: z.string().max(1000).optional().or(z.literal("")),
-  medications: z.string().max(1000).optional().or(z.literal("")),
-  medicalHistory: z.string().max(2000).optional().or(z.literal("")),
-}).refine(
-  (data) => data.email || data.phone,
-  {
+    // Medical Information
+    allergies: z.string().max(1000).optional().or(z.literal("")),
+    medications: z.string().max(1000).optional().or(z.literal("")),
+    medicalHistory: z.string().max(2000).optional().or(z.literal("")),
+  })
+  .refine((data) => data.email || data.phone, {
     message: "At least one contact method (email or phone) is required",
     path: ["email"],
-  }
-);
+  });
 
 /**
  * Update Patient Schema

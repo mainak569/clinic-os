@@ -24,7 +24,8 @@ export default async function SchedulePage({
   // Get provider ID based on role
   let providerId: string | null = null;
   let providerName: string | null = null;
-  let allProviders: Array<{ id: string; firstName: string; lastName: string }> = [];
+  let allProviders: Array<{ id: string; firstName: string; lastName: string }> =
+    [];
 
   if (session.user.role === "PROVIDER") {
     // Providers can only manage their own schedule
@@ -53,7 +54,10 @@ export default async function SchedulePage({
           <AlertTitle>No providers yet</AlertTitle>
           <AlertDescription className="text-amber-900/80">
             Availability belongs to a provider, so{" "}
-            <Link href="/dashboard/providers" className="font-medium underline underline-offset-4">
+            <Link
+              href="/dashboard/providers"
+              className="font-medium underline underline-offset-4"
+            >
               add a provider
             </Link>{" "}
             before setting up a schedule.

@@ -73,7 +73,11 @@ const DEFAULTS: Settings = {
 const hexToRgb = (hex: string): [number, number, number] => {
   const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
   if (!result) return [1, 1, 1];
-  return [parseInt(result[1], 16) / 255, parseInt(result[2], 16) / 255, parseInt(result[3], 16) / 255];
+  return [
+    parseInt(result[1], 16) / 255,
+    parseInt(result[2], 16) / 255,
+    parseInt(result[3], 16) / 255,
+  ];
 };
 
 const colorModeToFloat = (mode: MoltenMetalColorMode): number =>
@@ -187,7 +191,10 @@ void main() {
 }
 `;
 
-function applySettings(uniforms: Record<string, { value: unknown }>, s: Settings) {
+function applySettings(
+  uniforms: Record<string, { value: unknown }>,
+  s: Settings
+) {
   const set3 = (name: string, hex: string) => {
     const target = uniforms[name].value as Float32Array;
     const [r, g, b] = hexToRgb(hex);
@@ -218,7 +225,11 @@ function applySettings(uniforms: Record<string, { value: unknown }>, s: Settings
   set3("uBackgroundColor", s.backgroundColor);
 }
 
-export function MoltenMetal({ className, maxDpr = 2, ...props }: MoltenMetalProps) {
+export function MoltenMetal({
+  className,
+  maxDpr = 2,
+  ...props
+}: MoltenMetalProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const settings: Settings = { ...DEFAULTS, ...props };
   const settingsRef = useRef(settings);
@@ -291,7 +302,9 @@ export function MoltenMetal({ className, maxDpr = 2, ...props }: MoltenMetalProp
     });
     const mesh = new Mesh(gl, { geometry: new Triangle(gl), program });
 
-    const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const reducedMotion = window.matchMedia(
+      "(prefers-reduced-motion: reduce)"
+    ).matches;
     const targetMouse: [number, number] = [0.5, 0.5];
     const currentMouse: [number, number] = [0.5, 0.5];
     const t0 = performance.now();
@@ -318,7 +331,10 @@ export function MoltenMetal({ className, maxDpr = 2, ...props }: MoltenMetalProp
 
     const setSize = () => {
       const rect = container.getBoundingClientRect();
-      renderer.setSize(Math.max(1, Math.floor(rect.width)), Math.max(1, Math.floor(rect.height)));
+      renderer.setSize(
+        Math.max(1, Math.floor(rect.width)),
+        Math.max(1, Math.floor(rect.height))
+      );
       const res = program.uniforms.iResolution.value as Float32Array;
       res[0] = gl.drawingBufferWidth;
       res[1] = gl.drawingBufferHeight;
@@ -345,7 +361,8 @@ export function MoltenMetal({ className, maxDpr = 2, ...props }: MoltenMetalProp
       frame = requestAnimationFrame(loop);
     };
     const start = () => {
-      if (!reducedMotion && frame === 0 && !document.hidden) frame = requestAnimationFrame(loop);
+      if (!reducedMotion && frame === 0 && !document.hidden)
+        frame = requestAnimationFrame(loop);
     };
     const stop = () => {
       if (frame !== 0) {
@@ -366,12 +383,20 @@ export function MoltenMetal({ className, maxDpr = 2, ...props }: MoltenMetalProp
       stop();
       resize.disconnect();
       window.removeEventListener("pointermove", onPointerMove);
-      document.documentElement.removeEventListener("pointerleave", onPointerLeave);
+      document.documentElement.removeEventListener(
+        "pointerleave",
+        onPointerLeave
+      );
       document.removeEventListener("visibilitychange", onVisibility);
       canvas.remove();
       gl.getExtension("WEBGL_lose_context")?.loseContext();
     };
   }, [maxDpr]);
 
-  return <div ref={containerRef} className={cn("relative h-full w-full overflow-hidden", className)} />;
+  return (
+    <div
+      ref={containerRef}
+      className={cn("relative h-full w-full overflow-hidden", className)}
+    />
+  );
 }

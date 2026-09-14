@@ -8,29 +8,33 @@ export function Hero() {
       <div className="container mx-auto px-4">
         <div className="mx-auto max-w-4xl text-center">
           {/* Badge */}
-          <div className="mb-8 inline-flex items-center rounded-full bg-white/50 backdrop-blur-sm px-4 py-1.5 text-sm shadow-lg animate-in fade-in slide-in-from-top-3 duration-700">
+          <div className="mb-8 inline-flex items-center rounded-full bg-white/50 px-4 py-1.5 text-sm shadow-lg backdrop-blur-sm duration-700 animate-in fade-in slide-in-from-top-3">
             <CheckCircle className="mr-2 h-4 w-4 text-[#A855F7]" />
             Healthcare practice management prototype
           </div>
 
           {/* Headline */}
-          <h1 className="mb-6 text-4xl font-bold tracking-tight md:text-6xl lg:text-7xl animate-in fade-in slide-in-from-bottom-4 duration-700 delay-100">
+          <h1 className="mb-6 text-4xl font-bold tracking-tight delay-100 duration-700 animate-in fade-in slide-in-from-bottom-4 md:text-6xl lg:text-7xl">
             Modern Healthcare
-            <span className="block bg-gradient-to-r from-purple-700 via-fuchsia-600 to-purple-600 bg-clip-text text-transparent animate-gradient pb-[0.15em] -mb-[0.15em]">
+            <span className="animate-gradient -mb-[0.15em] block bg-gradient-to-r from-purple-700 via-fuchsia-600 to-purple-600 bg-clip-text pb-[0.15em] text-transparent">
               Practice Management
             </span>
           </h1>
 
           {/* Subheadline */}
-          <p className="mx-auto mb-8 max-w-2xl text-lg text-muted-foreground md:text-xl leading-relaxed animate-in fade-in slide-in-from-bottom-4 duration-700 delay-200">
+          <p className="mx-auto mb-8 max-w-2xl text-lg leading-relaxed text-muted-foreground delay-200 duration-700 animate-in fade-in slide-in-from-bottom-4 md:text-xl">
             Streamline your healthcare practice. Manage patients, appointments,
-            provider schedules and visit notes in one secure, HIPAA-oriented
-            platform.
+            provider schedules and visit notes in one secure, healthcare
+            security platform.
           </p>
 
           {/* CTA Buttons */}
-          <div className="flex flex-col items-center justify-center gap-4 md:flex-row animate-in fade-in slide-in-from-bottom-4 duration-700 delay-300">
-            <Button size="lg" asChild className="w-full md:w-auto shadow-lg group">
+          <div className="flex flex-col items-center justify-center gap-4 delay-300 duration-700 animate-in fade-in slide-in-from-bottom-4 md:flex-row">
+            <Button
+              size="lg"
+              asChild
+              className="group w-full shadow-lg md:w-auto"
+            >
               <Link href="/login" className="flex items-center">
                 Get Started
                 <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
@@ -40,28 +44,33 @@ export function Hero() {
               size="lg"
               variant="outline"
               asChild
-              className="w-full md:w-auto bg-white/50 backdrop-blur-sm shadow-lg group"
+              className="group w-full bg-white/50 shadow-lg backdrop-blur-sm md:w-auto"
             >
               <Link href="#demo" className="flex items-center">
-                <Play className="mr-2 h-4 w-4 transition-transform group-hover:scale-110" fill="currentColor" />
+                <Play
+                  className="mr-2 h-4 w-4 transition-transform group-hover:scale-110"
+                  fill="currentColor"
+                />
                 Watch Demo
               </Link>
             </Button>
           </div>
 
           {/* Trust Indicators */}
-          <div className="mt-12 flex flex-wrap items-center justify-center gap-6 animate-in fade-in slide-in-from-bottom-4 duration-700 delay-500">
-            <div className="flex items-center gap-2 bg-white/50 backdrop-blur-sm px-4 py-2.5 rounded-full shadow-md hover:shadow-lg hover:scale-105 transition-all cursor-default">
+          <div className="mt-12 flex flex-wrap items-center justify-center gap-6 delay-500 duration-700 animate-in fade-in slide-in-from-bottom-4">
+            <div className="flex cursor-default items-center gap-2 rounded-full bg-white/50 px-4 py-2.5 shadow-md backdrop-blur-sm transition-all hover:scale-105 hover:shadow-lg">
               <CheckCircle className="h-5 w-5 text-[#A855F7]" />
-              <span className="text-sm font-medium">HIPAA-Oriented</span>
+              <span className="text-sm font-medium">healthcare security</span>
             </div>
-            <div className="flex items-center gap-2 bg-white/50 backdrop-blur-sm px-4 py-2.5 rounded-full shadow-md hover:shadow-lg hover:scale-105 transition-all cursor-default">
+            <div className="flex cursor-default items-center gap-2 rounded-full bg-white/50 px-4 py-2.5 shadow-md backdrop-blur-sm transition-all hover:scale-105 hover:shadow-lg">
               <CheckCircle className="h-5 w-5 text-[#A855F7]" />
               <span className="text-sm font-medium">Full Audit Trail</span>
             </div>
-            <div className="flex items-center gap-2 bg-white/50 backdrop-blur-sm px-4 py-2.5 rounded-full shadow-md hover:shadow-lg hover:scale-105 transition-all cursor-default">
+            <div className="flex cursor-default items-center gap-2 rounded-full bg-white/50 px-4 py-2.5 shadow-md backdrop-blur-sm transition-all hover:scale-105 hover:shadow-lg">
               <CheckCircle className="h-5 w-5 text-[#A855F7]" />
-              <span className="text-sm font-medium">Provider Data Isolation</span>
+              <span className="text-sm font-medium">
+                Provider Data Isolation
+              </span>
             </div>
           </div>
         </div>

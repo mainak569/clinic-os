@@ -374,12 +374,14 @@ export function EditAvailabilityDialog({
                 <p className="text-sm text-muted-foreground">
                   <span className="font-semibold text-destructive">
                     This action cannot be undone.
-                  </span>
-                  {" "}The availability slot will be permanently removed from the database.
+                  </span>{" "}
+                  The availability slot will be permanently removed from the
+                  database.
                 </p>
-                <div className="mt-3 rounded-2xl border border-amber-200 bg-amber-50/70 backdrop-blur-sm p-3 text-sm">
-                  <strong>Recommendation:</strong> Use Archive instead to preserve data.
-                  Archive hides the slot but keeps it in the database for records.
+                <div className="mt-3 rounded-2xl border border-amber-200 bg-amber-50/70 p-3 text-sm backdrop-blur-sm">
+                  <strong>Recommendation:</strong> Use Archive instead to
+                  preserve data. Archive hides the slot but keeps it in the
+                  database for records.
                 </div>
               </div>
             </AlertDialogDescription>

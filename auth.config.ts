@@ -2,10 +2,10 @@ import type { NextAuthConfig } from "next-auth";
 
 /**
  * Auth.js Configuration
- * 
+ *
  * This is the edge-compatible configuration that doesn't use Prisma.
  * Database operations are moved to the authorize callback which runs in Node.js runtime.
- * 
+ *
  * Security Features:
  * - Credentials provider with bcrypt password hashing
  * - JWT sessions for stateless authentication

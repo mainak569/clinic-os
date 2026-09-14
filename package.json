@@ -4,7 +4,7 @@
   "private": true,
   "description": "Professional healthcare practice management platform",
   "scripts": {
-    "dev": "next dev",
+    "dev": "next dev --turbopack",
     "build": "next build",
     "start": "next start",
     "postinstall": "prisma generate",
@@ -61,6 +61,7 @@
     "react-day-picker": "^10.0.1",
     "react-dom": "^18.2.0",
     "react-hook-form": "^7.87.0",
+    "react-markdown": "^10.1.0",
     "recharts": "^3.10.1",
     "server-only": "^0.0.1",
     "sonner": "^2.0.8",

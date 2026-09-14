@@ -2,10 +2,10 @@ import { PrismaClient } from "@prisma/client";
 
 /**
  * Prisma Client Configuration
- * 
+ *
  * This file provides centralized Prisma client configuration for the application.
  * It ensures proper connection pooling and prevents multiple instances in development.
- * 
+ *
  * Note: Edge-compatible - no process.on or query logging
  */
 
@@ -20,10 +20,12 @@ declare global {
  * In development, reuses the client to avoid connection exhaustion
  * In production, creates a new client for each invocation
  */
-export const prisma = global.prisma || new PrismaClient();
+// globalThis rather than Node's `global`: middleware loads this file (via
+// auth.ts) in the Edge runtime, where `global` isn't defined under Turbopack.
+export const prisma = globalThis.prisma || new PrismaClient();
 
 if (process.env.NODE_ENV !== "production") {
-  global.prisma = prisma;
+  globalThis.prisma = prisma;
 }
 
 /**

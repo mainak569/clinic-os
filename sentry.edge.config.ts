@@ -1,6 +1,6 @@
 /**
  * Sentry Edge Configuration
- * 
+ *
  * Captures errors in Edge Runtime (middleware, edge API routes)
  */
 

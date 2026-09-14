@@ -1,5 +1,10 @@
 import { requireAuth } from "@/lib/auth-helpers";
-import { Calendar, Clock as ClockIcon, Users, LayoutDashboard } from "lucide-react";
+import {
+  Calendar,
+  Clock as ClockIcon,
+  Users,
+  LayoutDashboard,
+} from "lucide-react";
 import Link from "next/link";
 import { AlertPanel } from "@/components/dashboard/alert-panel";
 import { AnalyticsCharts } from "@/components/dashboard/analytics-charts";
@@ -70,14 +75,17 @@ export default async function DashboardPage() {
           <Link
             key={action.title}
             href={action.href}
-            className={`group rounded-2xl bg-gradient-to-br ${action.tint} to-white/80 backdrop-blur-xl shadow-lg hover:shadow-xl transition-all p-6 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#A855F7]/50`}
+            className={`group rounded-2xl bg-gradient-to-br ${action.tint} to-white/80 p-6 shadow-lg backdrop-blur-xl transition-all hover:shadow-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#A855F7]/50`}
           >
             <div className="flex items-center gap-4">
-              <div
-                className="rounded-full p-3 shadow-md transition-transform group-hover:scale-110"
-                style={{ backgroundColor: action.color }}
-              >
-                <action.icon className="h-6 w-6 text-white" />
+              <div className="relative h-12 w-12 shrink-0 [perspective:24em] [transform-style:preserve-3d]">
+                <div
+                  className="absolute inset-0 rounded-full shadow-md transition-transform duration-300 [transition-timing-function:cubic-bezier(0.83,0,0.17,1)] [will-change:transform] group-hover:[transform:rotate(8deg)_translate3d(-0.15em,-0.15em,0)]"
+                  style={{ backgroundColor: action.color }}
+                />
+                <div className="absolute inset-0 flex items-center justify-center rounded-full bg-white/15 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.35)] backdrop-blur-md transition-transform duration-300 [transition-timing-function:cubic-bezier(0.83,0,0.17,1)] [will-change:transform] group-hover:[transform:translate3d(0,0,0.5em)_scale(1.05)]">
+                  <action.icon className="h-6 w-6 text-white drop-shadow-sm" />
+                </div>
               </div>
               <div className="min-w-0">
                 <h3

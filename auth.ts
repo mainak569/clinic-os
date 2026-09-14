@@ -3,7 +3,11 @@ import Credentials from "next-auth/providers/credentials";
 import bcrypt from "bcryptjs";
 import { authConfig } from "./auth.config";
 import { prisma } from "@/lib/prisma";
-import { clearFailedLogins, isLoginBlocked, recordFailedLogin } from "@/lib/rate-limit";
+import {
+  clearFailedLogins,
+  isLoginBlocked,
+  recordFailedLogin,
+} from "@/lib/rate-limit";
 
 /**
  * NextAuth.js v5 Configuration

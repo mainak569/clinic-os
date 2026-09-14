@@ -1,6 +1,7 @@
 import { requireAuth } from "@/lib/auth-helpers";
 import { MoltenBackground } from "@/components/layout/molten-background";
 import { DashboardHeader } from "@/components/layout/dashboard-header";
+import { AssistantWidget } from "@/components/assistant/assistant-widget";
 
 /**
  * Shared shell for every dashboard route.
@@ -23,7 +24,8 @@ export default async function DashboardLayout({
         role={session.user.role}
         providerName={session.user.providerName}
       />
-      <main className="container mx-auto px-4 py-8 space-y-8">{children}</main>
+      <main className="container mx-auto space-y-8 px-4 py-8">{children}</main>
+      <AssistantWidget role={session.user.role} />
     </div>
   );
 }

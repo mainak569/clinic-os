@@ -34,8 +34,7 @@ import {
  */
 
 type ActionResult<T> =
-  | { success: true; data: T }
-  | { success: false; error: string };
+  { success: true; data: T } | { success: false; error: string };
 
 const CLINICAL_FIELDS = [
   "chiefComplaint",
@@ -61,7 +60,10 @@ const CLINICAL_FIELDS = [
 /** Keep only the fields the caller actually sent (null included). */
 function pickProvided<T extends Record<string, unknown>>(input: T) {
   return Object.fromEntries(
-    CLINICAL_FIELDS.filter((key) => input[key] !== undefined).map((key) => [key, input[key]])
+    CLINICAL_FIELDS.filter((key) => input[key] !== undefined).map((key) => [
+      key,
+      input[key],
+    ])
   );
 }
 
@@ -103,7 +105,9 @@ export async function createVisitNote(
 
     const validatedInput = createVisitNoteSchema.parse(input);
 
-    const appointment = await appointmentService.getAppointmentById(validatedInput.appointmentId);
+    const appointment = await appointmentService.getAppointmentById(
+      validatedInput.appointmentId
+    );
     if (!appointment) {
       return { success: false, error: "Appointment not found" };
     }
@@ -117,7 +121,10 @@ export async function createVisitNote(
     const visitNote = await visitNoteService.createVisitNote({
       appointmentId: validatedInput.appointmentId,
       authorId: session.user.id,
-      ...(pickProvided(validatedInput) as Omit<CreateVisitNoteInput, "appointmentId">),
+      ...(pickProvided(validatedInput) as Omit<
+        CreateVisitNoteInput,
+        "appointmentId"
+      >),
     });
 
     await audit(session.user.id, "CREATE", visitNote.id, {
@@ -130,7 +137,10 @@ export async function createVisitNote(
     return { success: true, data: { id: visitNote.id } };
   } catch (error) {
     console.error("createVisitNote error:", error);
-    return { success: false, error: actionErrorMessage(error, "Failed to create visit note") };
+    return {
+      success: false,
+      error: actionErrorMessage(error, "Failed to create visit note"),
+    };
   }
 }
 
@@ -157,7 +167,10 @@ export async function updateVisitNote(
       session.user.id
     );
     if (!canEdit) {
-      return { success: false, error: "You can only edit visit notes you authored" };
+      return {
+        success: false,
+        error: "You can only edit visit notes you authored",
+      };
     }
 
     const changes = pickProvided(validatedInput);
@@ -183,19 +196,26 @@ export async function updateVisitNote(
     return { success: true, data: { id: visitNote.id } };
   } catch (error) {
     console.error("updateVisitNote error:", error);
-    return { success: false, error: actionErrorMessage(error, "Failed to update visit note") };
+    return {
+      success: false,
+      error: actionErrorMessage(error, "Failed to update visit note"),
+    };
   }
 }
 
 /**
  * Get visit note by ID
  */
-export async function getVisitNote(input: GetVisitNoteInput): Promise<ActionResult<any>> {
+export async function getVisitNote(
+  input: GetVisitNoteInput
+): Promise<ActionResult<any>> {
   try {
     await requireAuth();
 
     const validatedInput = getVisitNoteSchema.parse(input);
-    const visitNote = await visitNoteService.getVisitNoteById(validatedInput.visitNoteId);
+    const visitNote = await visitNoteService.getVisitNoteById(
+      validatedInput.visitNoteId
+    );
 
     if (!visitNote) {
       return { success: false, error: "Visit note not found" };
@@ -208,13 +228,19 @@ export async function getVisitNote(input: GetVisitNoteInput): Promise<ActionResu
 
     const canAccess = await canAccessProviderData(appointment.provider.id);
     if (!canAccess) {
-      return { success: false, error: "You do not have permission to view this visit note" };
+      return {
+        success: false,
+        error: "You do not have permission to view this visit note",
+      };
     }
 
     return { success: true, data: serializeVisitNote(visitNote as any) };
   } catch (error) {
     console.error("getVisitNote error:", error);
-    return { success: false, error: actionErrorMessage(error, "Failed to get visit note") };
+    return {
+      success: false,
+      error: actionErrorMessage(error, "Failed to get visit note"),
+    };
   }
 }
 
@@ -229,14 +255,19 @@ export async function getVisitNoteByAppointment(
 
     const validatedInput = getVisitNoteByAppointmentSchema.parse(input);
 
-    const appointment = await appointmentService.getAppointmentById(validatedInput.appointmentId);
+    const appointment = await appointmentService.getAppointmentById(
+      validatedInput.appointmentId
+    );
     if (!appointment) {
       return { success: false, error: "Appointment not found" };
     }
 
     const canAccess = await canAccessProviderData(appointment.providerId);
     if (!canAccess) {
-      return { success: false, error: "You do not have permission to view this visit note" };
+      return {
+        success: false,
+        error: "You do not have permission to view this visit note",
+      };
     }
 
     const visitNote = await visitNoteService.getVisitNoteByAppointmentId(
@@ -246,7 +277,10 @@ export async function getVisitNoteByAppointment(
     return { success: true, data: serializeVisitNote(visitNote as any) };
   } catch (error) {
     console.error("getVisitNoteByAppointment error:", error);
-    return { success: false, error: actionErrorMessage(error, "Failed to get visit note") };
+    return {
+      success: false,
+      error: actionErrorMessage(error, "Failed to get visit note"),
+    };
   }
 }
 
@@ -263,7 +297,9 @@ export async function getVisitNoteHistory(
 
     const validatedInput = getVisitNoteHistorySchema.parse(input);
 
-    const visitNote = await visitNoteService.getVisitNoteById(validatedInput.visitNoteId);
+    const visitNote = await visitNoteService.getVisitNoteById(
+      validatedInput.visitNoteId
+    );
     if (!visitNote) {
       return { success: false, error: "Visit note not found" };
     }
@@ -275,10 +311,15 @@ export async function getVisitNoteHistory(
 
     const canAccess = await canAccessProviderData(appointment.provider.id);
     if (!canAccess) {
-      return { success: false, error: "You do not have permission to view this history" };
+      return {
+        success: false,
+        error: "You do not have permission to view this history",
+      };
     }
 
-    const history = await visitNoteService.getVisitNoteHistory(validatedInput.visitNoteId);
+    const history = await visitNoteService.getVisitNoteHistory(
+      validatedInput.visitNoteId
+    );
 
     return {
       success: true,
@@ -286,6 +327,9 @@ export async function getVisitNoteHistory(
     };
   } catch (error) {
     console.error("getVisitNoteHistory error:", error);
-    return { success: false, error: actionErrorMessage(error, "Failed to get visit note history") };
+    return {
+      success: false,
+      error: actionErrorMessage(error, "Failed to get visit note history"),
+    };
   }
 }

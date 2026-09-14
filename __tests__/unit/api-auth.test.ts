@@ -7,7 +7,14 @@
  * Every route must answer 401 without touching the database.
  */
 
-import { describe, it, expect, jest, beforeEach, afterEach } from "@jest/globals";
+import {
+  describe,
+  it,
+  expect,
+  jest,
+  beforeEach,
+  afterEach,
+} from "@jest/globals";
 
 const mockAuth = jest.fn() as jest.MockedFunction<any>;
 jest.mock("@/auth", () => ({
@@ -16,10 +23,7 @@ jest.mock("@/auth", () => ({
 
 const dbCall = jest.fn() as jest.MockedFunction<any>;
 jest.mock("@/lib/prisma", () => ({
-  prisma: new Proxy(
-    {},
-    { get: () => new Proxy({}, { get: () => dbCall }) }
-  ),
+  prisma: new Proxy({}, { get: () => new Proxy({}, { get: () => dbCall }) }),
 }));
 jest.mock("@/prisma.config", () => ({
   prisma: {},
@@ -58,7 +62,9 @@ describe("getApiSession", () => {
   });
 
   it("returns the session when signed in", async () => {
-    const session = { user: { id: "u1", role: "FRONT_DESK", providerId: null } };
+    const session = {
+      user: { id: "u1", role: "FRONT_DESK", providerId: null },
+    };
     mockAuth.mockResolvedValue(session);
     expect(await getApiSession()).toBe(session);
   });
@@ -71,33 +77,48 @@ describe("API routes without a session", () => {
   });
 
   const cases: Array<[string, () => Promise<Response>]> = [
-    ["GET /api/patients", () => patientsRoute.GET(new Request("http://localhost/api/patients"))],
+    [
+      "GET /api/patients",
+      () => patientsRoute.GET(new Request("http://localhost/api/patients")),
+    ],
     ["GET /api/appointments", () => appointmentsRoute.GET()],
     [
       "POST /api/appointments",
-      () => appointmentsRoute.POST(jsonRequest("http://localhost/api/appointments", "POST", {})),
+      () =>
+        appointmentsRoute.POST(
+          jsonRequest("http://localhost/api/appointments", "POST", {})
+        ),
     ],
     [
       "GET /api/providers/[providerId]",
-      () => providerRoute.GET(new Request("http://localhost/api/providers/provider-a"), params),
+      () =>
+        providerRoute.GET(
+          new Request("http://localhost/api/providers/provider-a"),
+          params
+        ),
     ],
     [
       "PATCH /api/providers/[providerId]",
       () =>
         providerRoute.PATCH(
-          jsonRequest("http://localhost/api/providers/provider-a", "PATCH", { firstName: "X" }),
+          jsonRequest("http://localhost/api/providers/provider-a", "PATCH", {
+            firstName: "X",
+          }),
           params
         ),
     ],
   ];
 
-  it.each(cases)("%s answers 401 without querying the database", async (_name, call) => {
-    const response = await call();
+  it.each(cases)(
+    "%s answers 401 without querying the database",
+    async (_name, call) => {
+      const response = await call();
 
-    expect(response.status).toBe(401);
-    expect(await response.json()).toEqual({ error: "Unauthorized" });
-    expect(dbCall).not.toHaveBeenCalled();
-  });
+      expect(response.status).toBe(401);
+      expect(await response.json()).toEqual({ error: "Unauthorized" });
+      expect(dbCall).not.toHaveBeenCalled();
+    }
+  );
 });
 
 describe("Cron endpoint authentication", () => {
@@ -125,7 +146,9 @@ describe("Cron endpoint authentication", () => {
     delete env.CRON_SECRET;
     env.NODE_ENV = "production";
     // The route logs the misconfiguration; keep the test output clean.
-    const consoleError = jest.spyOn(console, "error").mockImplementation(() => {});
+    const consoleError = jest
+      .spyOn(console, "error")
+      .mockImplementation(() => {});
 
     expect((await call()).status).toBe(401);
     expect(dbCall).not.toHaveBeenCalled();

@@ -39,4 +39,8 @@ if (!looksLocal && !override) {
   process.exit(1);
 }
 
-console.log(looksLocal ? "✓ DATABASE_URL looks local — proceeding." : "✓ ALLOW_DESTRUCTIVE_DB_OP=true — proceeding.");
+console.log(
+  looksLocal
+    ? "✓ DATABASE_URL looks local — proceeding."
+    : "✓ ALLOW_DESTRUCTIVE_DB_OP=true — proceeding."
+);

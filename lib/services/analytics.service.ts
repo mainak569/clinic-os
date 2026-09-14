@@ -3,7 +3,7 @@ import { subWeeks, startOfWeek, format } from "date-fns";
 
 /**
  * Analytics Service Layer
- * 
+ *
  * Provides optimized queries for dashboard analytics
  * All queries use selective field loading and aggregations
  */
@@ -42,10 +42,39 @@ export interface DashboardAnalytics {
   };
 }
 
+/**
+ * Summary counts from a status breakdown.
+ *
+ * The breakdown already covers every appointment matching the filter, so its
+ * counts are the same numbers separate count queries would return.
+ */
+function summarizeByStatus(
+  byStatus: AppointmentsByStatus[]
+): DashboardAnalytics["summary"] {
+  const count = (status: string) =>
+    byStatus.find((s) => s.status === status)?.count ?? 0;
+
+  const completedAppointments = count("COMPLETED");
+  const noShowAppointments = count("NO_SHOW");
+  const completedOrNoShow = completedAppointments + noShowAppointments;
+
+  return {
+    totalAppointments: byStatus.reduce((sum, s) => sum + s.count, 0),
+    confirmedAppointments: count("CONFIRMED"),
+    completedAppointments,
+    cancelledAppointments: count("CANCELLED"),
+    noShowAppointments,
+    overallNoShowRate:
+      completedOrNoShow > 0
+        ? (noShowAppointments / completedOrNoShow) * 100
+        : 0,
+  };
+}
+
 export class AnalyticsService {
   /**
    * Get appointments by provider
-   * 
+   *
    * Optimized: Uses groupBy aggregation
    */
   async getAppointmentsByProvider(
@@ -60,33 +89,30 @@ export class AnalyticsService {
       if (endDate) whereClause.scheduledAt.lte = endDate;
     }
 
-    // Use Prisma's groupBy for efficient aggregation
-    const results = await prisma.appointment.groupBy({
-      by: ["providerId"],
-      where: whereClause,
-      _count: {
-        id: true,
-      },
-      orderBy: {
+    // The counts and the provider names are independent, so fetch them
+    // together instead of waiting for the counts before looking up names.
+    const [results, providers] = await Promise.all([
+      prisma.appointment.groupBy({
+        by: ["providerId"],
+        where: whereClause,
         _count: {
-          id: "desc",
+          id: true,
         },
-      },
-    });
-
-    // Fetch provider names
-    const providerIds = results.map((r) => r.providerId);
-    const providers = await prisma.provider.findMany({
-      where: {
-        id: { in: providerIds },
-      },
-      select: {
-        id: true,
-        firstName: true,
-        lastName: true,
-        title: true,
-      },
-    });
+        orderBy: {
+          _count: {
+            id: "desc",
+          },
+        },
+      }),
+      prisma.provider.findMany({
+        select: {
+          id: true,
+          firstName: true,
+          lastName: true,
+          title: true,
+        },
+      }),
+    ]);
 
     const providerMap = new Map(
       providers.map((p) => [
@@ -104,7 +130,7 @@ export class AnalyticsService {
 
   /**
    * Get appointments by status
-   * 
+   *
    * Optimized: Uses groupBy aggregation
    */
   async getAppointmentsByStatus(
@@ -146,10 +172,12 @@ export class AnalyticsService {
 
   /**
    * Get no-show rate for last 8 weeks
-   * 
+   *
    * Optimized: Single query with date filtering and grouping
    */
-  async getNoShowRateLast8Weeks(providerId?: string): Promise<NoShowRateByWeek[]> {
+  async getNoShowRateLast8Weeks(
+    providerId?: string
+  ): Promise<NoShowRateByWeek[]> {
     const now = new Date();
     const eightWeeksAgo = subWeeks(now, 8);
 
@@ -201,8 +229,7 @@ export class AnalyticsService {
         weekStart,
         totalAppointments: data.total,
         noShows: data.noShows,
-        noShowRate:
-          data.total > 0 ? (data.noShows / data.total) * 100 : 0,
+        noShowRate: data.total > 0 ? (data.noShows / data.total) * 100 : 0,
       });
     }
 
@@ -211,67 +238,27 @@ export class AnalyticsService {
 
   /**
    * Get comprehensive dashboard analytics
-   * 
+   *
    * Optimized: Combines multiple queries efficiently
    */
   async getDashboardAnalytics(
     startDate?: Date,
     endDate?: Date
   ): Promise<DashboardAnalytics> {
-    const whereClause: any = {};
-
-    if (startDate || endDate) {
-      whereClause.scheduledAt = {};
-      if (startDate) whereClause.scheduledAt.gte = startDate;
-      if (endDate) whereClause.scheduledAt.lte = endDate;
-    }
-
-    // Parallel queries for efficiency
-    const [
-      appointmentsByProvider,
-      appointmentsByStatus,
-      noShowRateLast8Weeks,
-      totalCount,
-      confirmedCount,
-      completedCount,
-      cancelledCount,
-      noShowCount,
-    ] = await Promise.all([
-      this.getAppointmentsByProvider(startDate, endDate),
-      this.getAppointmentsByStatus(startDate, endDate),
-      this.getNoShowRateLast8Weeks(),
-      prisma.appointment.count({ where: whereClause }),
-      prisma.appointment.count({
-        where: { ...whereClause, status: "CONFIRMED" },
-      }),
-      prisma.appointment.count({
-        where: { ...whereClause, status: "COMPLETED" },
-      }),
-      prisma.appointment.count({
-        where: { ...whereClause, status: "CANCELLED" },
-      }),
-      prisma.appointment.count({
-        where: { ...whereClause, status: "NO_SHOW" },
-      }),
-    ]);
-
-    // Calculate overall no-show rate
-    const completedOrNoShow = completedCount + noShowCount;
-    const overallNoShowRate =
-      completedOrNoShow > 0 ? (noShowCount / completedOrNoShow) * 100 : 0;
+    // Parallel queries. The summary counts come from the status breakdown,
+    // which uses the same filter, rather than five more count queries.
+    const [appointmentsByProvider, appointmentsByStatus, noShowRateLast8Weeks] =
+      await Promise.all([
+        this.getAppointmentsByProvider(startDate, endDate),
+        this.getAppointmentsByStatus(startDate, endDate),
+        this.getNoShowRateLast8Weeks(),
+      ]);
 
     return {
       appointmentsByProvider,
       appointmentsByStatus,
       noShowRateLast8Weeks,
-      summary: {
-        totalAppointments: totalCount,
-        confirmedAppointments: confirmedCount,
-        completedAppointments: completedCount,
-        cancelledAppointments: cancelledCount,
-        noShowAppointments: noShowCount,
-        overallNoShowRate,
-      },
+      summary: summarizeByStatus(appointmentsByStatus),
     };
   }
 
@@ -283,65 +270,29 @@ export class AnalyticsService {
     startDate?: Date,
     endDate?: Date
   ): Promise<Omit<DashboardAnalytics, "appointmentsByProvider">> {
-    const whereClause: any = { providerId };
-
-    if (startDate || endDate) {
-      whereClause.scheduledAt = {};
-      if (startDate) whereClause.scheduledAt.gte = startDate;
-      if (endDate) whereClause.scheduledAt.lte = endDate;
-    }
-
-    const [
-      appointmentsByStatus,
-      noShowRateLast8Weeks,
-      totalCount,
-      confirmedCount,
-      completedCount,
-      cancelledCount,
-      noShowCount,
-    ] = await Promise.all([
-      // Both charts are scoped too; they previously showed the whole clinic.
+    // Both charts are scoped too; they previously showed the whole clinic.
+    // The summary is derived from the scoped status breakdown.
+    const [appointmentsByStatus, noShowRateLast8Weeks] = await Promise.all([
       this.getAppointmentsByStatus(startDate, endDate, providerId),
       this.getNoShowRateLast8Weeks(providerId),
-      prisma.appointment.count({ where: whereClause }),
-      prisma.appointment.count({
-        where: { ...whereClause, status: "CONFIRMED" },
-      }),
-      prisma.appointment.count({
-        where: { ...whereClause, status: "COMPLETED" },
-      }),
-      prisma.appointment.count({
-        where: { ...whereClause, status: "CANCELLED" },
-      }),
-      prisma.appointment.count({
-        where: { ...whereClause, status: "NO_SHOW" },
-      }),
     ]);
-
-    const completedOrNoShow = completedCount + noShowCount;
-    const overallNoShowRate =
-      completedOrNoShow > 0 ? (noShowCount / completedOrNoShow) * 100 : 0;
 
     return {
       appointmentsByStatus,
       noShowRateLast8Weeks,
-      summary: {
-        totalAppointments: totalCount,
-        confirmedAppointments: confirmedCount,
-        completedAppointments: completedCount,
-        cancelledAppointments: cancelledCount,
-        noShowAppointments: noShowCount,
-        overallNoShowRate,
-      },
+      summary: summarizeByStatus(appointmentsByStatus),
     };
   }
 
   /**
    * Get recent appointment trends
-   * 
+   *
    * Useful for quick dashboard overview
    */
-  async getRecentTrends(days = 30, providerId?: string): Promise<{
+  async getRecentTrends(
+    days = 30,
+    providerId?: string
+  ): Promise<{
     appointments: number;
     confirmed: number;
     completed: number;
@@ -357,16 +308,28 @@ export class AnalyticsService {
           where: { ...scope, createdAt: { gte: startDate } },
         }),
         prisma.appointment.count({
-          where: { ...scope, createdAt: { gte: startDate }, status: "CONFIRMED" },
+          where: {
+            ...scope,
+            createdAt: { gte: startDate },
+            status: "CONFIRMED",
+          },
         }),
         prisma.appointment.count({
-          where: { ...scope, createdAt: { gte: startDate }, status: "COMPLETED" },
+          where: {
+            ...scope,
+            createdAt: { gte: startDate },
+            status: "COMPLETED",
+          },
         }),
         prisma.appointment.count({
           where: { ...scope, createdAt: { gte: startDate }, status: "NO_SHOW" },
         }),
         prisma.appointment.count({
-          where: { ...scope, createdAt: { gte: startDate }, status: "CANCELLED" },
+          where: {
+            ...scope,
+            createdAt: { gte: startDate },
+            status: "CANCELLED",
+          },
         }),
       ]);
 

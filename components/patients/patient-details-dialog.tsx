@@ -77,7 +77,10 @@ export function PatientDetailsDialog({
     const birthDate = new Date(dateOfBirth);
     let age = today.getFullYear() - birthDate.getFullYear();
     const monthDiff = today.getMonth() - birthDate.getMonth();
-    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+    if (
+      monthDiff < 0 ||
+      (monthDiff === 0 && today.getDate() < birthDate.getDate())
+    ) {
       age--;
     }
     return age;
@@ -86,7 +89,7 @@ export function PatientDetailsDialog({
   if (isLoading) {
     return (
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-h-[90vh] max-w-4xl overflow-y-auto">
           <div className="flex items-center justify-center py-8">
             <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
           </div>
@@ -114,7 +117,7 @@ export function PatientDetailsDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-h-[90vh] max-w-4xl overflow-y-auto">
         <DialogHeader>
           <div className="flex items-start justify-between">
             <div>
@@ -128,7 +131,11 @@ export function PatientDetailsDialog({
               </DialogDescription>
             </div>
             {canEdit && (
-              <Button variant="outline" size="sm" onClick={() => onEdit(patient)}>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => onEdit(patient)}
+              >
                 <Edit className="mr-2 h-4 w-4" />
                 Edit
               </Button>
@@ -158,13 +165,17 @@ export function PatientDetailsDialog({
               <CardContent className="space-y-3">
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <div className="text-sm text-muted-foreground">Full Name</div>
+                    <div className="text-sm text-muted-foreground">
+                      Full Name
+                    </div>
                     <div className="font-medium">
                       {patient.firstName} {patient.lastName}
                     </div>
                   </div>
                   <div>
-                    <div className="text-sm text-muted-foreground">Date of Birth</div>
+                    <div className="text-sm text-muted-foreground">
+                      Date of Birth
+                    </div>
                     <div className="font-medium">
                       {patient.dateOfBirth
                         ? format(new Date(patient.dateOfBirth), "MMMM d, yyyy")
@@ -192,11 +203,13 @@ export function PatientDetailsDialog({
               <CardContent className="space-y-4">
                 {patient.allergies && (
                   <div>
-                    <div className="flex items-center gap-2 mb-1">
+                    <div className="mb-1 flex items-center gap-2">
                       <AlertCircle className="h-4 w-4 text-red-500" />
-                      <div className="text-sm font-medium text-red-500">Allergies</div>
+                      <div className="text-sm font-medium text-red-500">
+                        Allergies
+                      </div>
                     </div>
-                    <div className="text-sm bg-red-50 border border-red-200 rounded p-2">
+                    <div className="rounded border border-red-200 bg-red-50 p-2 text-sm">
                       {patient.allergies}
                     </div>
                   </div>
@@ -204,25 +217,33 @@ export function PatientDetailsDialog({
 
                 {patient.medications && (
                   <div>
-                    <div className="text-sm font-medium mb-1">Current Medications</div>
-                    <div className="text-sm whitespace-pre-wrap">{patient.medications}</div>
+                    <div className="mb-1 text-sm font-medium">
+                      Current Medications
+                    </div>
+                    <div className="whitespace-pre-wrap text-sm">
+                      {patient.medications}
+                    </div>
                   </div>
                 )}
 
                 {patient.medicalHistory && (
                   <div>
-                    <div className="text-sm font-medium mb-1">Medical History</div>
-                    <div className="text-sm text-muted-foreground whitespace-pre-wrap">
+                    <div className="mb-1 text-sm font-medium">
+                      Medical History
+                    </div>
+                    <div className="whitespace-pre-wrap text-sm text-muted-foreground">
                       {patient.medicalHistory}
                     </div>
                   </div>
                 )}
 
-                {!patient.allergies && !patient.medications && !patient.medicalHistory && (
-                  <div className="text-sm text-muted-foreground">
-                    No medical information recorded
-                  </div>
-                )}
+                {!patient.allergies &&
+                  !patient.medications &&
+                  !patient.medicalHistory && (
+                    <div className="text-sm text-muted-foreground">
+                      No medical information recorded
+                    </div>
+                  )}
               </CardContent>
             </Card>
           </TabsContent>
@@ -265,7 +286,10 @@ export function PatientDetailsDialog({
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                {patient.address || patient.city || patient.state || patient.zipCode ? (
+                {patient.address ||
+                patient.city ||
+                patient.state ||
+                patient.zipCode ? (
                   <div className="text-sm">
                     {patient.address && <div>{patient.address}</div>}
                     <div>
@@ -275,7 +299,9 @@ export function PatientDetailsDialog({
                     </div>
                   </div>
                 ) : (
-                  <div className="text-sm text-muted-foreground">No address on file</div>
+                  <div className="text-sm text-muted-foreground">
+                    No address on file
+                  </div>
                 )}
               </CardContent>
             </Card>
@@ -288,18 +314,27 @@ export function PatientDetailsDialog({
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                {patient.emergencyContactName || patient.emergencyContactPhone ? (
+                {patient.emergencyContactName ||
+                patient.emergencyContactPhone ? (
                   <div className="space-y-2">
                     {patient.emergencyContactName && (
                       <div>
-                        <div className="text-sm text-muted-foreground">Name</div>
-                        <div className="font-medium">{patient.emergencyContactName}</div>
+                        <div className="text-sm text-muted-foreground">
+                          Name
+                        </div>
+                        <div className="font-medium">
+                          {patient.emergencyContactName}
+                        </div>
                       </div>
                     )}
                     {patient.emergencyContactPhone && (
                       <div>
-                        <div className="text-sm text-muted-foreground">Phone</div>
-                        <div className="font-medium">{patient.emergencyContactPhone}</div>
+                        <div className="text-sm text-muted-foreground">
+                          Phone
+                        </div>
+                        <div className="font-medium">
+                          {patient.emergencyContactPhone}
+                        </div>
                       </div>
                     )}
                   </div>
@@ -326,14 +361,22 @@ export function PatientDetailsDialog({
                   <div className="space-y-3">
                     {patient.insuranceProvider && (
                       <div>
-                        <div className="text-sm text-muted-foreground">Provider</div>
-                        <div className="font-medium">{patient.insuranceProvider}</div>
+                        <div className="text-sm text-muted-foreground">
+                          Provider
+                        </div>
+                        <div className="font-medium">
+                          {patient.insuranceProvider}
+                        </div>
                       </div>
                     )}
                     {patient.insuranceId && (
                       <div>
-                        <div className="text-sm text-muted-foreground">Insurance ID</div>
-                        <div className="font-medium font-mono">{patient.insuranceId}</div>
+                        <div className="text-sm text-muted-foreground">
+                          Insurance ID
+                        </div>
+                        <div className="font-mono font-medium">
+                          {patient.insuranceId}
+                        </div>
                       </div>
                     )}
                   </div>
@@ -354,21 +397,28 @@ export function PatientDetailsDialog({
                   <Card key={appointment.id}>
                     <CardContent className="pt-6">
                       <div className="flex items-start justify-between gap-4">
-                        <div className="space-y-2 flex-1">
+                        <div className="flex-1 space-y-2">
                           <div className="flex items-center gap-2">
                             <Calendar className="h-4 w-4 text-muted-foreground" />
                             <div className="font-medium">
-                              {format(new Date(appointment.scheduledAt), "MMMM d, yyyy")}
+                              {format(
+                                new Date(appointment.scheduledAt),
+                                "MMMM d, yyyy"
+                              )}
                             </div>
                             <div className="text-sm text-muted-foreground">
-                              {format(new Date(appointment.scheduledAt), "h:mm a")}
+                              {format(
+                                new Date(appointment.scheduledAt),
+                                "h:mm a"
+                              )}
                             </div>
                           </div>
 
                           <div className="flex items-center gap-2 text-sm">
                             <User className="h-4 w-4 text-muted-foreground" />
                             <span>
-                              {appointment.provider.title} {appointment.provider.firstName}{" "}
+                              {appointment.provider.title}{" "}
+                              {appointment.provider.firstName}{" "}
                               {appointment.provider.lastName}
                             </span>
                           </div>
@@ -379,7 +429,7 @@ export function PatientDetailsDialog({
                           </div>
 
                           {appointment.reason && (
-                            <div className="text-sm text-muted-foreground mt-2">
+                            <div className="mt-2 text-sm text-muted-foreground">
                               <span className="font-medium">Reason: </span>
                               {appointment.reason}
                             </div>
@@ -400,7 +450,7 @@ export function PatientDetailsDialog({
             ) : (
               <Card>
                 <CardContent className="py-8 text-center text-muted-foreground">
-                  <History className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                  <History className="mx-auto mb-2 h-8 w-8 opacity-50" />
                   <p>No appointments on record</p>
                 </CardContent>
               </Card>

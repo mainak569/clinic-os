@@ -80,7 +80,8 @@ export function WeekView({ slots, onSlotClick, isLoading }: WeekViewProps) {
           </Button>
         </div>
         <div className="text-sm font-medium">
-          {format(weekStart, "MMM d")} - {format(addDays(weekStart, 6), "MMM d, yyyy")}
+          {format(weekStart, "MMM d")} -{" "}
+          {format(addDays(weekStart, 6), "MMM d, yyyy")}
         </div>
       </div>
 
@@ -94,7 +95,7 @@ export function WeekView({ slots, onSlotClick, isLoading }: WeekViewProps) {
             <div
               key={dayIndex}
               className={cn(
-                "min-h-[200px] rounded-2xl border border-white/60 bg-white/50 backdrop-blur-sm p-3",
+                "min-h-[200px] rounded-2xl border border-white/60 bg-white/50 p-3 backdrop-blur-sm",
                 isToday && "border-primary ring-2 ring-primary/20"
               )}
             >

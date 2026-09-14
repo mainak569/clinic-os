@@ -2,16 +2,17 @@
 
 ## Timeline
 
-Built solo across 11 sessions, roughly 20-26 hours total. The first 10 sessions built the feature set; Session 11 was a dedicated audit pass that found and fixed real inconsistencies between the schema, backend and frontend (see below) and grew the test suite from 99 to 179 tests.
+Built solo across 12 sessions, roughly 15-18 hours total. The first 10 sessions built the core feature set; Session 11 was a dedicated audit pass that found and fixed real inconsistencies between the schema, backend and frontend (see below) and grew the test suite from 99 to 179 tests; Session 12 added the authenticated dashboard AI assistant with role-scoped context, guardrails and tests, bringing the suite to 235. Later polish (faster dashboard loads, login-page demo accounts with a 5-provider limit, and a custom 404 page) brought it to 250.
 
-| Phase | Sessions | ~Hours | Built | Hardest part |
-|---|---|---|---|---|
-| Foundation | 1-2 | 4 | Project setup, Prisma schema, NextAuth v5 credentials auth, route protection | NextAuth v5's docs were sparse at the time; worked from v4 patterns and migrated |
-| Core domain | 3-5 | 7.5 | Appointment state machine, availability slots and bulk creation, visit notes with immutable history | State machine edge cases; availability checking was timezone-dependent until Session 11's wall-clock fix |
-| Value-add | 6-7 | 3.5 | Alert generation and de-duplication, analytics dashboard | De-duplication logic; making the dashboard queries fast with Prisma's `groupBy` |
-| Quality & security | 8-9 | 5.5 | Test suite (Jest, unit + integration against a real Postgres test DB), audit logging, rate limiting, security headers | Configuring a real test database rather than mocking everything |
-| Documentation | 10 | 1.5 | README, architecture and schema docs, deployment guide | — |
-| Consistency audit | 11 | 4 | Full backend/frontend/database consistency pass, live-verified against the running app and database | Finding issues that only showed up under real conditions (timezone, concurrency) — see below |
+| Phase              | Sessions | ~Hours | Built                                                                                                                                                   | Hardest part                                                                                                                           |
+| ------------------ | -------- | ------ | ------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
+| Foundation         | 1-2      | 2.5    | Project setup, Prisma schema, NextAuth v5 credentials auth, route protection                                                                            | NextAuth v5's docs were sparse at the time; worked from v4 patterns and migrated                                                       |
+| Core domain        | 3-5      | 4.5    | Appointment state machine, availability slots and bulk creation, visit notes with immutable history                                                     | State machine edge cases; availability checking was timezone-dependent until Session 11's wall-clock fix                               |
+| Value-add          | 6-7      | 2      | Alert generation and de-duplication, analytics dashboard                                                                                                | De-duplication logic; making the dashboard queries fast with Prisma's `groupBy`                                                        |
+| Quality & security | 8-9      | 3      | Test suite (Jest, unit + integration against a real Postgres test DB), audit logging, rate limiting, security headers                                   | Configuring a real test database rather than mocking everything                                                                        |
+| Documentation      | 10       | 1      | README, architecture and schema docs, deployment guide                                                                                                  | —                                                                                                                                      |
+| Consistency audit  | 11       | 2      | Full backend/frontend/database consistency pass, live-verified against the running app and database                                                     | Finding issues that only showed up under real conditions (timezone, concurrency) — see below                                           |
+| AI Assistant       | 12       | 2      | Authenticated dashboard AI assistant: role-scoped context (today's schedule, no patient details), guardrails, streamed Markdown replies, chat interface | Streaming replies while dropping the model's separate reasoning tokens; keeping patient data out of what's sent to a third-party model |
 
 ## The Session 11 audit
 
@@ -23,19 +24,19 @@ Sessions 1-10 built features session by session; nothing had been checked end-to
 
 Cut for time, not because they weren't considered:
 
-| Feature | Why cut | Left in its place |
-|---|---|---|
-| Redis-backed rate limiting | Single-instance deployment doesn't need it yet | In-memory limiter, documented as a scaling limitation |
-| Cursor-based pagination | Offset pagination is fine below ~1,000 records | Offset pagination |
-| Session inactivity timeout | Non-critical for a demo | 30-day JWT expiry only |
-| Password complexity rules | Lower priority than core functionality | bcrypt hashing (all passwords), minimum length only |
-| Email/SMS notifications | Requires an external service and templates | Alerts shown in the dashboard only |
-| Multi-factor authentication | Out of scope for a prototype | — |
-| Patient portal | Doubles the scope of the project | Provider/front-desk interface only |
-| Appointment confirmation via emailed link | External email integration was too large a scope add | Manual confirmation from the dashboard |
-| Recurring appointment series | Edge cases outweighed the benefit for a demo | Appointments created individually |
-| Document/file upload for visit notes | File storage and access-control complexity | Text fields only |
-| Billing/payment processing | Requires PCI compliance, out of scope | Cost tracking field only, no payment flow |
+| Feature                                   | Why cut                                                       | Left in its place                                     |
+| ----------------------------------------- | ------------------------------------------------------------- | ----------------------------------------------------- |
+| Redis-backed rate limiting                | Single-instance deployment doesn't need it yet                | In-memory limiter, documented as a scaling limitation |
+| Cursor-based pagination                   | Offset pagination is fine below ~1,000 records                | Offset pagination                                     |
+| Session inactivity timeout                | Non-critical for a demo                                       | 30-day JWT expiry only                                |
+| Password complexity rules                 | Lower priority than core functionality                        | bcrypt hashing (all passwords), minimum length only   |
+| Email/SMS notifications                   | Requires an external service and templates                    | Alerts shown in the dashboard only                    |
+| Multi-factor authentication               | Out of scope for a prototype                                  | —                                                     |
+| Patient portal                            | Doubles the scope of the project                              | Provider/front-desk interface only                    |
+| Appointment confirmation via emailed link | External email integration was too large a scope add          | Manual confirmation from the dashboard                |
+| Recurring appointment series              | Edge cases outweighed the benefit for a demo                  | Appointments created individually                     |
+| Document/file upload for visit notes      | File storage and access-control complexity                    | Text fields only                                      |
+| Billing/payment processing                | Requires payment infrastructure and additional security scope | Cost tracking field only, no payment flow             |
 
 Full list of what this means for a real deployment: [Scope & Future Work](../SUBMISSION.md#scope--future-work).
 
@@ -47,12 +48,12 @@ Full list of what this means for a real deployment: [Scope & Future Work](../SUB
 
 ## What's next / self-assessment
 
-- [What Would You Do Next, With Another 27-30 Hours?](../SUBMISSION.md#what-would-you-do-next-with-another-27-30-hours) — SUBMISSION.md is the canonical answer.
+- [What Would You Do Next, With Another 12 Hours?](../SUBMISSION.md#what-would-you-do-next-with-another-12-hours) — SUBMISSION.md is the canonical answer.
 - [Honest Self-Assessment](../SUBMISSION.md#honest-self-assessment) — SUBMISSION.md is the canonical answer.
 
 ## Overall assessment
 
-**Status: feature-complete as a demonstration.** The core appointment-management workflow works end to end, with role-based access, audit logging, and data-integrity safeguards (state machine, double-booking protection, timezone-independent availability), backed by 179 automated tests.
+**Status: feature-complete as a demonstration.** The core appointment-management workflow works end to end, with role-based access, audit logging, and data-integrity safeguards (state machine, double-booking protection, timezone-independent availability) and a role-scoped AI assistant, backed by 250 automated tests.
 
 **Not production-ready, and not for use with real patient data.** This is a student/prototype project. It has not undergone HIPAA compliance validation, and is missing what a real clinic deployment would need first: session inactivity timeouts, password complexity and MFA, encryption at rest, distributed rate limiting, audit log retention, backup and recovery, and email notifications — full list in [Scope & Future Work](../SUBMISSION.md#scope--future-work).
 

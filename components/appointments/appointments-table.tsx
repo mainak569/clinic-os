@@ -47,7 +47,12 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { statusBadge, statusLabel, STATUS_ORDER, APPOINTMENT_STATUS } from "@/lib/appointment-status";
+import {
+  statusBadge,
+  statusLabel,
+  STATUS_ORDER,
+  APPOINTMENT_STATUS,
+} from "@/lib/appointment-status";
 import { getAppointments, getProviders } from "@/app/actions/queries.actions";
 import {
   confirmAppointment,
@@ -66,7 +71,10 @@ interface AppointmentsTableProps {
   providerId?: string;
 }
 
-export function AppointmentsTable({ userRole, providerId }: AppointmentsTableProps) {
+export function AppointmentsTable({
+  userRole,
+  providerId,
+}: AppointmentsTableProps) {
   const [appointments, setAppointments] = useState<any[]>([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
@@ -87,7 +95,9 @@ export function AppointmentsTable({ userRole, providerId }: AppointmentsTablePro
   const [detailsDialogOpen, setDetailsDialogOpen] = useState(false);
   const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
   const [noShowDialogOpen, setNoShowDialogOpen] = useState(false);
-  const [selectedAppointmentId, setSelectedAppointmentId] = useState<string | null>(null);
+  const [selectedAppointmentId, setSelectedAppointmentId] = useState<
+    string | null
+  >(null);
 
   const loadAppointments = async () => {
     setIsLoading(true);
@@ -96,8 +106,16 @@ export function AppointmentsTable({ userRole, providerId }: AppointmentsTablePro
         page,
         pageSize,
         search: search || undefined,
-        providerId: userRole === "PROVIDER" ? providerId : (providerFilter !== "all" ? providerFilter : undefined),
-        status: statusFilter !== "all" ? (statusFilter as AppointmentStatus) : undefined,
+        providerId:
+          userRole === "PROVIDER"
+            ? providerId
+            : providerFilter !== "all"
+              ? providerFilter
+              : undefined,
+        status:
+          statusFilter !== "all"
+            ? (statusFilter as AppointmentStatus)
+            : undefined,
         startDate: startDate ? new Date(startDate) : undefined,
         endDate: endDate ? new Date(endDate) : undefined,
       });
@@ -170,7 +188,11 @@ export function AppointmentsTable({ userRole, providerId }: AppointmentsTablePro
   // and clock rules the service enforces (lib/appointment-rules.ts).
   const can = (
     action: AppointmentAction,
-    appointment: { status: string; scheduledAt: Date | string; duration: number }
+    appointment: {
+      status: string;
+      scheduledAt: Date | string;
+      duration: number;
+    }
   ) => canPerform(action, appointment);
 
   if (isLoading && appointments.length === 0) {
@@ -189,7 +211,7 @@ export function AppointmentsTable({ userRole, providerId }: AppointmentsTablePro
   return (
     <div className="space-y-4">
       {/* Filters and Actions */}
-      <div className="flex flex-col sm:flex-row gap-4">
+      <div className="flex flex-col gap-4 sm:flex-row">
         {/* Search */}
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
@@ -304,7 +326,7 @@ export function AppointmentsTable({ userRole, providerId }: AppointmentsTablePro
       </div>
 
       {/* Table */}
-      <div className="rounded-2xl border border-white/60 overflow-hidden">
+      <div className="overflow-hidden rounded-2xl border border-white/60">
         <Table>
           <TableHeader>
             <TableRow>
@@ -321,9 +343,11 @@ export function AppointmentsTable({ userRole, providerId }: AppointmentsTablePro
               <TableRow>
                 <TableCell colSpan={6} className="h-24 text-center">
                   <div className="flex flex-col items-center justify-center text-muted-foreground">
-                    <Calendar className="h-8 w-8 mb-2" />
+                    <Calendar className="mb-2 h-8 w-8" />
                     <p>No appointments found</p>
-                    <p className="text-sm">Try adjusting your filters or create a new appointment</p>
+                    <p className="text-sm">
+                      Try adjusting your filters or create a new appointment
+                    </p>
                   </div>
                 </TableCell>
               </TableRow>
@@ -333,7 +357,8 @@ export function AppointmentsTable({ userRole, providerId }: AppointmentsTablePro
                   <TableCell>
                     <div>
                       <div className="font-medium">
-                        {appointment.patient.firstName} {appointment.patient.lastName}
+                        {appointment.patient.firstName}{" "}
+                        {appointment.patient.lastName}
                       </div>
                       {appointment.patient.email && (
                         <div className="text-sm text-muted-foreground">
@@ -346,17 +371,25 @@ export function AppointmentsTable({ userRole, providerId }: AppointmentsTablePro
                     <div className="flex items-center gap-2">
                       <User className="h-4 w-4 text-muted-foreground" />
                       <span>
-                        {appointment.provider.title} {appointment.provider.firstName} {appointment.provider.lastName}
+                        {appointment.provider.title}{" "}
+                        {appointment.provider.firstName}{" "}
+                        {appointment.provider.lastName}
                       </span>
                     </div>
                   </TableCell>
                   <TableCell>
                     <div className="flex items-start gap-2">
-                      <Clock className="h-4 w-4 text-muted-foreground mt-0.5" />
+                      <Clock className="mt-0.5 h-4 w-4 text-muted-foreground" />
                       <div>
-                        <div>{format(new Date(appointment.scheduledAt), "MMM d, yyyy")}</div>
+                        <div>
+                          {format(
+                            new Date(appointment.scheduledAt),
+                            "MMM d, yyyy"
+                          )}
+                        </div>
                         <div className="text-sm text-muted-foreground">
-                          {format(new Date(appointment.scheduledAt), "h:mm a")} ({appointment.duration} min)
+                          {format(new Date(appointment.scheduledAt), "h:mm a")}{" "}
+                          ({appointment.duration} min)
                         </div>
                       </div>
                     </div>
@@ -393,28 +426,34 @@ export function AppointmentsTable({ userRole, providerId }: AppointmentsTablePro
                           View Details
                         </DropdownMenuItem>
                         <DropdownMenuSeparator />
-                        
+
                         {can("confirm", appointment) && (
-                          <DropdownMenuItem onClick={() => handleConfirm(appointment.id)}>
+                          <DropdownMenuItem
+                            onClick={() => handleConfirm(appointment.id)}
+                          >
                             <Check className="mr-2 h-4 w-4" />
                             Confirm
                           </DropdownMenuItem>
                         )}
-                        
+
                         {can("checkIn", appointment) && (
-                          <DropdownMenuItem onClick={() => handleCheckIn(appointment.id)}>
+                          <DropdownMenuItem
+                            onClick={() => handleCheckIn(appointment.id)}
+                          >
                             <UserCheck className="mr-2 h-4 w-4" />
                             Check In
                           </DropdownMenuItem>
                         )}
-                        
+
                         {can("complete", appointment) && (
-                          <DropdownMenuItem onClick={() => handleComplete(appointment.id)}>
+                          <DropdownMenuItem
+                            onClick={() => handleComplete(appointment.id)}
+                          >
                             <CheckCircle className="mr-2 h-4 w-4" />
                             Complete
                           </DropdownMenuItem>
                         )}
-                        
+
                         {can("noShow", appointment) && (
                           <DropdownMenuItem
                             onClick={() => {
@@ -426,7 +465,7 @@ export function AppointmentsTable({ userRole, providerId }: AppointmentsTablePro
                             Mark No-Show
                           </DropdownMenuItem>
                         )}
-                        
+
                         {can("cancel", appointment) && (
                           <>
                             <DropdownMenuSeparator />
@@ -456,7 +495,8 @@ export function AppointmentsTable({ userRole, providerId }: AppointmentsTablePro
       {totalPages > 1 && (
         <div className="flex items-center justify-between">
           <div className="text-sm text-muted-foreground">
-            Showing {(page - 1) * pageSize + 1} to {Math.min(page * pageSize, total)} of {total} appointments
+            Showing {(page - 1) * pageSize + 1} to{" "}
+            {Math.min(page * pageSize, total)} of {total} appointments
           </div>
           <div className="flex items-center gap-2">
             <Button

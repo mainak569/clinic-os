@@ -6,7 +6,7 @@ import { availabilityService } from "@/lib/services/availability.service";
 
 /**
  * Bulk Availability Service Layer
- * 
+ *
  * Handles bulk creation of recurring availability slots
  * Provides collision detection and detailed reporting
  */
@@ -48,7 +48,7 @@ export interface DailyScheduleEntry {
 export class BulkAvailabilityService {
   /**
    * Create recurring availability slots
-   * 
+   *
    * Generates slots for specified days of week within date range
    * Handles collision detection and provides detailed reporting
    */
@@ -116,7 +116,8 @@ export class BulkAvailabilityService {
           dayOfWeek,
           startTime: input.startTime,
           endTime: input.endTime,
-          reason: error instanceof Error ? error.message : "Unknown error occurred",
+          reason:
+            error instanceof Error ? error.message : "Unknown error occurred",
         });
         errors++;
       }
@@ -136,7 +137,7 @@ export class BulkAvailabilityService {
 
   /**
    * Get daily schedule for export
-   * 
+   *
    * Returns all availability slots grouped by date
    */
   async getDailySchedule(
@@ -253,7 +254,10 @@ export class BulkAvailabilityService {
   async deleteBulkAvailability(input: {
     providerId: string;
     daysOfWeek: DayOfWeek[];
-  }): Promise<{ archived: number; skipped: Array<{ slotId: string; reason: string }> }> {
+  }): Promise<{
+    archived: number;
+    skipped: Array<{ slotId: string; reason: string }>;
+  }> {
     const slots = await prisma.availabilitySlot.findMany({
       where: {
         providerId: input.providerId,
@@ -273,14 +277,14 @@ export class BulkAvailabilityService {
       } catch (error) {
         skipped.push({
           slotId: slot.id,
-          reason: error instanceof Error ? error.message : "Unknown error occurred",
+          reason:
+            error instanceof Error ? error.message : "Unknown error occurred",
         });
       }
     }
 
     return { archived, skipped };
   }
-
 
   /**
    * Generate all dates within range (for schedule export)
@@ -321,7 +325,10 @@ export class BulkAvailabilityService {
           },
           // New slot ends during existing slot
           {
-            AND: [{ startTime: { lt: endTime } }, { endTime: { gte: endTime } }],
+            AND: [
+              { startTime: { lt: endTime } },
+              { endTime: { gte: endTime } },
+            ],
           },
           // New slot completely contains existing slot
           {
@@ -359,7 +366,10 @@ export class BulkAvailabilityService {
             ],
           },
           {
-            AND: [{ startTime: { lt: endTime } }, { endTime: { gte: endTime } }],
+            AND: [
+              { startTime: { lt: endTime } },
+              { endTime: { gte: endTime } },
+            ],
           },
           {
             AND: [
@@ -404,7 +414,10 @@ export class BulkAvailabilityService {
             ],
           },
           {
-            AND: [{ startTime: { lt: endTime } }, { endTime: { gte: endTime } }],
+            AND: [
+              { startTime: { lt: endTime } },
+              { endTime: { gte: endTime } },
+            ],
           },
           {
             AND: [
@@ -453,7 +466,10 @@ export class BulkAvailabilityService {
       // doesn't catch, since it only looks at active slots. Restore the
       // archived slot instead of leaking the raw constraint error into the
       // caller's "skipped" reason.
-      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
+      if (
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === "P2002"
+      ) {
         const existing = await prisma.availabilitySlot.findFirst({
           where: { providerId, dayOfWeek, startTime, endTime },
         });
@@ -483,8 +499,6 @@ export class BulkAvailabilityService {
     ];
     return days[date.getUTCDay()];
   }
-
-
 
   /**
    * Format date for CSV/JSON (YYYY-MM-DD)

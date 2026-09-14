@@ -14,12 +14,11 @@ import {
   markAlertRead,
   dismissAlert,
   markAllAlertsRead,
-  getUnreadAlertCount,
 } from "@/app/actions/alert.actions";
 
 /**
  * Alert Panel Component
- * 
+ *
  * Displays appointment alerts with priority indicators
  * Shows REQUESTED appointments within 24 hours and 1 hour before
  */
@@ -34,11 +33,9 @@ export function AlertPanel() {
       const result = await getMyAlerts(false); // Only unread
       if (result.success) {
         setAlerts(result.data);
-      }
-
-      const countResult = await getUnreadAlertCount();
-      if (countResult.success) {
-        setUnreadCount(countResult.data);
+        // The unread count is the length of this same list (see
+        // alertService.getUnreadCount), so it isn't fetched a second time.
+        setUnreadCount(result.data.length);
       }
     } catch (error) {
       console.error(error);
@@ -148,11 +145,7 @@ export function AlertPanel() {
             )}
           </CardTitle>
           {alerts.length > 0 && (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={handleMarkAllRead}
-            >
+            <Button variant="ghost" size="sm" onClick={handleMarkAllRead}>
               Mark all read
             </Button>
           )}
@@ -162,18 +155,18 @@ export function AlertPanel() {
         {alerts.map((alert) => (
           <div
             key={alert.id}
-            className="rounded-2xl border border-white/60 bg-white/50 backdrop-blur-sm p-4 space-y-2"
+            className="space-y-2 rounded-2xl border border-white/60 bg-white/50 p-4 backdrop-blur-sm"
           >
             <div className="flex items-start justify-between gap-2">
-              <div className="flex items-start gap-3 flex-1">
+              <div className="flex flex-1 items-start gap-3">
                 {alert.priority === "HIGH" || alert.priority === "CRITICAL" ? (
-                  <AlertCircle className="h-5 w-5 text-orange-600 shrink-0 mt-0.5" />
+                  <AlertCircle className="mt-0.5 h-5 w-5 shrink-0 text-orange-600" />
                 ) : (
-                  <Clock className="h-5 w-5 text-blue-600 shrink-0 mt-0.5" />
+                  <Clock className="mt-0.5 h-5 w-5 shrink-0 text-blue-600" />
                 )}
                 <div className="flex-1 space-y-2">
                   <div className="flex items-center gap-2">
-                    <h4 className="font-semibold text-sm">{alert.title}</h4>
+                    <h4 className="text-sm font-semibold">{alert.title}</h4>
                     <Badge
                       variant="outline"
                       className={getPriorityColor(alert.priority)}

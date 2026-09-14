@@ -3,21 +3,28 @@
 import { canAccessProviderData, requireAuth } from "@/lib/auth-helpers";
 import { appointmentService } from "@/lib/services/appointment.service";
 import { prisma } from "@/lib/prisma";
-import { startOfClinicDay, endOfClinicDay, startOfClinicWeek, endOfClinicWeek } from "@/lib/clinic-time";
+import {
+  startOfClinicDay,
+  endOfClinicDay,
+  startOfClinicWeek,
+  endOfClinicWeek,
+} from "@/lib/clinic-time";
 import { serializeAppointment } from "@/lib/serialize";
 import { actionErrorMessage } from "@/lib/action-error";
-import { escapeLikeWildcards } from "@/lib/db-search";
-import { getAppointmentsSchema, type GetAppointmentsInput } from "@/lib/validations/appointment";
+import { wordsMatchAnyField } from "@/lib/db-search";
+import {
+  getAppointmentsSchema,
+  type GetAppointmentsInput,
+} from "@/lib/validations/appointment";
 
 /**
  * Query Actions for Dashboard
- * 
+ *
  * Read-only actions for fetching dashboard data
  */
 
 type ActionResult<T> =
-  | { success: true; data: T }
-  | { success: false; error: string };
+  { success: true; data: T } | { success: false; error: string };
 
 /**
  * Get dashboard statistics for today
@@ -53,58 +60,62 @@ export async function getDashboardStats(): Promise<
         ? { providerId: session.user.providerId }
         : {};
 
-    const [appointmentsToday, checkedInToday, noShowsThisWeek, upcomingAppointments] =
-      await Promise.all([
-        // Appointments today
-        prisma.appointment.count({
-          where: {
-            ...whereClause,
-            scheduledAt: {
-              gte: todayStart,
-              lte: todayEnd,
-            },
-            status: {
-              in: ["REQUESTED", "CONFIRMED", "CHECKED_IN"],
-            },
+    const [
+      appointmentsToday,
+      checkedInToday,
+      noShowsThisWeek,
+      upcomingAppointments,
+    ] = await Promise.all([
+      // Appointments today
+      prisma.appointment.count({
+        where: {
+          ...whereClause,
+          scheduledAt: {
+            gte: todayStart,
+            lte: todayEnd,
           },
-        }),
-        // Checked in today
-        prisma.appointment.count({
-          where: {
-            ...whereClause,
-            checkedInAt: {
-              gte: todayStart,
-              lte: todayEnd,
-            },
-            // Everyone who arrived today, including those already seen.
-            // Counting only CHECKED_IN made the number drop as visits finished.
-            status: { in: ["CHECKED_IN", "COMPLETED"] },
+          status: {
+            in: ["REQUESTED", "CONFIRMED", "CHECKED_IN"],
           },
-        }),
-        // No shows this week
-        prisma.appointment.count({
-          where: {
-            ...whereClause,
-            status: "NO_SHOW",
-            scheduledAt: {
-              gte: weekStart,
-              lte: weekEnd,
-            },
+        },
+      }),
+      // Checked in today
+      prisma.appointment.count({
+        where: {
+          ...whereClause,
+          checkedInAt: {
+            gte: todayStart,
+            lte: todayEnd,
           },
-        }),
-        // Upcoming appointments (future)
-        prisma.appointment.count({
-          where: {
-            ...whereClause,
-            scheduledAt: {
-              gt: now,
-            },
-            status: {
-              in: ["REQUESTED", "CONFIRMED"],
-            },
+          // Everyone who arrived today, including those already seen.
+          // Counting only CHECKED_IN made the number drop as visits finished.
+          status: { in: ["CHECKED_IN", "COMPLETED"] },
+        },
+      }),
+      // No shows this week
+      prisma.appointment.count({
+        where: {
+          ...whereClause,
+          status: "NO_SHOW",
+          scheduledAt: {
+            gte: weekStart,
+            lte: weekEnd,
           },
-        }),
-      ]);
+        },
+      }),
+      // Upcoming appointments (future)
+      prisma.appointment.count({
+        where: {
+          ...whereClause,
+          scheduledAt: {
+            gt: now,
+          },
+          status: {
+            in: ["REQUESTED", "CONFIRMED"],
+          },
+        },
+      }),
+    ]);
 
     return {
       success: true,
@@ -127,9 +138,7 @@ export async function getDashboardStats(): Promise<
 /**
  * Get appointments with filters and pagination
  */
-export async function getAppointments(
-  params: GetAppointmentsInput
-): Promise<
+export async function getAppointments(params: GetAppointmentsInput): Promise<
   ActionResult<{
     appointments: any[];
     total: number;
@@ -177,17 +186,15 @@ export async function getAppointments(
       }
     }
 
-    // Search filter (patient name). Escaped so a literal "%" or "_" in the
-    // search box is matched literally rather than as a SQL wildcard.
+    // Search filter (patient name or email). Every word must match, so a full
+    // name like "John Davis" works; each word is escaped so "%" or "_" is
+    // matched literally rather than as a SQL wildcard.
     if (validated.search) {
-      const likeSearch = escapeLikeWildcards(validated.search);
-      whereClause.patient = {
-        OR: [
-          { firstName: { contains: likeSearch, mode: "insensitive" } },
-          { lastName: { contains: likeSearch, mode: "insensitive" } },
-          { email: { contains: likeSearch, mode: "insensitive" } },
-        ],
-      };
+      whereClause.patient = wordsMatchAnyField(validated.search, [
+        "firstName",
+        "lastName",
+        "email",
+      ]);
     }
 
     // Fetch appointments with pagination
@@ -335,8 +342,7 @@ export async function getCalendarAppointments(params: {
     console.error("getCalendarAppointments error:", error);
     return {
       success: false,
-      error:
-        actionErrorMessage(error, "Failed to fetch calendar appointments"),
+      error: actionErrorMessage(error, "Failed to fetch calendar appointments"),
     };
   }
 }
@@ -350,7 +356,8 @@ export async function getAppointmentById(
   try {
     await requireAuth();
 
-    const appointment = await appointmentService.getAppointmentDetails(appointmentId);
+    const appointment =
+      await appointmentService.getAppointmentDetails(appointmentId);
 
     if (!appointment) {
       return { success: false, error: "Appointment not found" };

@@ -9,22 +9,48 @@ import { format } from "date-fns";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from "@/components/ui/card";
+import {
+  Form,
+  FormControl,
+  FormDescription,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { bulkCreateAvailability } from "@/app/actions/bulk-availability.actions";
 
 /**
  * Bulk Availability Form Component
- * 
+ *
  * Allows front desk to create recurring availability slots
  * Shows collision detection and detailed results
  */
 
 const formSchema = z.object({
   providerId: z.string().min(1),
-  daysOfWeek: z.array(z.enum(["MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY", "SATURDAY", "SUNDAY"])).min(1),
+  daysOfWeek: z
+    .array(
+      z.enum([
+        "MONDAY",
+        "TUESDAY",
+        "WEDNESDAY",
+        "THURSDAY",
+        "FRIDAY",
+        "SATURDAY",
+        "SUNDAY",
+      ])
+    )
+    .min(1),
   startTime: z.string().regex(/^\d{2}:\d{2}$/),
   endTime: z.string().regex(/^\d{2}:\d{2}$/),
   overwriteExisting: z.boolean(),
@@ -37,7 +63,10 @@ interface BulkAvailabilityFormProps {
   providerName: string;
 }
 
-export function BulkAvailabilityForm({ providerId, providerName }: BulkAvailabilityFormProps) {
+export function BulkAvailabilityForm({
+  providerId,
+  providerName,
+}: BulkAvailabilityFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [result, setResult] = useState<any>(null);
 
@@ -65,10 +94,7 @@ export function BulkAvailabilityForm({ providerId, providerName }: BulkAvailabil
   const toggleDay = (day: string) => {
     const current = form.getValues("daysOfWeek");
     if (current.includes(day as any)) {
-      form.setValue(
-        "daysOfWeek",
-        current.filter((d) => d !== day) as any
-      );
+      form.setValue("daysOfWeek", current.filter((d) => d !== day) as any);
     } else {
       form.setValue("daysOfWeek", [...current, day] as any);
     }
@@ -112,7 +138,8 @@ export function BulkAvailabilityForm({ providerId, providerName }: BulkAvailabil
         <CardHeader>
           <CardTitle>Create Recurring Weekly Availability</CardTitle>
           <CardDescription>
-            Set up {providerName}&apos;s recurring weekly schedule. These time slots will repeat every week.
+            Set up {providerName}&apos;s recurring weekly schedule. These time
+            slots will repeat every week.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -126,7 +153,8 @@ export function BulkAvailabilityForm({ providerId, providerName }: BulkAvailabil
                   <FormItem>
                     <FormLabel>Days of Week</FormLabel>
                     <FormDescription>
-                      Select days when the provider is available (repeats every week)
+                      Select days when the provider is available (repeats every
+                      week)
                     </FormDescription>
                     <FormControl>
                       <div className="flex flex-wrap gap-2">
@@ -198,7 +226,8 @@ export function BulkAvailabilityForm({ providerId, providerName }: BulkAvailabil
                       <div>
                         <FormLabel>Overwrite Existing Slots</FormLabel>
                         <FormDescription className="text-xs">
-                          Archive existing availability for these days/times and create new ones
+                          Archive existing availability for these days/times and
+                          create new ones
                         </FormDescription>
                       </div>
                       <FormControl>
@@ -231,7 +260,7 @@ export function BulkAvailabilityForm({ providerId, providerName }: BulkAvailabil
           <CardContent className="space-y-4">
             {/* Summary */}
             <div className="grid gap-3 md:grid-cols-3">
-              <div className="rounded-2xl border border-green-200 bg-green-50/70 backdrop-blur-sm p-3">
+              <div className="rounded-2xl border border-green-200 bg-green-50/70 p-3 backdrop-blur-sm">
                 <div className="flex items-center gap-2">
                   <CheckCircle2 className="h-4 w-4 text-green-600" />
                   <span className="text-sm font-medium">Created</span>
@@ -241,7 +270,7 @@ export function BulkAvailabilityForm({ providerId, providerName }: BulkAvailabil
                 </p>
               </div>
 
-              <div className="rounded-2xl border border-amber-200 bg-amber-50/70 backdrop-blur-sm p-3">
+              <div className="rounded-2xl border border-amber-200 bg-amber-50/70 p-3 backdrop-blur-sm">
                 <div className="flex items-center gap-2">
                   <AlertCircle className="h-4 w-4 text-amber-600" />
                   <span className="text-sm font-medium">Skipped</span>
@@ -251,7 +280,7 @@ export function BulkAvailabilityForm({ providerId, providerName }: BulkAvailabil
                 </p>
               </div>
 
-              <div className="rounded-2xl border border-purple-200 bg-purple-50/70 backdrop-blur-sm p-3">
+              <div className="rounded-2xl border border-purple-200 bg-purple-50/70 p-3 backdrop-blur-sm">
                 <div className="flex items-center gap-2">
                   <Calendar className="h-4 w-4 text-blue-600" />
                   <span className="text-sm font-medium">Total</span>
@@ -265,7 +294,7 @@ export function BulkAvailabilityForm({ providerId, providerName }: BulkAvailabil
             {/* Skipped Details */}
             {result.skipped.length > 0 && (
               <div className="space-y-2">
-                <h4 className="font-semibold text-sm">Skipped Slots</h4>
+                <h4 className="text-sm font-semibold">Skipped Slots</h4>
                 <div className="max-h-60 space-y-2 overflow-y-auto">
                   {result.skipped.map((skip: any, index: number) => (
                     <div
@@ -275,9 +304,10 @@ export function BulkAvailabilityForm({ providerId, providerName }: BulkAvailabil
                       <div className="flex items-start justify-between">
                         <div>
                           <p className="font-medium">
-                            {skip.dayOfWeek.charAt(0) + skip.dayOfWeek.slice(1).toLowerCase()}
+                            {skip.dayOfWeek.charAt(0) +
+                              skip.dayOfWeek.slice(1).toLowerCase()}
                           </p>
-                          <p className="text-muted-foreground text-xs">
+                          <p className="text-xs text-muted-foreground">
                             {skip.reason}
                           </p>
                         </div>

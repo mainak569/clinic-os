@@ -24,6 +24,9 @@ model User {
   id           String   @id @default(cuid())
   email        String   @unique
   passwordHash String   @map("password_hash")
+  /// Readable copy of the password for demo accounts listed on the public
+  /// login page. NULL means the account isn't listed. Sign-in uses passwordHash.
+  demoPassword String?  @map("demo_password")
   role         Role     @default(FRONT_DESK)
   isActive     Boolean  @default(true) @map("is_active")
   lastLogin    DateTime? @map("last_login")
@@ -419,7 +422,7 @@ model Alert {
 
 
 // ============================================================================
-// HIPAA AUDIT LOGGING
+// SECURITY AUDIT LOGGING
 // ============================================================================
 
 enum AuditAction {

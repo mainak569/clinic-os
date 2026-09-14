@@ -36,7 +36,9 @@ export function SchedulePageClient({
     router.push(`/dashboard/schedule?provider=${newProviderId}`);
   };
 
-  const selectedProvider = allProviders.find((p) => p.id === selectedProviderId);
+  const selectedProvider = allProviders.find(
+    (p) => p.id === selectedProviderId
+  );
   const selectedProviderName = selectedProvider
     ? `${selectedProvider.firstName} ${selectedProvider.lastName}`
     : providerName;
@@ -59,7 +61,10 @@ export function SchedulePageClient({
               value={selectedProviderId}
               onValueChange={handleProviderChange}
             >
-              <SelectTrigger id="provider-select" className="w-full sm:w-[15rem]">
+              <SelectTrigger
+                id="provider-select"
+                className="w-full sm:w-[15rem]"
+              >
                 <SelectValue placeholder="Choose a provider" />
               </SelectTrigger>
               <SelectContent>

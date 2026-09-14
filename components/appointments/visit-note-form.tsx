@@ -5,11 +5,24 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { format } from "date-fns";
-import { Save, FileText, Stethoscope, ClipboardList, Calendar as CalendarIcon, Loader2 } from "lucide-react";
+import {
+  Save,
+  FileText,
+  Stethoscope,
+  ClipboardList,
+  Calendar as CalendarIcon,
+  Loader2,
+} from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from "@/components/ui/card";
 import {
   Form,
   FormControl,
@@ -22,11 +35,18 @@ import {
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Calendar } from "@/components/ui/calendar";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
-import { createVisitNote, updateVisitNote } from "@/app/actions/visit-note.actions";
+import {
+  createVisitNote,
+  updateVisitNote,
+} from "@/app/actions/visit-note.actions";
 import {
   BLOOD_PRESSURE_RE,
   VITAL_BOUNDS,
@@ -36,7 +56,7 @@ import {
 
 /**
  * Visit Note Form Component
- * 
+ *
  * Professional clinical documentation interface
  * Supports SOAP format + vitals + orders
  */
@@ -47,11 +67,19 @@ function vitalString(key: keyof typeof VITAL_BOUNDS) {
   return z
     .string()
     .optional()
-    .refine((v) => {
-      if (!v?.trim()) return true;
-      const n = Number(v);
-      return Number.isFinite(n) && n >= min && n <= max && (!integer || Number.isInteger(n));
-    }, `${label} must be ${integer ? "a whole number " : "a number "}between ${min} and ${max}`);
+    .refine(
+      (v) => {
+        if (!v?.trim()) return true;
+        const n = Number(v);
+        return (
+          Number.isFinite(n) &&
+          n >= min &&
+          n <= max &&
+          (!integer || Number.isInteger(n))
+        );
+      },
+      `${label} must be ${integer ? "a whole number " : "a number "}between ${min} and ${max}`
+    );
 }
 
 const visitNoteFormSchema = z.object({
@@ -61,29 +89,32 @@ const visitNoteFormSchema = z.object({
   physicalExam: z.string().optional(),
   assessment: z.string().optional(),
   plan: z.string().optional(),
-  
+
   // Vital Signs - same bounds as the server (lib/validations/visit-note.ts)
   bloodPressure: z
     .string()
     .optional()
-    .refine((v) => !v?.trim() || BLOOD_PRESSURE_RE.test(v.trim()), "Blood pressure must look like 120/80"),
+    .refine(
+      (v) => !v?.trim() || BLOOD_PRESSURE_RE.test(v.trim()),
+      "Blood pressure must look like 120/80"
+    ),
   heartRate: vitalString("heartRate"),
   temperature: vitalString("temperature"),
   respiratoryRate: vitalString("respiratoryRate"),
   oxygenSaturation: vitalString("oxygenSaturation"),
   weight: vitalString("weight"),
   height: vitalString("height"),
-  
+
   // Orders & Treatment
   prescriptions: z.string().optional(),
   labOrders: z.string().optional(),
   imagingOrders: z.string().optional(),
   referrals: z.string().optional(),
-  
+
   // Follow-up
   followUpInstructions: z.string().optional(),
   nextVisitDate: z.date().optional(),
-  
+
   // Amendment reason (for updates only)
   changeReason: z.string().optional(),
 });
@@ -131,7 +162,9 @@ export function VisitNoteForm({
       imagingOrders: existingNote?.imagingOrders || "",
       referrals: existingNote?.referrals || "",
       followUpInstructions: existingNote?.followUpInstructions || "",
-      nextVisitDate: existingNote?.nextVisitDate ? new Date(existingNote.nextVisitDate) : undefined,
+      nextVisitDate: existingNote?.nextVisitDate
+        ? new Date(existingNote.nextVisitDate)
+        : undefined,
       changeReason: "",
     },
   });
@@ -456,7 +489,12 @@ export function VisitNoteForm({
                   <FormItem>
                     <FormLabel>Temperature</FormLabel>
                     <FormControl>
-                      <Input type="number" step="0.1" placeholder="98.6" {...field} />
+                      <Input
+                        type="number"
+                        step="0.1"
+                        placeholder="98.6"
+                        {...field}
+                      />
                     </FormControl>
                     <FormDescription className="text-xs">°F</FormDescription>
                     <FormMessage />
@@ -473,7 +511,9 @@ export function VisitNoteForm({
                     <FormControl>
                       <Input type="number" placeholder="16" {...field} />
                     </FormControl>
-                    <FormDescription className="text-xs">breaths/min</FormDescription>
+                    <FormDescription className="text-xs">
+                      breaths/min
+                    </FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -501,7 +541,12 @@ export function VisitNoteForm({
                   <FormItem>
                     <FormLabel>Weight</FormLabel>
                     <FormControl>
-                      <Input type="number" step="0.1" placeholder="150" {...field} />
+                      <Input
+                        type="number"
+                        step="0.1"
+                        placeholder="150"
+                        {...field}
+                      />
                     </FormControl>
                     <FormDescription className="text-xs">lbs</FormDescription>
                     <FormMessage />
@@ -516,9 +561,16 @@ export function VisitNoteForm({
                   <FormItem>
                     <FormLabel>Height</FormLabel>
                     <FormControl>
-                      <Input type="number" step="0.1" placeholder="68" {...field} />
+                      <Input
+                        type="number"
+                        step="0.1"
+                        placeholder="68"
+                        {...field}
+                      />
                     </FormControl>
-                    <FormDescription className="text-xs">inches</FormDescription>
+                    <FormDescription className="text-xs">
+                      inches
+                    </FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -680,7 +732,12 @@ export function VisitNoteForm({
         {/* Actions */}
         <div className="flex items-center justify-end gap-3">
           {onCancel && (
-            <Button type="button" variant="outline" onClick={onCancel} disabled={isSubmitting}>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={onCancel}
+              disabled={isSubmitting}
+            >
               Cancel
             </Button>
           )}

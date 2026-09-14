@@ -9,20 +9,19 @@ const alertIdSchema = z.string().min(1).max(100);
 
 /**
  * Alert Server Actions
- * 
+ *
  * Handles alert management and generation
  */
 
 type ActionResult<T> =
-  | { success: true; data: T }
-  | { success: false; error: string };
+  { success: true; data: T } | { success: false; error: string };
 
 /**
  * Get alerts for current provider
  */
-export async function getMyAlerts(includeRead = false): Promise<
-  ActionResult<any[]>
-> {
+export async function getMyAlerts(
+  includeRead = false
+): Promise<ActionResult<any[]>> {
   try {
     const session = await requireAuth();
 
@@ -65,7 +64,9 @@ export async function getUnreadAlertCount(): Promise<ActionResult<number>> {
 /**
  * Mark alert as read
  */
-export async function markAlertRead(alertId: string): Promise<ActionResult<{ id: string }>> {
+export async function markAlertRead(
+  alertId: string
+): Promise<ActionResult<{ id: string }>> {
   try {
     const session = await requireAuth();
 
@@ -90,7 +91,9 @@ export async function markAlertRead(alertId: string): Promise<ActionResult<{ id:
 /**
  * Mark all alerts as read
  */
-export async function markAllAlertsRead(): Promise<ActionResult<{ count: number }>> {
+export async function markAllAlertsRead(): Promise<
+  ActionResult<{ count: number }>
+> {
   try {
     const session = await requireAuth();
 
@@ -114,7 +117,9 @@ export async function markAllAlertsRead(): Promise<ActionResult<{ count: number 
 /**
  * Dismiss alert
  */
-export async function dismissAlert(alertId: string): Promise<ActionResult<{ id: string }>> {
+export async function dismissAlert(
+  alertId: string
+): Promise<ActionResult<{ id: string }>> {
   try {
     const session = await requireAuth();
 

@@ -32,7 +32,9 @@ import { appointmentService } from "@/lib/services/appointment.service";
 import { getAppointmentById } from "@/app/actions/queries.actions";
 
 const signInAs = (role: "PROVIDER" | "FRONT_DESK", providerId: string | null) =>
-  mockAuth.mockResolvedValue({ user: { id: `user-${role}`, role, providerId } });
+  mockAuth.mockResolvedValue({
+    user: { id: `user-${role}`, role, providerId },
+  });
 
 const appointmentFor = (providerId: string) => ({
   id: "appt-1",
@@ -46,22 +48,32 @@ const appointmentFor = (providerId: string) => ({
       id: "h1",
       action: "CREATED",
       performedAt: new Date("2026-09-16T05:30:00Z"),
-      performer: { id: "user-FRONT_DESK", email: "frontdesk@clinicos.com", provider: null },
+      performer: {
+        id: "user-FRONT_DESK",
+        email: "frontdesk@clinicos.com",
+        provider: null,
+      },
     },
   ],
 });
 
 describe("canWriteVisitNote", () => {
   it("allows the appointment's own provider", () => {
-    expect(canWriteVisitNote("PROVIDER", "provider-a", "provider-a")).toBe(true);
+    expect(canWriteVisitNote("PROVIDER", "provider-a", "provider-a")).toBe(
+      true
+    );
   });
 
   it("refuses a different provider", () => {
-    expect(canWriteVisitNote("PROVIDER", "provider-b", "provider-a")).toBe(false);
+    expect(canWriteVisitNote("PROVIDER", "provider-b", "provider-a")).toBe(
+      false
+    );
   });
 
   it("refuses front desk, who can only read notes", () => {
-    expect(canWriteVisitNote("FRONT_DESK", undefined, "provider-a")).toBe(false);
+    expect(canWriteVisitNote("FRONT_DESK", undefined, "provider-a")).toBe(
+      false
+    );
   });
 
   it("refuses a provider account with no linked provider", () => {
@@ -70,10 +82,18 @@ describe("canWriteVisitNote", () => {
   });
 
   it("only once the patient has checked in", () => {
-    expect(canWriteVisitNote("PROVIDER", "provider-a", "provider-a", "REQUESTED")).toBe(false);
-    expect(canWriteVisitNote("PROVIDER", "provider-a", "provider-a", "CONFIRMED")).toBe(false);
-    expect(canWriteVisitNote("PROVIDER", "provider-a", "provider-a", "CHECKED_IN")).toBe(true);
-    expect(canWriteVisitNote("PROVIDER", "provider-a", "provider-a", "COMPLETED")).toBe(true);
+    expect(
+      canWriteVisitNote("PROVIDER", "provider-a", "provider-a", "REQUESTED")
+    ).toBe(false);
+    expect(
+      canWriteVisitNote("PROVIDER", "provider-a", "provider-a", "CONFIRMED")
+    ).toBe(false);
+    expect(
+      canWriteVisitNote("PROVIDER", "provider-a", "provider-a", "CHECKED_IN")
+    ).toBe(true);
+    expect(
+      canWriteVisitNote("PROVIDER", "provider-a", "provider-a", "COMPLETED")
+    ).toBe(true);
   });
 });
 
@@ -88,16 +108,22 @@ describe("AppointmentService.getAppointmentDetails", () => {
 
     const args = mockFindUnique.mock.calls[0][0] as any;
     expect(args.where).toEqual({ id: "appt-1" });
-    expect(args.include.appointmentHistory.orderBy).toEqual({ performedAt: "asc" });
+    expect(args.include.appointmentHistory.orderBy).toEqual({
+      performedAt: "asc",
+    });
   });
 
   it("selects only safe performer fields, never the whole user record", async () => {
     await appointmentService.getAppointmentDetails("appt-1");
 
-    const performer = (mockFindUnique.mock.calls[0][0] as any).include.appointmentHistory
-      .include.performer;
+    const performer = (mockFindUnique.mock.calls[0][0] as any).include
+      .appointmentHistory.include.performer;
     expect(performer.select).toBeDefined();
-    expect(Object.keys(performer.select).sort()).toEqual(["email", "id", "provider"]);
+    expect(Object.keys(performer.select).sort()).toEqual([
+      "email",
+      "id",
+      "provider",
+    ]);
   });
 });
 

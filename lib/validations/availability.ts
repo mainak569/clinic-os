@@ -53,7 +53,15 @@ export const restoreAvailabilitySlotSchema = z.object({
   slotId: z.string().min(1, "Invalid slot ID"),
 });
 
-export type CreateAvailabilitySlotInput = z.infer<typeof createAvailabilitySlotSchema>;
-export type UpdateAvailabilitySlotInput = z.infer<typeof updateAvailabilitySlotSchema>;
-export type ArchiveAvailabilitySlotInput = z.infer<typeof archiveAvailabilitySlotSchema>;
-export type RestoreAvailabilitySlotInput = z.infer<typeof restoreAvailabilitySlotSchema>;
+export type CreateAvailabilitySlotInput = z.infer<
+  typeof createAvailabilitySlotSchema
+>;
+export type UpdateAvailabilitySlotInput = z.infer<
+  typeof updateAvailabilitySlotSchema
+>;
+export type ArchiveAvailabilitySlotInput = z.infer<
+  typeof archiveAvailabilitySlotSchema
+>;
+export type RestoreAvailabilitySlotInput = z.infer<
+  typeof restoreAvailabilitySlotSchema
+>;

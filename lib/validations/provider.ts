@@ -8,8 +8,19 @@ import { z } from "zod";
  * all three so the form, the action and the database agree on every field.
  */
 
+/**
+ * Most providers the clinic can have active at once. Deactivated providers
+ * don't count, so deactivating one makes room for another.
+ */
+export const MAX_ACTIVE_PROVIDERS = 5;
+
 const optionalText = (max: number) =>
-  z.string().trim().max(max, `Must be ${max} characters or fewer`).optional().or(z.literal(""));
+  z
+    .string()
+    .trim()
+    .max(max, `Must be ${max} characters or fewer`)
+    .optional()
+    .or(z.literal(""));
 
 export const providerProfileSchema = z.object({
   specialization: optionalText(120),
@@ -50,6 +61,8 @@ export const createProviderSchema = z.object({
     .string()
     .min(8, "Password must be at least 8 characters")
     .max(128, "Password is too long"),
+  // Lists the email and password on the public login page as a demo account.
+  showOnLogin: z.boolean().optional(),
 });
 
 export const updateProviderSchema = z.object({
@@ -59,8 +72,13 @@ export const updateProviderSchema = z.object({
   password: z
     .string()
     .max(128, "Password is too long")
-    .refine((v) => v === "" || v.length >= 8, "Password must be at least 8 characters")
+    .refine(
+      (v) => v === "" || v.length >= 8,
+      "Password must be at least 8 characters"
+    )
     .optional(),
+  // Omitted keeps the current setting.
+  showOnLogin: z.boolean().optional(),
 });
 
 export const setProviderActiveSchema = z.object({

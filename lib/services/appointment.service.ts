@@ -11,7 +11,10 @@ import {
   AppointmentNotFoundError,
   InvalidTransitionError,
 } from "@/lib/errors/appointment-errors";
-import { actionBlockedReason, type AppointmentAction } from "@/lib/appointment-rules";
+import {
+  actionBlockedReason,
+  type AppointmentAction,
+} from "@/lib/appointment-rules";
 import { availabilityService } from "./availability.service";
 
 /** Longest visit the booking form allows (matches createAppointmentSchema). */
@@ -19,7 +22,7 @@ const MAX_APPOINTMENT_MINUTES = 240;
 
 /**
  * Appointment Service Layer
- * 
+ *
  * Handles all business logic for appointment management
  * Enforces state machine transitions and business rules
  * Separated from authorization - call with pre-authorized data
@@ -43,7 +46,7 @@ export class AppointmentService {
 
   /**
    * Create a new appointment in REQUESTED status
-   * 
+   *
    * @throws Error if provider is not available at the requested time
    */
   async createAppointment(
@@ -70,56 +73,63 @@ export class AppointmentService {
 
     if (!isAvailable) {
       throw new Error(
-        "Provider is not available at the requested time. Please go to the Schedule page to set up provider availability first, or choose a time that matches existing availability slots."
+        await availabilityService.describeUnavailability(
+          input.providerId,
+          input.scheduledAt,
+          input.duration
+        )
       );
     }
 
     // Conflict check and insert happen under one per-provider lock, so two
     // simultaneous requests for the same slot can't both pass the check.
-    const appointment = await this.withProviderLock(input.providerId, async (tx) => {
-      const hasConflict = await this.hasSchedulingConflict(
-        input.providerId,
-        input.scheduledAt,
-        input.duration,
-        undefined,
-        tx
-      );
-
-      if (hasConflict) {
-        throw new Error(
-          "This time slot conflicts with an existing appointment. Please choose a different time."
+    const appointment = await this.withProviderLock(
+      input.providerId,
+      async (tx) => {
+        const hasConflict = await this.hasSchedulingConflict(
+          input.providerId,
+          input.scheduledAt,
+          input.duration,
+          undefined,
+          tx
         );
+
+        if (hasConflict) {
+          throw new Error(
+            "This time slot conflicts with an existing appointment. Please choose a different time."
+          );
+        }
+
+        const created = await tx.appointment.create({
+          data: {
+            patientId: input.patientId,
+            providerId: input.providerId,
+            scheduledAt: input.scheduledAt,
+            duration: input.duration,
+            type: input.type,
+            status: "REQUESTED",
+            reason: input.reason,
+            notes: input.notes || null,
+          },
+          include: {
+            patient: true,
+            provider: true,
+          },
+        });
+
+        await this.createHistoryEntry(
+          tx,
+          created.id,
+          "CREATED",
+          null,
+          "REQUESTED",
+          "Appointment created",
+          performedBy
+        );
+
+        return created;
       }
-
-      const created = await tx.appointment.create({
-        data: {
-          patientId: input.patientId,
-          providerId: input.providerId,
-          scheduledAt: input.scheduledAt,
-          duration: input.duration,
-          type: input.type,
-          status: "REQUESTED",
-          reason: input.reason,
-          notes: input.notes || null,
-        },
-        include: {
-          patient: true,
-          provider: true,
-        },
-      });
-
-      await this.createHistoryEntry(
-        tx,
-        created.id,
-        "CREATED",
-        null,
-        "REQUESTED",
-        "Appointment created",
-        performedBy
-      );
-
-      return created;
-    });
+    );
 
     return appointment;
   }
@@ -139,7 +149,11 @@ export class AppointmentService {
     // The status write and its history entry commit or fail together, so a
     // successful transition can never be missing its audit-trail row.
     return prisma.$transaction(async (tx) => {
-      const updated = await this.updateIfUnchanged(appointment, { status: "CONFIRMED" }, tx);
+      const updated = await this.updateIfUnchanged(
+        appointment,
+        { status: "CONFIRMED" },
+        tx
+      );
 
       await this.createHistoryEntry(
         tx,
@@ -223,7 +237,7 @@ export class AppointmentService {
 
   /**
    * Transition: CONFIRMED → NO_SHOW
-   * 
+   *
    * Rules:
    * - Can only be marked NO_SHOW from CONFIRMED status
    * - Can only be marked NO_SHOW after the scheduled time has passed
@@ -266,7 +280,7 @@ export class AppointmentService {
 
   /**
    * Transition: * → CANCELLED (before CHECKED_IN)
-   * 
+   *
    * Rules:
    * - Cannot cancel after CHECKED_IN
    * - Cannot cancel if already in terminal state (COMPLETED, NO_SHOW, CANCELLED)
@@ -303,7 +317,8 @@ export class AppointmentService {
         appointment,
         {
           status: "CANCELLED",
-          notes: `${appointment.notes || ""}\nCANCELLED: ${cancellationReason}`.trim(),
+          notes:
+            `${appointment.notes || ""}\nCANCELLED: ${cancellationReason}`.trim(),
         },
         tx
       );
@@ -324,7 +339,7 @@ export class AppointmentService {
 
   /**
    * Reschedule an appointment
-   * 
+   *
    * Rules:
    * - Cannot reschedule if COMPLETED, NO_SHOW, or CANCELLED, or once CHECKED_IN
    * - The new time can't be in the past; patient and provider must still be bookable
@@ -362,7 +377,11 @@ export class AppointmentService {
 
     if (!isAvailable) {
       throw new Error(
-        "Provider is not available at the requested time. Please go to the Schedule page to set up provider availability first, or choose a time that matches existing availability slots."
+        await availabilityService.describeUnavailability(
+          appointment.providerId,
+          newScheduledAt,
+          appointment.duration
+        )
       );
     }
 
@@ -530,7 +549,10 @@ export class AppointmentService {
   }
 
   /** Enforce the clock rules in lib/appointment-rules.ts. */
-  private assertTiming(action: AppointmentAction, appointment: Appointment): void {
+  private assertTiming(
+    action: AppointmentAction,
+    appointment: Appointment
+  ): void {
     const reason = actionBlockedReason(action, appointment);
     if (reason) {
       throw new AppointmentError(reason);
@@ -557,7 +579,10 @@ export class AppointmentService {
         include: { patient: true, provider: true },
       });
     } catch (error) {
-      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2025") {
+      if (
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === "P2025"
+      ) {
         throw new AppointmentError(
           "This appointment was just changed by someone else. Refresh and try again."
         );
@@ -657,10 +682,19 @@ export class AppointmentService {
    * Without this, a deleted patient could still be booked by id, and a missing
    * id surfaced as a raw foreign-key error from the database.
    */
-  private async assertBookable(patientId: string, providerId: string): Promise<void> {
+  private async assertBookable(
+    patientId: string,
+    providerId: string
+  ): Promise<void> {
     const [patient, provider] = await Promise.all([
-      prisma.patient.findUnique({ where: { id: patientId }, select: { isActive: true } }),
-      prisma.provider.findUnique({ where: { id: providerId }, select: { isActive: true } }),
+      prisma.patient.findUnique({
+        where: { id: patientId },
+        select: { isActive: true },
+      }),
+      prisma.provider.findUnique({
+        where: { id: providerId },
+        select: { isActive: true },
+      }),
     ]);
 
     if (!patient) {
@@ -675,7 +709,9 @@ export class AppointmentService {
       throw new Error("Provider not found.");
     }
     if (!provider.isActive) {
-      throw new Error("This provider is inactive and can't take new appointments.");
+      throw new Error(
+        "This provider is inactive and can't take new appointments."
+      );
     }
   }
 

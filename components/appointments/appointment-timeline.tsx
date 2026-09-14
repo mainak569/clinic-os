@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 
 /**
  * Appointment Timeline Component
- * 
+ *
  * Displays immutable history of appointment changes
  * Shows status changes, provider changes, and notes
  */
@@ -36,7 +36,10 @@ interface AppointmentTimelineProps {
   className?: string;
 }
 
-const ACTION_LABELS: Record<string, { label: string; icon: any; color: string }> = {
+const ACTION_LABELS: Record<
+  string,
+  { label: string; icon: any; color: string }
+> = {
   CREATED: {
     label: "Appointment Created",
     icon: Calendar,
@@ -118,7 +121,7 @@ export function AppointmentTimeline({
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <p className="text-muted-foreground text-sm">No history available</p>
+          <p className="text-sm text-muted-foreground">No history available</p>
         </CardContent>
       </Card>
     );
@@ -138,7 +141,7 @@ export function AppointmentTimeline({
       <CardContent>
         <div className="relative space-y-4">
           {/* Timeline line */}
-          <div className="absolute left-[9px] top-2 bottom-2 w-px bg-border" />
+          <div className="absolute bottom-2 left-[9px] top-2 w-px bg-border" />
 
           {events.map((event) => {
             const actionConfig = ACTION_LABELS[event.action] || {
@@ -164,7 +167,7 @@ export function AppointmentTimeline({
                   <div className="flex items-start justify-between gap-4">
                     <div className="flex items-center gap-2">
                       <Icon className={`h-4 w-4 ${actionConfig.color}`} />
-                      <h4 className="font-semibold text-sm">
+                      <h4 className="text-sm font-semibold">
                         {actionConfig.label}
                       </h4>
                     </div>
@@ -191,14 +194,16 @@ export function AppointmentTimeline({
 
                   {/* Field change details */}
                   {event.field && (
-                    <div className="rounded-xl bg-white/50 p-2 text-xs space-y-1">
+                    <div className="space-y-1 rounded-xl bg-white/50 p-2 text-xs">
                       <div className="font-medium text-muted-foreground">
                         Field: {event.field}
                       </div>
                       {event.previousValue && (
                         <div>
                           <span className="text-muted-foreground">From:</span>{" "}
-                          <span className="font-mono">{event.previousValue}</span>
+                          <span className="font-mono">
+                            {event.previousValue}
+                          </span>
                         </div>
                       )}
                       {event.newValue && (
@@ -213,7 +218,7 @@ export function AppointmentTimeline({
                   {/* Notes/reason */}
                   {event.notes && (
                     <div className="rounded-xl bg-white/50 p-2 text-xs">
-                      <div className="font-medium text-muted-foreground mb-1">
+                      <div className="mb-1 font-medium text-muted-foreground">
                         Notes:
                       </div>
                       <div className="text-foreground">{event.notes}</div>
@@ -226,11 +231,11 @@ export function AppointmentTimeline({
         </div>
 
         {/* Immutability notice */}
-        <div className="mt-6 rounded-2xl border border-purple-200 bg-purple-50/70 backdrop-blur-sm p-3">
+        <div className="mt-6 rounded-2xl border border-purple-200 bg-purple-50/70 p-3 backdrop-blur-sm">
           <div className="flex gap-2">
-            <AlertCircle className="h-4 w-4 text-[#A855F7] mt-0.5" />
+            <AlertCircle className="mt-0.5 h-4 w-4 text-[#A855F7]" />
             <div className="text-xs text-purple-900">
-              <p className="font-semibold mb-1">Immutable Audit Trail</p>
+              <p className="mb-1 font-semibold">Immutable Audit Trail</p>
               <p>
                 This history cannot be modified or deleted. All changes are
                 permanently recorded for compliance and regulatory purposes.

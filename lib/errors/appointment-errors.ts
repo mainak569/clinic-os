@@ -1,6 +1,6 @@
 /**
  * Custom Error Classes for Appointment Domain
- * 
+ *
  * Provides type-safe error handling with descriptive messages
  */
 
@@ -47,7 +47,9 @@ export class AvailabilitySlotNotFoundError extends AvailabilityError {
 }
 
 export class UnauthorizedAvailabilityAccessError extends AvailabilityError {
-  constructor(message = "You are not authorized to modify this availability slot") {
+  constructor(
+    message = "You are not authorized to modify this availability slot"
+  ) {
     super(message);
     this.name = "UnauthorizedAvailabilityAccessError";
   }

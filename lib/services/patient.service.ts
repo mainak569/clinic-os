@@ -1,7 +1,7 @@
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import type { Patient, Appointment } from "@prisma/client";
-import { escapeLikeWildcards } from "@/lib/db-search";
+import { wordsMatchAnyField } from "@/lib/db-search";
 
 /**
  * Patient Service Layer
@@ -71,13 +71,20 @@ function toData(input: PatientFields) {
 
 /** Turn a unique-constraint violation into a message a person can act on. */
 function friendlyWriteError(error: unknown): never {
-  if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
+  if (
+    error instanceof Prisma.PrismaClientKnownRequestError &&
+    error.code === "P2002"
+  ) {
     const target = String((error.meta as { target?: unknown })?.target ?? "");
     if (target.includes("email")) {
-      throw new Error("A patient with this email already exists. Please use a different email address.");
+      throw new Error(
+        "A patient with this email already exists. Please use a different email address."
+      );
     }
     if (target.includes("phone")) {
-      throw new Error("A patient with this phone number already exists. Please use a different phone number.");
+      throw new Error(
+        "A patient with this phone number already exists. Please use a different phone number."
+      );
     }
     throw new Error("A patient with these details already exists.");
   }
@@ -93,19 +100,29 @@ export class PatientService {
    *
    * @returns the patient, and whether an archived record was restored
    */
-  async createPatient(input: PatientFields): Promise<Patient & { restored?: boolean }> {
+  async createPatient(
+    input: PatientFields
+  ): Promise<Patient & { restored?: boolean }> {
     const data = toData(input);
 
     const [byEmail, byPhone] = await Promise.all([
-      data.email ? prisma.patient.findUnique({ where: { email: data.email } }) : null,
-      data.phone ? prisma.patient.findUnique({ where: { phone: data.phone } }) : null,
+      data.email
+        ? prisma.patient.findUnique({ where: { email: data.email } })
+        : null,
+      data.phone
+        ? prisma.patient.findUnique({ where: { phone: data.phone } })
+        : null,
     ]);
 
     if (byEmail?.isActive) {
-      throw new Error("A patient with this email already exists. Please use a different email address.");
+      throw new Error(
+        "A patient with this email already exists. Please use a different email address."
+      );
     }
     if (byPhone?.isActive) {
-      throw new Error("A patient with this phone number already exists. Please use a different phone number.");
+      throw new Error(
+        "A patient with this phone number already exists. Please use a different phone number."
+      );
     }
 
     const archived = byEmail ?? byPhone;
@@ -135,7 +152,10 @@ export class PatientService {
   /**
    * Update an existing patient
    */
-  async updatePatient(patientId: string, input: PatientFields): Promise<Patient> {
+  async updatePatient(
+    patientId: string,
+    input: PatientFields
+  ): Promise<Patient> {
     const existingPatient = await this.getPatientById(patientId);
     if (!existingPatient) {
       throw new Error("Patient not found");
@@ -145,7 +165,9 @@ export class PatientService {
 
     // The unique index covers archived records too, so check every other row.
     if (data.email && data.email !== existingPatient.email) {
-      const duplicate = await prisma.patient.findUnique({ where: { email: data.email } });
+      const duplicate = await prisma.patient.findUnique({
+        where: { email: data.email },
+      });
       if (duplicate && duplicate.id !== patientId) {
         throw new Error(
           duplicate.isActive
@@ -156,7 +178,9 @@ export class PatientService {
     }
 
     if (data.phone && data.phone !== existingPatient.phone) {
-      const duplicate = await prisma.patient.findUnique({ where: { phone: data.phone } });
+      const duplicate = await prisma.patient.findUnique({
+        where: { phone: data.phone },
+      });
       if (duplicate && duplicate.id !== patientId) {
         throw new Error(
           duplicate.isActive
@@ -287,13 +311,13 @@ export class PatientService {
 
     const query = params.query?.trim();
     if (query) {
-      const likeQuery = escapeLikeWildcards(query);
-      whereClause.OR = [
-        { firstName: { contains: likeQuery, mode: "insensitive" } },
-        { lastName: { contains: likeQuery, mode: "insensitive" } },
-        { email: { contains: likeQuery, mode: "insensitive" } },
-        { phone: { contains: likeQuery, mode: "insensitive" } },
-      ];
+      // Every word must match a field, so a full name like "John Davis" works.
+      whereClause.AND = wordsMatchAnyField(query, [
+        "firstName",
+        "lastName",
+        "email",
+        "phone",
+      ]).AND as Prisma.PatientWhereInput[];
     }
 
     const [patients, total] = await Promise.all([

@@ -3,7 +3,12 @@
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Loader2, User, Calendar as CalendarIcon, AlertCircle } from "lucide-react";
+import {
+  Loader2,
+  User,
+  Calendar as CalendarIcon,
+  AlertCircle,
+} from "lucide-react";
 import { format } from "date-fns";
 import { useMutation } from "@/lib/hooks/use-mutation";
 import { toast } from "sonner";
@@ -60,7 +65,9 @@ export function CreateEditPatientDialog({
   const createMutation = useMutation(
     async (data: any) => {
       const payload = { ...data, ...(isEditMode && { id: patient.id }) };
-      return isEditMode ? await updatePatient(payload) : await createPatient(payload);
+      return isEditMode
+        ? await updatePatient(payload)
+        : await createPatient(payload);
     },
     {
       onSuccess: () => {
@@ -68,8 +75,11 @@ export function CreateEditPatientDialog({
         onSuccess();
         onOpenChange(false);
       },
-      successMessage: isEditMode ? "Patient updated successfully" : "Patient created successfully",
-      errorMessage: (error) => error || `Failed to ${isEditMode ? "update" : "create"} patient`,
+      successMessage: isEditMode
+        ? "Patient updated successfully"
+        : "Patient created successfully",
+      errorMessage: (error) =>
+        error || `Failed to ${isEditMode ? "update" : "create"} patient`,
       retryCount: 2,
     }
   );
@@ -81,7 +91,9 @@ export function CreateEditPatientDialog({
       lastName: patient?.lastName || "",
       email: patient?.email || "",
       phone: patient?.phone || "",
-      dateOfBirth: patient?.dateOfBirth ? new Date(patient.dateOfBirth) : undefined,
+      dateOfBirth: patient?.dateOfBirth
+        ? new Date(patient.dateOfBirth)
+        : undefined,
       address: patient?.address || "",
       city: patient?.city || "",
       state: patient?.state || "",
@@ -124,31 +136,30 @@ export function CreateEditPatientDialog({
   };
 
   // Handle form submission with validation error detection
-  const handleFormSubmit = form.handleSubmit(
-    onSubmit,
-    (errors) => {
-      // Get the first error
-      const firstErrorField = Object.keys(errors)[0] as keyof typeof errors;
-      if (firstErrorField) {
-        const errorTab = getTabForField(firstErrorField);
-        const errorMessage = errors[firstErrorField]?.message as string;
+  const handleFormSubmit = form.handleSubmit(onSubmit, (errors) => {
+    // Get the first error
+    const firstErrorField = Object.keys(errors)[0] as keyof typeof errors;
+    if (firstErrorField) {
+      const errorTab = getTabForField(firstErrorField);
+      const errorMessage = errors[firstErrorField]?.message as string;
 
-        // Show toast notification
-        toast.error("Validation Error", {
-          description: errorMessage || `Please check the ${errorTab.charAt(0).toUpperCase() + errorTab.slice(1)} tab for required fields.`,
-        });
+      // Show toast notification
+      toast.error("Validation Error", {
+        description:
+          errorMessage ||
+          `Please check the ${errorTab.charAt(0).toUpperCase() + errorTab.slice(1)} tab for required fields.`,
+      });
 
-        // Switch to the tab containing the error
-        if (errorTab !== activeTab) {
-          setActiveTab(errorTab);
-        }
+      // Switch to the tab containing the error
+      if (errorTab !== activeTab) {
+        setActiveTab(errorTab);
       }
     }
-  );
+  });
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-h-[90vh] max-w-3xl overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <User className="h-5 w-5" />
@@ -163,7 +174,11 @@ export function CreateEditPatientDialog({
 
         <Form {...form}>
           <form onSubmit={handleFormSubmit} className="space-y-6">
-            <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+            <Tabs
+              value={activeTab}
+              onValueChange={setActiveTab}
+              className="w-full"
+            >
               <TabsList className="grid w-full grid-cols-4">
                 <TabsTrigger value="basic">Basic Info</TabsTrigger>
                 <TabsTrigger value="contact">Contact</TabsTrigger>
@@ -348,8 +363,10 @@ export function CreateEditPatientDialog({
                   />
                 </div>
 
-                <div className="pt-4 border-t">
-                  <h4 className="text-sm font-medium mb-4">Emergency Contact</h4>
+                <div className="border-t pt-4">
+                  <h4 className="mb-4 text-sm font-medium">
+                    Emergency Contact
+                  </h4>
                   <div className="grid grid-cols-2 gap-4">
                     <FormField
                       control={form.control}
@@ -391,7 +408,10 @@ export function CreateEditPatientDialog({
                     <FormItem>
                       <FormLabel>Insurance Provider</FormLabel>
                       <FormControl>
-                        <Input placeholder="Blue Cross Blue Shield" {...field} />
+                        <Input
+                          placeholder="Blue Cross Blue Shield"
+                          {...field}
+                        />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -407,9 +427,7 @@ export function CreateEditPatientDialog({
                       <FormControl>
                         <Input placeholder="ABC123456789" {...field} />
                       </FormControl>
-                      <FormDescription>
-                        Member or policy number
-                      </FormDescription>
+                      <FormDescription>Member or policy number</FormDescription>
                       <FormMessage />
                     </FormItem>
                   )}
@@ -484,7 +502,7 @@ export function CreateEditPatientDialog({
               </Alert>
             )}
 
-            <div className="flex justify-end gap-3 pt-4 border-t">
+            <div className="flex justify-end gap-3 border-t pt-4">
               <Button
                 type="button"
                 variant="outline"
@@ -497,7 +515,9 @@ export function CreateEditPatientDialog({
                 Cancel
               </Button>
               <Button type="submit" disabled={createMutation.state.isLoading}>
-                {createMutation.state.isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                {createMutation.state.isLoading && (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                )}
                 {isEditMode ? "Update Patient" : "Create Patient"}
               </Button>
             </div>
