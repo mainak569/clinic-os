@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import { ArrowRight, CheckCircle, Play } from "lucide-react";
+import { ArrowRight, CheckCircle, Users } from "lucide-react";
 import Link from "next/link";
 
 export function Hero() {
@@ -23,9 +23,8 @@ export function Hero() {
 
           {/* Subheadline */}
           <p className="mx-auto mb-8 max-w-2xl text-lg leading-relaxed text-muted-foreground delay-200 duration-700 animate-in fade-in slide-in-from-bottom-4 md:text-xl">
-            Streamline your healthcare practice. Manage patients, appointments,
-            provider schedules and visit notes in one secure, healthcare
-            security platform.
+            Manage patients, appointments, provider schedules and visit notes in
+            one app, with role-based access and a full audit trail.
           </p>
 
           {/* CTA Buttons */}
@@ -47,11 +46,8 @@ export function Hero() {
               className="group w-full bg-white/50 shadow-lg backdrop-blur-sm md:w-auto"
             >
               <Link href="#demo" className="flex items-center">
-                <Play
-                  className="mr-2 h-4 w-4 transition-transform group-hover:scale-110"
-                  fill="currentColor"
-                />
-                Watch Demo
+                <Users className="mr-2 h-4 w-4 transition-transform group-hover:scale-110" />
+                Demo Accounts
               </Link>
             </Button>
           </div>
@@ -60,7 +56,7 @@ export function Hero() {
           <div className="mt-12 flex flex-wrap items-center justify-center gap-6 delay-500 duration-700 animate-in fade-in slide-in-from-bottom-4">
             <div className="flex cursor-default items-center gap-2 rounded-full bg-white/50 px-4 py-2.5 shadow-md backdrop-blur-sm transition-all hover:scale-105 hover:shadow-lg">
               <CheckCircle className="h-5 w-5 text-[#A855F7]" />
-              <span className="text-sm font-medium">healthcare security</span>
+              <span className="text-sm font-medium">Role-Based Access</span>
             </div>
             <div className="flex cursor-default items-center gap-2 rounded-full bg-white/50 px-4 py-2.5 shadow-md backdrop-blur-sm transition-all hover:scale-105 hover:shadow-lg">
               <CheckCircle className="h-5 w-5 text-[#A855F7]" />

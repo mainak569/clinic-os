@@ -33,10 +33,10 @@ export function Navbar() {
               Features
             </Link>
             <Link
-              href="#pricing"
+              href="#demo"
               className="rounded-full px-4 py-2 text-sm font-medium text-gray-700 transition-all hover:bg-white/60 hover:text-[#A855F7] hover:shadow-md"
             >
-              Pricing
+              Demo
             </Link>
             <Link
               href="#about"
@@ -94,11 +94,11 @@ export function Navbar() {
                 Features
               </Link>
               <Link
-                href="#pricing"
+                href="#demo"
                 className="block rounded-2xl px-4 py-3 text-base font-medium text-gray-700 transition-all hover:bg-white/60 hover:text-[#A855F7]"
                 onClick={() => setIsOpen(false)}
               >
-                Pricing
+                Demo
               </Link>
               <Link
                 href="#about"

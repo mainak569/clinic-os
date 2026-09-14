@@ -46,18 +46,18 @@ Sign in on the [live application](https://clinic-os-352p.vercel.app/login), or o
 
 ## Goal Checklist
 
-| #   | Goal                                 | Status   | Notes                                                                                                                                                                                                                         |
-| --- | ------------------------------------ | -------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 1   | User Authentication & Authorization  | Complete | NextAuth.js v5 with JWT sessions, bcrypt hashing, role-based access (PROVIDER, FRONT_DESK), provider data isolation                                                                                                           |
-| 2   | Appointment Management System        | Complete | State machine (6 states), duration-aware conflict detection, per-provider locking against concurrent double-booking, cancellation/no-show/reschedule tracking, time rules for check-in, completion, no-shows and cancellation |
-| 3   | Provider Scheduling & Availability   | Complete | Recurring weekly slots stored as clinic wall-clock time, bulk creation, overlap detection, availability checking before booking, provider management (add/edit/deactivate, at most 5 active)                                  |
-| 4   | Patient Record Management            | Complete | Demographics, medical history, emergency contacts, search by name/email/phone, soft delete with restore on re-registration                                                                                                    |
-| 5   | Clinical Documentation (Visit Notes) | Complete | SOAP format, range-checked vital signs, clearable fields, immutable history, amendment system with user attribution                                                                                                           |
-| 6   | Alerts & Notifications System        | Complete | 24-hour and 1-hour automated alerts, daily Vercel cron (Hobby plan limit), deduplication logic, dismissal tracking                                                                                                            |
-| 7   | Analytics Dashboard                  | Complete | Appointments by provider (bars) and status (donut), 8-week no-show trend, live counts for today's appointments and check-ins; colour-blind-checked status colours and screen-reader tables                                    |
-| 8   | Security-Focused Audit Logging       | Complete | Append-only audit trail for patient, appointment, visit note, and provider changes with user context (demonstration; not compliance-certified)                                                                                |
-| 9   | Security Implementation              | Complete | Rate limiting (100 req/min per IP on pages and sign-in), failed sign-in lockout, security headers, Zod validation before writes, server-side provider isolation, 401s from API routes without a session                       |
-| 10  | Responsive UI & Landing Page         | Complete | Glassmorphism design over an animated molten background (still frame for reduced motion, static fallback without WebGL2), pricing/about/demo-account sections, sticky navigation, responsive layout, custom 404 page          |
+| #   | Goal                                 | Status   | Notes                                                                                                                                                                                                                               |
+| --- | ------------------------------------ | -------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1   | User Authentication & Authorization  | Complete | NextAuth.js v5 with JWT sessions, bcrypt hashing, role-based access (PROVIDER, FRONT_DESK), provider data isolation                                                                                                                 |
+| 2   | Appointment Management System        | Complete | State machine (6 states), duration-aware conflict detection, per-provider locking against concurrent double-booking, cancellation/no-show/reschedule tracking, time rules for check-in, completion, no-shows and cancellation       |
+| 3   | Provider Scheduling & Availability   | Complete | Recurring weekly slots stored as clinic wall-clock time, bulk creation, overlap detection, availability checking before booking, provider management (add/edit/deactivate, at most 5 active)                                        |
+| 4   | Patient Record Management            | Complete | Demographics, medical history, emergency contacts, search by name/email/phone, soft delete with restore on re-registration                                                                                                          |
+| 5   | Clinical Documentation (Visit Notes) | Complete | SOAP format, range-checked vital signs, clearable fields, immutable history, amendment system with user attribution                                                                                                                 |
+| 6   | Alerts & Notifications System        | Complete | 24-hour and 1-hour automated alerts, daily Vercel cron (Hobby plan limit), deduplication logic, dismissal tracking                                                                                                                  |
+| 7   | Analytics Dashboard                  | Complete | Appointments by provider (bars) and status (donut), 8-week no-show trend, live counts for today's appointments and check-ins; colour-blind-checked status colours and screen-reader tables                                          |
+| 8   | Security-Focused Audit Logging       | Complete | Append-only audit trail for patient, appointment, visit note, and provider changes with user context (demonstration; not compliance-certified)                                                                                      |
+| 9   | Security Implementation              | Complete | Rate limiting (100 req/min per IP on pages and sign-in), failed sign-in lockout, security headers, Zod validation before writes, server-side provider isolation, 401s from API routes without a session                             |
+| 10  | Responsive UI & Landing Page         | Complete | Glassmorphism design over an animated molten background (still frame for reduced motion, static fallback without WebGL2), features, about, contact and demo-account sections, sticky navigation, responsive layout, custom 404 page |
 
 **Overall Progress**: 10/10 goals completed
 
@@ -152,7 +152,7 @@ Sign in on the [live application](https://clinic-os-352p.vercel.app/login), or o
 ### Responsive Landing Page
 
 - Glassmorphism design over an animated WebGL molten background, shared by every page
-- Fully responsive (mobile, tablet, desktop); pricing, about, demo-accounts and features sections
+- Fully responsive (mobile, tablet, desktop); features, about, contact and demo-account sections
 - A custom 404 page and an access-denied page in the same design
 
 ## Project Structure

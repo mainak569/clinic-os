@@ -1,15 +1,13 @@
 import {
   Calendar,
+  CalendarClock,
   FileText,
   Shield,
   Users,
-  CreditCard,
   BarChart3,
   Clock,
   Heart,
-  Stethoscope,
   Sparkles,
-  ChevronRight,
 } from "lucide-react";
 
 const features = [
@@ -24,24 +22,24 @@ const features = [
   {
     name: "Appointment Scheduling",
     description:
-      "Smart scheduling system with automated reminders, calendar integration, and waitlist management.",
+      "Booking inside each provider's working hours, with clash detection and a clear status flow from request to completed visit.",
     icon: Calendar,
     color: "purple",
     gradient: "from-purple-500 to-pink-500",
   },
   {
-    name: "Electronic Health Records",
+    name: "Visit Notes",
     description:
-      "Digital patient charts with customizable templates, e-prescriptions, and clinical decision support.",
+      "SOAP visit notes with range-checked vital signs and a full history of every edit.",
     icon: FileText,
     color: "green",
     gradient: "from-green-500 to-emerald-500",
   },
   {
-    name: "Billing & Payments",
+    name: "Provider Availability",
     description:
-      "Automated billing, insurance claims processing, and integrated payment solutions.",
-    icon: CreditCard,
+      "Weekly working hours for each provider, with bulk creation and CSV or JSON schedule export.",
+    icon: CalendarClock,
     color: "orange",
     gradient: "from-orange-500 to-amber-500",
   },
@@ -56,23 +54,23 @@ const features = [
   {
     name: "Analytics & Reporting",
     description:
-      "Real-time insights into practice performance, patient outcomes, and financial metrics.",
+      "Appointments by status and provider, today's activity and an 8-week no-show trend, scoped to each provider.",
     icon: BarChart3,
     color: "indigo",
     gradient: "from-indigo-500 to-blue-500",
   },
   {
-    name: "Telemedicine Ready",
+    name: "AI Assistant",
     description:
-      "Built-in video consultations with secure messaging and remote patient monitoring.",
-    icon: Stethoscope,
+      "A dashboard chat assistant for questions about schedules and clinic workflows. It can't change records.",
+    icon: Sparkles,
     color: "teal",
     gradient: "from-teal-500 to-cyan-500",
   },
   {
     name: "Appointment Reminders",
     description:
-      "Alerts for unconfirmed appointments 24 hours and 1 hour before they start.",
+      "In-app alerts for unconfirmed appointments, 24 hours and 1 hour before they start.",
     icon: Clock,
     color: "violet",
     gradient: "from-violet-500 to-purple-500",
@@ -93,15 +91,15 @@ export function Features() {
           </div>
 
           <h2 className="mb-6 text-4xl font-bold tracking-tight md:text-5xl lg:text-6xl">
-            Complete Healthcare
+            Core Clinic Workflows
             <span className="block bg-gradient-to-r from-purple-700 to-fuchsia-600 bg-clip-text text-transparent">
-              Practice Solution
+              In One Place
             </span>
           </h2>
 
           <p className="text-xl leading-relaxed text-muted-foreground">
-            From patient intake to billing, ClinicOS provides all the tools you
-            need to run a modern healthcare practice efficiently and securely.
+            From registering patients to writing visit notes, ClinicOS covers
+            the everyday work of a clinic, with role-based access built in.
           </p>
         </div>
 
@@ -122,9 +120,7 @@ export function Features() {
                     <div
                       className={`absolute inset-0 rounded-2xl bg-gradient-to-br ${feature.gradient} shadow-lg transition-transform duration-300 [transition-timing-function:cubic-bezier(0.83,0,0.17,1)] [will-change:transform] group-hover:[transform:rotate(8deg)_translate3d(-0.2em,-0.2em,0)]`}
                     />
-                    <div
-                      className="absolute inset-0 flex items-center justify-center rounded-2xl bg-white/15 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.35)] backdrop-blur-md transition-transform duration-300 [transition-timing-function:cubic-bezier(0.83,0,0.17,1)] [will-change:transform] group-hover:[transform:translate3d(0,0,0.5em)_scale(1.05)]"
-                    >
+                    <div className="absolute inset-0 flex items-center justify-center rounded-2xl bg-white/15 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.35)] backdrop-blur-md transition-transform duration-300 [transition-timing-function:cubic-bezier(0.83,0,0.17,1)] [will-change:transform] group-hover:[transform:translate3d(0,0,0.5em)_scale(1.05)]">
                       <feature.icon className="h-7 w-7 text-white drop-shadow-sm" />
                     </div>
                   </div>
@@ -138,12 +134,6 @@ export function Features() {
                     <p className="text-sm leading-relaxed text-muted-foreground">
                       {feature.description}
                     </p>
-                  </div>
-
-                  {/* Hover Arrow */}
-                  <div className="mt-6 flex items-center text-sm font-semibold text-purple-400 opacity-0 transition-opacity duration-300 group-hover:opacity-100">
-                    Learn more
-                    <ChevronRight className="ml-1 h-4 w-4 transition-transform group-hover:translate-x-1" />
                   </div>
 
                   {/* Corner Accent */}

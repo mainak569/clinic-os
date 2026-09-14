@@ -21,13 +21,13 @@ export function CTA() {
 
               {/* Headline */}
               <h2 className="mb-4 text-3xl font-bold tracking-tight text-white md:text-4xl lg:text-5xl">
-                Ready to Transform Your Practice?
+                Ready to Explore ClinicOS?
               </h2>
 
               {/* Subheadline */}
               <p className="mx-auto mb-8 max-w-2xl text-lg text-white/90 md:text-xl">
-                See how ClinicOS can streamline your operations and improve
-                patient care. Sign in with a demo account to explore.
+                Sign in with a demo account to try booking, scheduling, visit
+                notes and the dashboard.
               </p>
 
               {/* CTA Buttons */}
@@ -49,16 +49,16 @@ export function CTA() {
                   asChild
                   className="w-full bg-white/20 text-white backdrop-blur-sm hover:bg-white/30 md:w-auto"
                 >
-                  <Link href="#contact">Talk to Sales</Link>
+                  <Link href="#demo">Demo Accounts</Link>
                 </Button>
               </div>
 
               {/* Trust Indicators */}
               <div className="mt-12 flex flex-wrap items-center justify-center gap-6 text-sm text-white/80">
-                <div>- No setup fees</div>
-                <div>- 30-day free trial</div>
-                <div>- Cancel anytime</div>
-                <div>- HIPAA-oriented design</div>
+                <div>- Role-based access</div>
+                <div>- Full audit trail</div>
+                <div>- Provider data isolation</div>
+                <div>- Prototype, not for real patient data</div>
               </div>
             </div>
           </div>
