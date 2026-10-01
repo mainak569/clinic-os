@@ -35,6 +35,10 @@ Manage appointments, provider availability, patient records, visit notes and ana
 
 ---
 
+## Demo Video
+
+https://github.com/user-attachments/assets/29a99c81-71ea-48e7-8bca-bd2ba9b8e30f
+
 > **Note:** This project is a software engineering demonstration built to showcase healthcare application architecture, security practices, and scalable full-stack development patterns.
 
 ## Features
@@ -223,7 +227,7 @@ scripts/
   migrate-slot-times.ts # One-off data migration for availability slot times
 
 __tests__/
-  unit/                 # Unit tests (188)
+  unit/                 # Unit tests (199)
   integration/          # Integration tests (62)
 ```
 
@@ -258,9 +262,9 @@ npm run type-check       # TypeScript type check
 
 ## Testing
 
-The project includes **250 passing tests**:
+The project includes **261 passing tests**:
 
-- **Unit Tests (188)**: Validation schemas, appointment service rules (state machine, double-booking, archived patients, past bookings, per-provider locking), authorization helpers, clinic-time conversions, analytics provider isolation and summary counts, the appointment details view (visit-note permission, history loading, provider isolation), API routes answering 401 without a session, alert de-duplication and ownership, the cron secret, the failed sign-in lockout, appointment timing rules, the provider limit and login-page demo accounts, and the AI assistant (authentication, guardrails, role-scoped context with no patient data, streaming, rate limiting, key handling)
+- **Unit Tests (199)**: Validation schemas, appointment service rules (state machine, double-booking, archived patients, past bookings, per-provider locking), authorization helpers, clinic-time conversions, analytics provider isolation and summary counts, the appointment details view (visit-note permission, history loading, provider isolation), API routes answering 401 without a session, alert de-duplication and ownership, the cron secret, the failed sign-in lockout, appointment timing rules, the provider limit and login-page demo accounts, and the AI assistant (authentication, guardrails, role-scoped context with no patient data, streaming, rate limiting, key handling)
 - **Integration Tests (62)**: State machine transitions and timing rules, authorization boundaries, security controls, duplicate and concurrent booking prevention, end-to-end appointment workflows
 
 Run with `npm test`.

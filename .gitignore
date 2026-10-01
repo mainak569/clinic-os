@@ -233,4 +233,6 @@ storybook-static/
 # AI assistant tooling
 .agents/
 skills-lock.json
+# Demo video project (Remotion source + rendered output)
+video/
 
